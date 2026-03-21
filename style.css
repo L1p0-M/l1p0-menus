@@ -1,0 +1,257 @@
+*{
+    font-family: "Comic Sans MS";
+    all: unset;
+}
+
+.audio-window {
+    background-color: rgba(0, 0, 0, 0.1); /* Sötét, enyhén átlátszó háttér */
+    border-radius: 0px 30px 0px 30px;
+    border: 1px solid #FFFFFF;
+}
+
+.brightness-window {
+    background-color: rgba(0, 0, 0, 0.1); /* Sötét, enyhén átlátszó háttér */
+    border-radius: 0px 30px 0px 30px;
+    border: 1px solid #FFFFFF;
+}
+
+.calendar-window {
+    background-color: rgba(0, 0, 0, 0.1); /* Sötét, enyhén átlátszó háttér */
+    border-radius: 0px 30px 0px 30px;
+    border: 1px solid #FFFFFF;
+}
+
+
+notebook {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+notebook header {
+    background-color: rgba(45, 45, 67, 0.2);
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+tab {
+    font-weight: 900;
+    font-size: medium;
+    padding: 2px;
+    margin: 5px 5px 5px 5px;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 9999px;
+    border: none;
+}
+
+tab:checked {
+    border-bottom: 1px solid #005082;
+    color: #FFFFFF;
+    background-color: #005082;
+    border-radius: 999px;
+}
+tab:hover {
+    background-color: rgba(0, 80, 130, 0.2);
+    border-color: rgba(0, 80, 130, 0.2);
+    border-radius: 9999px;
+    transition: all .7s ease;
+}
+
+button {
+    background-color: rgba(45, 45, 67, 0.2);
+    color: white;
+    border-radius: 0px 15px 0px 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 5px;
+    font-weight: bold;
+}
+
+/*button:hover {
+    background-color: #005082;
+}*/
+
+button:checked {
+    background-color: rgba(0, 80, 130, 0.7);
+    color: #FFFFFF;
+}
+button:checked image {
+    color: #FFFFFF;
+}
+
+scale trough {
+    border-radius: 0px 20px 0px 20px;
+    background: rgba(255, 255, 255, 0.8);
+    color: #005082;
+    transition: all .7s ease;
+}
+
+scale highlight {
+    padding: 8px;
+    border: 1px solid #005082;
+    border-radius: 0px 20px 0px 20px;
+    transition: all .7s ease;
+    background: #005082;
+}
+scale contents trough slider {
+    min-height: 18px;
+    min-width: 18px;
+    margin: -10px;
+    margin-left: -20px;
+}
+scale trough highlight:hover {
+    padding: 8px;
+    background: #005082;
+    border: 1px solid #ffffff;
+    border-radius: 0px 20px 0px 20px;
+    transition: all .7s ease;
+}
+scale trough slider:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.volume-slider {
+    padding: 8px;
+    margin: 0px;
+    border-radius: 12px;
+    background: transparent;
+    color: #ffffff;
+    border: 0px solid #005082;
+}
+
+.volume-slider.muted highlight,
+.volume-slider.muted trough {
+    background-color: rgba(0, 80, 130, 0.3);
+
+}
+
+.percent-text {
+    font-weight: 900;
+    color: #FFFFFF;
+    font-size: 13px;
+}
+
+.device-switcher {
+    background-color: rgba(0, 80, 130, 0.4);
+    color: #ffffff;
+    border: 1px solid #FFFFFF;
+    border-radius: 0px 20px 0px 20px;
+    padding: 2px;
+    margin-top: 2px;
+    font-weight: 900;
+}
+
+
+.device-switcher:hover {
+    background-color: #45475a;
+    border: none;
+}
+
+
+menu {
+    background-color: rgba(45, 45, 67, 0.2);
+    border: 1px solid #FFFFFF;
+    box-shadow: none;
+    padding: 3px;
+    margin: 10px;
+    border-radius: 0px 20px 0px 20px;
+}
+
+menuitem {
+    padding: 5px 10px;
+    box-shadow: none;
+    color: #FFFFFF;
+    border-radius: 0px 20px 0px 20px;
+}
+
+menuitem:hover {
+    background-color: #005082;
+    color: #FFFFFF;
+}
+.device-switcher button {
+    background-color: transparent;
+    color: #FFFFFF;     
+    border-color: transparent;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.night-switch {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    min-width: 32px;
+    min-height: 10px;
+}
+.night-switch:checked {
+    background-color: #005082;
+}
+.night-switch:checked > slider {
+    background-color: #005082;
+    border: 1px solid #ffffff;
+    border-radius: 9999px;
+    min-width: 22px;
+    min-height: 22px;
+}
+.night-switch:hover > slider{
+    box-shadow: 0 0px 16px rgba(255, 255, 255, 0.5);
+}
+.night-switch > slider {
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 1px solid #ffffff;
+    border-radius: 9999px;
+    min-width: 22px;
+    min-height: 22px;
+}
+
+.night-switch > image {
+    color: transparent; }
+
+.clock {
+    font-size: 40px;
+    font-weight: 900;
+
+}
+
+.date {
+    font-size: 15px;
+    font-weight: 300;
+}
+
+.calendar {
+    background-color: rgba(45, 45, 67, 0.4);
+    color: #FFFFFF;
+    padding: 5px 5px 0px 5px;
+    font-size: 1.1em;
+    border-radius: 0px 10px 0px 10px;
+}
+
+/* 2. A fejléc (Hónap és év választó) */
+/* GTK3-ban ez egy belső név: .header */
+.calendar.header {
+    background-color: #313244;
+    color: #89b4fa;
+    border-bottom: 1px solid #45475a;
+}
+
+/* 3. A napok nevei (H, K, Sze...) */
+/* Erre a .highlight osztály szolgál GTK3-ban */
+.calendar.highlight {
+    color: #ffffff;
+    font-variant: small-caps;
+    background-color: #005082;
+    border-radius: 0px 0px 10px 10px;
+}
+
+/* 4. A hét száma (ha be van kapcsolva) */
+/* Erre a .dim-label (elhalványított) osztály utal */
+.calendar.dim-label {
+    color: #ffffff;
+    background-color: #005082;
+}
+
+/* 5. A kiválasztott nap (amire rákattintottál) */
+.calendar:selected {
+    background-color: #005082;
+    color: #FFFFFF;
+    border-radius: 0px 5px 0px 5px;
+}
