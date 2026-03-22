@@ -5,29 +5,31 @@ import os
 from gi.repository import Gio
 import time
 
-gi.require_version('Gtk', '3.0')
-gi.require_version('GtkLayerShell', '0.1')
-from gi.repository import Gtk, Gdk, GtkLayerShell, GLib
+gi.require_version('Gtk', '4.0')
+gi.require_version('Gtk4LayerShell', '1.0')
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
 _v_layer = None
 
 class BrightnessLayer(Gtk.Window):
     def __init__(self):
         super().__init__(title="Brightness Layer")
 
-        GtkLayerShell.init_for_window(self)
-        GtkLayerShell.set_namespace(self, "brightness-control")
-        GtkLayerShell.set_layer(self, GtkLayerShell.Layer.TOP)
-        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
-        GtkLayerShell.set_margin(self, GtkLayerShell.Edge.RIGHT, 10)
-        GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, 10)
+        Gtk4LayerShell.init_for_window(self)
+        Gtk4LayerShell.set_namespace(self, "brightness-control")
+        Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
+        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.TOP, True)
+        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.RIGHT, True)
+        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.RIGHT, 10)
+        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
         self.set_default_size(400, 150)
         self.get_style_context().add_class("brightness-window")
         main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main_container.set_border_width(20)
-        self.add(main_container)
+        main_container.set_margin_start(0)
+        main_container.add_css_class("brightness-layer")
+        #main_container.set_margin_all(20)
+        self.set_child(main_container)
         self.notebook = Gtk.Notebook()
-        main_container.pack_start(self.notebook, True, True, 0)
+        main_container.append(self.notebook)
 
         self.hyprctl = HyprctlSocket(self.apply_night_update)
         self.dbusbrightness = DBusBrightness(self.apply_brightness_update)
@@ -36,8 +38,13 @@ class BrightnessLayer(Gtk.Window):
         
 
     def setup_brightness_tab(self, label_text, tab):
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
-        vbox.set_border_width(20)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+            spacing=15,
+            margin_start=20,
+            margin_end=20,
+            margin_top=20,
+            margin_bottom=20,)
+        #vbox.set_border_width(20)
         hbox_top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         #only on brightness tab
@@ -64,40 +71,52 @@ class BrightnessLayer(Gtk.Window):
             self.temp_scale.set_value(self.current_temp)
             self.scale = self.temp_scale
             self.light_status = (self.current_temp != 6000)
-            self.switch.set_hexpand(True)
+            #self.switch.set_hexpand(True)
             self.switch.set_active(self.light_status)
             self.switch.get_style_context().add_class("night-switch")
-            hbox_top.pack_end(self.switch, True, True, 5)
+            self.switch.set_halign(Gtk.Align.END)
+            self.switch.set_margin_start(5)
+            #hbox_top.append(self.switch)
+
         
         self.label.set_size_request(40, -1)
         self.label.get_style_context().add_class("percent-text")
-        hbox_top.pack_start(self.label, False, False, 5)
+        self.label.set_margin_start(5)
+        self.label.set_margin_end(5)
+        hbox_top.append(self.label)
 
         self.scale.get_style_context().add_class("brightness-slider")
         self.scale.set_draw_value(False) # disable value at the top of the slider
         self.scale.set_size_request(250, -1)
         self.scale.set_hexpand(True)
+        self.scale.set_valign(Gtk.Align.CENTER)
+        self.scale.set_margin_start(5)
+        self.scale.set_margin_end(5)
         
-        hbox_top.pack_start(self.scale, True, True, 5)
+        hbox_top.append(self.scale)
+        if hasattr(self, 'switch'):
+            hbox_top.append(self.switch)
 
-        vbox.pack_start(hbox_top, False, False, 0)
+        vbox.append(hbox_top)
 
         tab_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         tab_box.set_halign(Gtk.Align.CENTER)
         tab_box.set_valign(Gtk.Align.CENTER)
     
-        icon_name = "display-brightness-symbolic" if tab=="brightness" else "night-light-symbolic"
-        tab_icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+        icon_name = "display-brightness-high-symbolic" if tab=="brightness" else "weather-clear-night-symbolic" #"night-light-symbolic"
+        tab_icon = Gtk.Image.new_from_icon_name(icon_name)
+        tab_icon.set_icon_size(Gtk.IconSize.NORMAL)
         tab_label = Gtk.Label(label=label_text)
-    
-        tab_box.pack_start(tab_icon, False, False, 0)
-        tab_box.pack_start(tab_label, False, False, 0)
-        tab_box.show_all()
+        tab_icon.set_valign(Gtk.Align.CENTER)
+        tab_label.set_valign(Gtk.Align.CENTER)
+
+        tab_box.append(tab_icon)
+        tab_box.append(tab_label)
 
         page_num = self.notebook.append_page(vbox, tab_box)
-        child = self.notebook.get_nth_page(page_num)
-        self.notebook.child_set_property(child, "tab-expand", True)
-        self.notebook.child_set_property(child, "tab-fill", True)
+        child = self.notebook.get_page(vbox)
+        child.set_property("tab-expand", True)
+        child.set_property("tab-fill", True)
 
     def on_brightness_change(self, scale):
         value = int(scale.get_value())
@@ -247,14 +266,14 @@ def init_layer():
     global _v_layer
     if _v_layer is None:
         _v_layer = BrightnessLayer()
-        _v_layer.connect("delete-event", lambda w, e: w.hide() or True)
+        _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
     global _v_layer
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
-        _v_layer.show_all()
+        _v_layer.show()
         _v_layer.present()
 
 def hide_layer():

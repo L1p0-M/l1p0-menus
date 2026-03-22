@@ -7,9 +7,9 @@ import socket
 import brightness
 #import clock
 
-gi.require_version('Gtk', '3.0')
-gi.require_version('GtkLayerShell', '0.1')
-from gi.repository import Gtk, Gdk, GtkLayerShell, GLib
+gi.require_version('Gtk', '4.0')
+gi.require_version('Gtk4LayerShell', '1.0')
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
 SOCKET_PATH = f"/tmp/audio-brightness.sock"
 
 
@@ -65,7 +65,12 @@ def run_daemon():
     brightness.init_layer()
     #clock.init_layer()
     print("Daemon fut és figyel...")
-    Gtk.main()
+    loop = GLib.MainLoop()
+    try:
+        loop.run()
+    except KeyboardInterrupt:
+        print("Leállítás...")
+        loop.quit()
 
 
 def load_css():
@@ -74,10 +79,10 @@ def load_css():
         home = get_home_dir()
         try:
             css_provider.load_from_path('style.css')
-            Gtk.StyleContext.add_provider_for_screen(
-                Gdk.Screen.get_default(),
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(),
                 css_provider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                800
             )
         except Exception as e:
             print(f"CSS hiba: {e}")
@@ -86,8 +91,8 @@ def load_css():
                 print(f"Felhasználói CSS fájl nem található: {home}/.config/audio-menu/style.css")
             else:
                 user_css_provider.load_from_path(f'{home}/.config/audio-menu/style.css')
-                Gtk.StyleContext.add_provider_for_screen(
-                    Gdk.Screen.get_default(),
+                Gtk.StyleContext.add_provider_for_display(
+                    Gdk.Display.get_default(),
                     user_css_provider,
                     Gtk.STYLE_PROVIDER_PRIORITY_USER
                 )

@@ -2,9 +2,9 @@ import gi
 import pulsectl
 import time
 
-gi.require_version('Gtk', '3.0')
-gi.require_version('GtkLayerShell', '0.1')
-from gi.repository import Gtk, Gdk, GtkLayerShell, GLib
+gi.require_version('Gtk', '4.0')
+gi.require_version('Gtk4LayerShell', '1.0')
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
 _v_layer = None
 
 
@@ -12,20 +12,21 @@ class VolumeLayer(Gtk.Window):
     def __init__(self):
         super().__init__(title="Audio Layer")
         self.pulse = pulsectl.Pulse('volume-layer-v2')
-        GtkLayerShell.init_for_window(self)
-        GtkLayerShell.set_namespace(self, "audio-control")
-        GtkLayerShell.set_layer(self, GtkLayerShell.Layer.TOP)
-        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-        GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
-        GtkLayerShell.set_margin(self, GtkLayerShell.Edge.RIGHT, 10)
-        GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, 10)
+        Gtk4LayerShell.init_for_window(self)
+        Gtk4LayerShell.set_namespace(self, "audio-control")
+        Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
+        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.TOP, True)
+        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.RIGHT, True)
+        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.RIGHT, 10)
+        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
         self.set_default_size(400, 150)
         self.get_style_context().add_class("audio-window")
         main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main_container.set_border_width(20) # Ez a bűvös 10px padding körben
-        self.add(main_container)
+        main_container.get_style_context().add_class("audio-layer")
+        main_container.set_margin_start(0) # Ez a bűvös 10px padding körben
+        self.set_child(main_container)
         self.notebook = Gtk.Notebook()
-        main_container.pack_start(self.notebook, True, True, 0)
+        main_container.append(self.notebook)
 
         self.pulseaudio = PulseAudio(self.update_ui_elements, self.pulse)
         self.on_volume_change = self.pulseaudio.on_volume_change
@@ -43,8 +44,13 @@ class VolumeLayer(Gtk.Window):
    
 
     def setup_audio_tab(self, label_text, is_mic):
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
-        vbox.set_border_width(20)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+            spacing=15,
+            margin_start=20,
+            margin_end=20,
+            margin_top=20,
+            margin_bottom=20,)
+        #vbox.set_border_width(20)
         self.is_mic = is_mic
         hbox_top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.current_val = self.get_current_volume(self.is_mic)
@@ -100,11 +106,11 @@ class VolumeLayer(Gtk.Window):
         self.scale.set_size_request(250, -1)
         self.scale.set_hexpand(True) 
         self.combo.set_hexpand(True)       
-        self.mute_btn.set_image(mute_icon)
-        hbox_top.pack_start(self.percent_label, False, False, 5)
-        hbox_top.pack_start(self.scale, True, True, 5)
-        hbox_top.pack_end(self.mute_btn, False, False, 5)
-        vbox.pack_start(hbox_top, False, False, 0)
+        self.mute_btn.set_child(mute_icon)
+        hbox_top.append(self.percent_label)
+        hbox_top.append(self.scale)
+        hbox_top.append(self.mute_btn)
+        vbox.append(hbox_top)
 
         # Eszközválasztó
         hbox_bottom = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=1)
@@ -112,25 +118,26 @@ class VolumeLayer(Gtk.Window):
   
         
         
-        hbox_bottom.pack_start(self.combo, False, False, 5)
+        hbox_bottom.append(self.combo)
 
-        vbox.pack_start(hbox_bottom, False, False, 0)
+        vbox.append(hbox_bottom)
         tab_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         tab_box.set_halign(Gtk.Align.CENTER)
         tab_box.set_valign(Gtk.Align.CENTER)
     
-        icon_name = "audio-input-microphone-symbolic" if is_mic else "audio-speakers-symbolic"
-        tab_icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+        icon_name = "microphone-sensitivity-high-symbolic" if is_mic else "audio-speakers-symbolic"
+        tab_icon = Gtk.Image.new_from_icon_name(icon_name)
+        tab_icon.set_icon_size(Gtk.IconSize.NORMAL)
         tab_label = Gtk.Label(label=label_text)
     
-        tab_box.pack_start(tab_icon, False, False, 0)
-        tab_box.pack_start(tab_label, False, False, 0)
-        tab_box.show_all() 
+        tab_box.append(tab_icon)
+        tab_box.append(tab_label)
+        #tab_box.show_all() 
 
         page_num = self.notebook.append_page(vbox, tab_box)
-        child = self.notebook.get_nth_page(page_num)
-        self.notebook.child_set_property(child, "tab-expand", True)
-        self.notebook.child_set_property(child, "tab-fill", True)
+        child = self.notebook.get_page(vbox)
+        child.set_property("tab_expand", True)
+        child.set_property("tab-fill", True)
 
 
 
@@ -234,7 +241,7 @@ class VolumeLayer(Gtk.Window):
                 else:
                     self.vol_scale.get_style_context().remove_class("muted")
                 self.vol_mute_btn.set_active(mute_status)
-                self.vol_mute_btn.set_image(self.get_mute_icon(is_mic=False))
+                self.vol_mute_btn.set_child(self.get_mute_icon(is_mic=False))
                 self.check_new_sink_devices()
                 self.vol_percent_label.set_label(f"{int(new_vol * 100)}%")
                 self.vol_scale.handler_unblock(self.vol_scale_handler)
@@ -253,15 +260,15 @@ class VolumeLayer(Gtk.Window):
                 else:
                     self.mic_scale.get_style_context().remove_class("muted")
                 self.mic_mute_btn.set_active(mute_status)
-                self.mic_mute_btn.set_image(self.get_mute_icon(is_mic=True))
+                self.mic_mute_btn.set_child(self.get_mute_icon(is_mic=True))
                 self.check_new_source_devices()
                 self.mic_percent_label.set_label(f"{int(new_vol * 100)}%")
                 self.mic_scale.handler_unblock(self.mic_scale_handler)
                 self.mic_mute_btn.handler_unblock(self.mic_mute_btn_handler)
                 self.mic_device.handler_unblock(self.mic_device_handler)
         if type == "icon":
-            self.vol_mute_btn.set_image(self.get_mute_icon(is_mic=False))
-            self.mic_mute_btn.set_image(self.get_mute_icon(is_mic=True))
+            self.vol_mute_btn.set_child(self.get_mute_icon(is_mic=False))
+            self.mic_mute_btn.set_child(self.get_mute_icon(is_mic=True))
         elif type == "css-mic":
             self.update_slider_css_class(is_mic=True)
         elif type == "css-vol":
@@ -350,21 +357,21 @@ class PulseAudio():
     def get_mute_icon(self, is_mic):
         if is_mic:
             if self.get_mute_status(is_mic):
-                return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic", Gtk.IconSize.BUTTON)
+                return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic")
             else:
-                return Gtk.Image.new_from_icon_name("audio-volume-high-symbolic", Gtk.IconSize.BUTTON)
+                return Gtk.Image.new_from_icon_name("audio-volume-high-symbolic")
         elif is_mic == False:
             if self.get_mute_status(is_mic):
-                return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic", Gtk.IconSize.BUTTON)
+                return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic")
             else:
-                return Gtk.Image.new_from_icon_name("audio-volume-high-symbolic", Gtk.IconSize.BUTTON)
+                return Gtk.Image.new_from_icon_name("audio-volume-high-symbolic")
 
 def init_layer():
     global _v_layer
     if _v_layer is None:
         _v_layer = VolumeLayer()
         # Ne lépjen ki a Gtk, ha bezárják az ablakot, csak rejtse el
-        _v_layer.connect("delete-event", lambda w, e: w.hide() or True)
+        _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
     """Váltás látható és rejtett állapot között."""
@@ -372,7 +379,7 @@ def toggle_layer():
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
-        _v_layer.show_all()
+        _v_layer.show()
         _v_layer.present()
 
 def hide_layer():

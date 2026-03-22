@@ -4,13 +4,29 @@
 }
 
 .audio-window {
-    background-color: rgba(0, 0, 0, 0.1); /* Sötét, enyhén átlátszó háttér */
+    /*background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 0px 30px 0px 30px;
+    border: 1px solid #FFFFFF;*/
+    background-color: transparent;
+}
+
+.audio-layer {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 20px;
     border-radius: 0px 30px 0px 30px;
     border: 1px solid #FFFFFF;
 }
 
-.brightness-window {
-    background-color: rgba(0, 0, 0, 0.1); /* Sötét, enyhén átlátszó háttér */
+.brightness-window{
+    /*background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 0px 30px 0px 30px;
+    border: 1px solid #FFFFFF;*/
+    background-color: transparent;
+}
+
+.brightness-layer {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 20px;
     border-radius: 0px 30px 0px 30px;
     border: 1px solid #FFFFFF;
 }
@@ -27,32 +43,37 @@ notebook {
     border: none;
     box-shadow: none;
 }
+notebook > stack {
+    background-color: transparent;
+}
 
 notebook header {
     background-color: rgba(45, 45, 67, 0.2);
     border-radius: 9999px;
     border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: none;
 }
 
-tab {
+notebook > header > tabs > tab {
     font-weight: 900;
     font-size: medium;
-    padding: 2px;
+    padding: 4px;
     margin: 5px 5px 5px 5px;
     color: rgba(255, 255, 255, 0.7);
     border-radius: 9999px;
     border: none;
+    box-shadow: none;
 }
 
-tab:checked {
-    border-bottom: 1px solid #005082;
+notebook > header > tabs > tab:checked {
     color: #FFFFFF;
     background-color: #005082;
     border-radius: 999px;
+    box-shadow: none;
 }
-tab:hover {
-    background-color: rgba(0, 80, 130, 0.2);
-    border-color: rgba(0, 80, 130, 0.2);
+notebook > header > tabs > tab:hover {
+    background-color: rgba(0, 80, 130, 0.9);
+    border-color: rgba(0, 80, 130, 0.9);
     border-radius: 9999px;
     transition: all .7s ease;
 }
