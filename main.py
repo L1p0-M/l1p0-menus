@@ -1,3 +1,5 @@
+from ctypes import CDLL
+CDLL('libgtk4-layer-shell.so')
 import argparse
 import pulse
 import os
@@ -5,7 +7,8 @@ import gi
 import sys
 import socket
 import brightness
-#import clock
+import clock
+import json
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
@@ -20,15 +23,12 @@ def handle_socket_input(source, condition, module ):
         if brightness._v_layer:
             brightness.hide_layer()
         pulse.toggle_layer()
-        print("audio")
     elif data == "toggle_brightness":
         if pulse._v_layer:
             pulse.hide_layer()
         brightness.toggle_layer()
-        print("brightness")
     elif data == "toggle_calendar":
-        #clock.toggle_layer()
-        print("calndar")
+        clock.toggle_layer()
     elif data == "reload_css":
         print("Reloading CSS..")
         load_css()
@@ -60,10 +60,11 @@ def run_daemon():
 
     GLib.io_add_watch(server, GLib.IO_IN, handle_socket_input, None)
     
+    config = load_config()
     load_css()
     pulse.init_layer()
     brightness.init_layer()
-    #clock.init_layer()
+    clock.init_layer(config)
     print("Daemon fut és figyel...")
     loop = GLib.MainLoop()
     try:
@@ -72,6 +73,21 @@ def run_daemon():
         print("Leállítás...")
         loop.quit()
 
+def load_config():
+    try:
+        home = get_home_dir()
+        config_path = f"{home}/.config/audio-menu/config.json"
+        if not os.path.exists(config_path):
+            print(f"Felhasználói Config fájl nem található: {config_path}")
+        else:
+            with open(f"{config_path}") as f:
+                config = json.load(f)
+                if "api_key" in config:    
+                    return config
+                else:
+                    return None
+    except Exception as e:
+        print(e)
 
 def load_css():
         css_provider = Gtk.CssProvider()
@@ -105,13 +121,12 @@ def get_home_dir():
         home = os.environ.get('HOME')
     except:
         home = os.path.expanduser('~')
-    print(f"Felhasználói könyvtár: {home}")
     return home
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="App vezérlő script")
     parser.add_argument('--daemon', action='store_true', help='Indítás daemon módban')
-    parser.add_argument('--toggle', type=str, help='Váltás: audio vagy brightness')
+    parser.add_argument('--toggle', type=str, help='Váltás: audio,brightness,calendar')
     parser.add_argument('--reload-css', action='store_true', help='CSS újratöltése')
     
     args = parser.parse_args()

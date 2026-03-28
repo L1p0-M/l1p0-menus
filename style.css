@@ -32,9 +32,17 @@
 }
 
 .calendar-window {
-    background-color: rgba(0, 0, 0, 0.1); /* Sötét, enyhén átlátszó háttér */
+    /*background-color: rgba(0, 0, 0, 0.1);
     border-radius: 0px 30px 0px 30px;
+    border: 1px solid #FFFFFF; */
+    background-color: transparent;
+}
+
+.calendar-layer {
+    background-color: rgba(0, 0, 0, 0.1);
     border: 1px solid #FFFFFF;
+    border-radius: 0px 30px 0px 30px;
+    padding: 20px;
 }
 
 
@@ -234,45 +242,109 @@ menuitem:hover {
 }
 
 .date {
+    padding: 2px;
     font-size: 15px;
     font-weight: 300;
 }
 
 .calendar {
-    background-color: rgba(45, 45, 67, 0.4);
+    background-color: transparent;
     color: #FFFFFF;
-    padding: 5px 5px 0px 5px;
     font-size: 1.1em;
-    border-radius: 0px 10px 0px 10px;
+    padding: 20px;
 }
 
-/* 2. A fejléc (Hónap és év választó) */
-/* GTK3-ban ez egy belső név: .header */
-.calendar.header {
-    background-color: #313244;
-    color: #89b4fa;
-    border-bottom: 1px solid #45475a;
+.calendar > header {
+    background-color: #005082;
+    color: #FFFFFF;
+    border-radius: 0px 10px 0px 0px;
 }
 
-/* 3. A napok nevei (H, K, Sze...) */
-/* Erre a .highlight osztály szolgál GTK3-ban */
-.calendar.highlight {
+.calendar > header > stack > label {
+    font-variant: small-caps;
+}
+
+.calendar > header > button {
+    border: none;
+    background-color: transparent;
+    color: #FFFFFF;
+}
+
+.calendar > grid > .day-name {
     color: #ffffff;
     font-variant: small-caps;
     background-color: #005082;
-    border-radius: 0px 0px 10px 10px;
+    border: none;
 }
 
-/* 4. A hét száma (ha be van kapcsolva) */
-/* Erre a .dim-label (elhalványított) osztály utal */
-.calendar.dim-label {
-    color: #ffffff;
-    background-color: #005082;
+.calendar > grid > .day-name:first-child {
+    border-radius: 0px 0px 0px 10px;
 }
 
-/* 5. A kiválasztott nap (amire rákattintottál) */
-.calendar:selected {
+.calendar > grid > .today,
+.calendar > grid > .today:checked {
     background-color: #005082;
     color: #FFFFFF;
-    border-radius: 0px 5px 0px 5px;
+    border-radius: 0px 10px 0px 10px;
+    font-weight: 700;
+    font-style: italic;
+}
+
+.calendar > grid > .other-month {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.calendar > grid > label:selected {
+    background-color: #005082;
+    border-radius: 0px 10px 0px 10px;
+}
+
+.calendar > grid > label:checked {
+    /*background-color: rgba(0, 80, 130, 0.5);*/
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #000000;
+    font-weight: 700;
+    font-style: italic;
+    border-radius: 0px 10px 0px 10px;
+}
+
+.calendar > grid > label {
+    border: 1px solid rgba(0, 0, 0, 0.0);
+}
+
+.weather-temp {
+    font-size: 30px;
+    padding-right: 5px;
+}
+
+.weather-feel {
+    font-size: 15px;
+}
+
+.weather-icon {
+    -gtk-icon-size: 64px;
+}
+
+.weather-description {
+    padding-bottom: 15px;
+}
+
+.upcoming-container {
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.upcoming-description {
+    font-size: 8px;
+}
+
+.upcoming-items-container{
+    padding: 5px;
+}
+
+.upcoming-icons {
+    -gtk-icon-size: 32px;
+}
+
+.upcoming-time {
+    font-weight: 600;
 }
