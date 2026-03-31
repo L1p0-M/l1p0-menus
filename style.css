@@ -172,12 +172,13 @@ scale trough slider:hover {
 
 
 .device-switcher:hover {
-    background-color: #45475a;
-    border: none;
+    background-color: rgba(0, 80, 130, 0.9);
+    border: 1px solid #FFFFFF;
+    transition: all 0.7s ease;
 }
 
 
-menu {
+.device-switcher popover {
     background-color: rgba(45, 45, 67, 0.2);
     border: 1px solid #FFFFFF;
     box-shadow: none;
@@ -186,12 +187,13 @@ menu {
     border-radius: 0px 20px 0px 20px;
 }
 
-menuitem {
+.device-switcher > popover > contents {
     padding: 5px 10px;
     box-shadow: none;
     color: #FFFFFF;
     border-radius: 0px 20px 0px 20px;
 }
+
 
 menuitem:hover {
     background-color: #005082;
@@ -326,7 +328,26 @@ menuitem:hover {
 }
 
 .weather-description {
+    padding-bottom: 5px;
+}
+
+.weather-city {
+    font-size: 10px;
     padding-bottom: 15px;
+}
+
+.weather-sunrise,
+.weather-sunset {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 10px;
+    padding-bottom: 15px;
+
+}
+
+.sunset-icon,
+.sunrise-icon {
+    padding-bottom: 5px;
 }
 
 .upcoming-container {

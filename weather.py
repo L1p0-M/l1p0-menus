@@ -48,7 +48,17 @@ class OpenWeatherMap():
             self.forecast_main = self.forecast["main"]
             self.forecast_weather = self.forecast["weather"][0]
             self.forecast_wind = self.forecast["wind"]
+            self.forecast_sunset = self.forecast["sys"]["sunset"]
+            self.forecast_sunrise = self.forecast["sys"]["sunrise"]
+            self.forecast_country = self.forecast["sys"]["country"]
+            self.forecast_timezone = self.forecast["timezone"]
+            self.forecast_city = self.forecast["name"]
             forecast = self.MakeWeatherObject()
+            forecast["sunset"] = self.forecast_sunset
+            forecast["sunrise"] = self.forecast_sunrise
+            forecast["country"] = self.forecast_country
+            forecast["city"] = self.forecast_city
+            forecast["timezone"] = self.forecast_timezone
             forecast_day.append(forecast)
         return forecast_day
     
