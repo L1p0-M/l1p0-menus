@@ -93,8 +93,9 @@ def load_css():
         css_provider = Gtk.CssProvider()
         user_css_provider = Gtk.CssProvider()
         home = get_home_dir()
+        base_css_path = resource_path('style.css')
         try:
-            css_provider.load_from_path('style.css')
+            css_provider.load_from_path(base_css_path)
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(),
                 css_provider,
@@ -122,6 +123,13 @@ def get_home_dir():
     except:
         home = os.path.expanduser('~')
     return home
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="App vezérlő script")

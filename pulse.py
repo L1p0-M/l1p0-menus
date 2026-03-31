@@ -50,15 +50,13 @@ class VolumeLayer(Gtk.Window):
             margin_end=20,
             margin_top=20,
             margin_bottom=20,)
-        #vbox.set_border_width(20)
         self.is_mic = is_mic
         hbox_top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.current_val = self.get_current_volume(self.is_mic)
         
-   
-        # Slider
         adj = Gtk.Adjustment(value=0, lower=0, upper=1, step_increment=0.01)
-        if not is_mic:           
+        if not is_mic:
+            self.sink_list = Gtk.StringList.new([])           
             self.vol_percent_label = Gtk.Label(label=f"{int(self.current_val * 100)}%")
             self.percent_label= self.vol_percent_label
             self.vol_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
@@ -71,13 +69,13 @@ class VolumeLayer(Gtk.Window):
             self.vol_mute_btn.set_active(self.get_mute_status(self.is_mic))
             self.vol_mute_btn_handler = self.vol_mute_btn.connect("toggled", self.on_mute_toggle, self.is_mic)
             self.mute_btn = self.vol_mute_btn
-            self.vol_device = Gtk.ComboBoxText()
-            self.vol_device_handler = self.vol_device.connect("changed", self.on_device_change, self.is_mic)
+            self.vol_device = Gtk.DropDown(model=self.sink_list)
+            self.setup_default_switcher(self.is_mic)
+            self.vol_device_handler = self.vol_device.connect("notify::selected", self.on_device_change, self.is_mic, self.sink_device_names)
             self.combo = self.vol_device
 
-
-
         elif is_mic:
+            self.mic_list = Gtk.StringList.new([])
             self.mic_percent_label = Gtk.Label(label=f"{int(self.current_val * 100)}%")
             self.percent_label = self.mic_percent_label
             self.mic_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
@@ -90,13 +88,11 @@ class VolumeLayer(Gtk.Window):
             self.mic_mute_btn.set_active(self.get_mute_status(self.is_mic))
             self.mic_mute_btn_handler = self.mic_mute_btn.connect("toggled", self.on_mute_toggle, self.is_mic)
             self.mute_btn = self.mic_mute_btn
-            self.mic_device = Gtk.ComboBoxText()
-            self.mic_device_handler = self.mic_device.connect("changed", self.on_device_change, self.is_mic)
+            self.mic_device = Gtk.DropDown(model=self.mic_list)
+            self.setup_default_switcher(self.is_mic)
+            self.mic_device_handler = self.mic_device.connect("notify::selected", self.on_device_change, self.is_mic, self.mic_device_names)
             self.combo = self.mic_device
 
-            
-
-        self.setup_default_switcher(self.is_mic)
         self.combo.get_style_context().add_class("device-switcher")
         self.scale.get_style_context().add_class("volume-slider")
         self.update_slider_css_class(self.is_mic)
@@ -112,14 +108,9 @@ class VolumeLayer(Gtk.Window):
         hbox_top.append(self.mute_btn)
         vbox.append(hbox_top)
 
-        # Eszközválasztó
         hbox_bottom = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=1)
         hbox_bottom.set_hexpand(True)
-  
-        
-        
         hbox_bottom.append(self.combo)
-
         vbox.append(hbox_bottom)
         tab_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         tab_box.set_halign(Gtk.Align.CENTER)
@@ -132,7 +123,6 @@ class VolumeLayer(Gtk.Window):
     
         tab_box.append(tab_icon)
         tab_box.append(tab_label)
-        #tab_box.show_all() 
 
         page_num = self.notebook.append_page(vbox, tab_box)
         child = self.notebook.get_page(vbox)
@@ -158,78 +148,54 @@ class VolumeLayer(Gtk.Window):
     def setup_default_switcher(self, is_mic):
         if is_mic:
             devices = [d for d in self.pulse.source_list() if 'monitor' not in d.name.lower()]
+            self.mic_device_names = [d.name for d in devices]
+            device_names = self.mic_device_names
+            target_list = self.mic_list
+            target_device = self.mic_device
         else:
             devices = self.pulse.sink_list()
-        default_name = self.get_default_device_name(is_mic)
-        for i, dev in enumerate(devices):
-            self.combo.append(dev.name, dev.description)
-            if dev.name == default_name:
-                self.combo.set_active(i)
+            self.sink_device_names = [d.name for d in devices]
+            device_names = self.sink_device_names
+            target_list = self.sink_list
+            target_device = self.vol_device
 
-    def check_new_sink_devices(self):
-        devices = self.pulse.sink_list()
-        default_name = self.get_default_device_name(is_mic=False)
-        model = self.vol_device.get_model()
-        new_devices= {}
-        current_devices = {}
-        for i, dev in enumerate(devices):
-            new_devices[dev.name] = dev.description
-            if dev.name == default_name:
-                self.vol_device.set_active(i)
-        for row in model:
-            current_devices[row[1]] = row[0]
-        to_remove = set(current_devices) - set(new_devices)
-        to_add = set(new_devices) - set(current_devices)
-        if to_add:
-            for name in to_add:
-                device_description = new_devices[name]
-                self.vol_device.append(name, device_description)
-        if to_remove:
-            for name in to_remove:
-                try:
-                    for  index, row in enumerate(model):
-                        if row[1] == name:
-                            index_to_remove = index
-                            break
-                    self.vol_device.remove(index_to_remove)
-                
-                except Exception as e:
-                    print(e)
-                
-    def check_new_source_devices(self):
-        devices = [d for d in self.pulse.source_list() if 'monitor' not in d.name.lower()]
-        default_name = self.get_default_device_name(is_mic=True)
-        model = self.mic_device.get_model()
-        new_devices= {}
-        current_devices = {}
-        for i, dev in enumerate(devices):
-            new_devices[dev.name] = dev.description
-            if dev.name == default_name:
-                self.mic_device.set_active(i)
-        for row in model:
-            current_devices[row[1]] = row[0]
-        to_remove = set(current_devices) - set(new_devices)
-        to_add = set(new_devices) - set(current_devices)
-        if to_add:
-            for name in to_add:
-                device_description = new_devices[name]
-                self.mic_device.append(name, device_description)
-        if to_remove:
-            for name in to_remove:
-                try:
-                    for  index, row in enumerate(model):
-                        if row[1] == name:
-                            index_to_remove = index
-                            break
-                    self.mic_device.remove(index_to_remove)
-                
-                except Exception as e:
-                    print(e)
+        default_name = self.get_default_device_name(is_mic)
+        dropdown_items = [d.description for d in devices]
+        target_list.splice(0, target_list.get_n_items(), dropdown_items)
+        if default_name in device_names:
+            idx = device_names.index(default_name)
+            target_device.set_selected(idx)
+
+    def update_default_switcher(self, is_mic):
+        if is_mic:
+            devices = [d for d in self.pulse.source_list() if 'monitor' not in d.name.lower()]
+            current_stored_names = self.mic_device_names
+            target_list_model = self.mic_list
+            target_device = self.mic_device
+        else:
+            devices = self.pulse.sink_list()
+            current_stored_names = self.sink_device_names
+            target_list_model = self.sink_list
+            target_device = self.vol_device
+        new_default_name = self.get_default_device_name(is_mic)
+        new_descriptions = [d.description for d in devices]
+        new_names = [d.name for d in devices]
+        if new_names != current_stored_names:
+            if is_mic:
+                self.mic_device_names = new_names
+            else:
+                self.sink_device_names = new_names
+            current_stored_names = new_names
+            target_list_model.splice(0, target_list_model.get_n_items(), new_descriptions)
+        if new_default_name in current_stored_names:
+            idx = current_stored_names.index(new_default_name)
+            if target_device.get_selected() != idx:
+                target_device.set_selected(idx)
       
 
     def update_ui_elements(self, ev, type="pulse"):
         if ev is not None:
-            if "sink" in str(ev.facility):
+            if "sink" in str(ev.facility) or "server" in str(ev.facility):
                 self.vol_scale.handler_block(self.vol_scale_handler)
                 self.vol_mute_btn.handler_block(self.vol_mute_btn_handler)
                 self.vol_device.handler_block(self.vol_device_handler)
@@ -242,13 +208,13 @@ class VolumeLayer(Gtk.Window):
                     self.vol_scale.get_style_context().remove_class("muted")
                 self.vol_mute_btn.set_active(mute_status)
                 self.vol_mute_btn.set_child(self.get_mute_icon(is_mic=False))
-                self.check_new_sink_devices()
+                self.update_default_switcher(is_mic=False)
                 self.vol_percent_label.set_label(f"{int(new_vol * 100)}%")
                 self.vol_scale.handler_unblock(self.vol_scale_handler)
                 self.vol_mute_btn.handler_unblock(self.vol_mute_btn_handler)
                 self.vol_device.handler_unblock(self.vol_device_handler)
 
-            elif "source" in str(ev.facility):
+            if "source" in str(ev.facility) or "server" in str(ev.facility):
                 self.mic_scale.handler_block(self.mic_scale_handler)
                 self.mic_mute_btn.handler_block(self.mic_mute_btn_handler)
                 self.mic_device.handler_block(self.mic_device_handler)
@@ -261,7 +227,7 @@ class VolumeLayer(Gtk.Window):
                     self.mic_scale.get_style_context().remove_class("muted")
                 self.mic_mute_btn.set_active(mute_status)
                 self.mic_mute_btn.set_child(self.get_mute_icon(is_mic=True))
-                self.check_new_source_devices()
+                self.update_default_switcher(is_mic=True)
                 self.mic_percent_label.set_label(f"{int(new_vol * 100)}%")
                 self.mic_scale.handler_unblock(self.mic_scale_handler)
                 self.mic_mute_btn.handler_unblock(self.mic_mute_btn_handler)
@@ -280,13 +246,23 @@ class PulseAudio():
     def __init__(self, callback, pulse):
         self.pulse = pulse
         self.update_ui_elements = callback
-        self.pulse.event_mask_set('sink', 'source')
+        self.pulse.event_mask_set('sink', 'source', 'server')
         self.pulse.event_callback_set(self.on_pulse_event)
+        self._pulse_loop_id = None
         self.last_internal_update = 0
-        GLib.timeout_add(300, self.check_pulse_events)
     
+    def start_update_loop(self):
+        global _v_layer
+        if self._pulse_loop_id is not None:
+            GLib.source_remove(self._pulse_loop_id)
+            self._pulse_loop_id = None
+        self.was_visible = _v_layer.get_visible()
+        if self.was_visible:
+            self._pulse_loop_id = GLib.timeout_add(100, self.check_pulse_events)
+        else:
+            self._pulse_loop_id = GLib.timeout_add_seconds(5, self.check_pulse_events)
+
     def check_pulse_events(self):
-        """Ez a függvény 100ms-enként ránéz, jött-e adat a Pulse-tól."""
         try:
             self.pulse.event_listen(timeout=0.001) 
         except Exception:
@@ -325,12 +301,13 @@ class PulseAudio():
 
         
 
-    def on_device_change(self, combo, is_mic):
-        self.last_internal_update = time.time()
-        dev_name = combo.get_active_id()
+    def on_device_change(self, dropdown, pspec, is_mic, device_names):
+        #self.last_internal_update = time.time()
+        index = dropdown.get_selected()
+        dev_name = device_names[index]
         if dev_name:
             target = self.pulse.get_source_by_name(dev_name) if is_mic else self.pulse.get_sink_by_name(dev_name)
-            self.pulse.default_set(target)
+            self.pulse.default_set(target) if is_mic == False else self.pulse.source_default_set(target)
 
 
     def get_active_device(self, is_mic):
@@ -370,19 +347,18 @@ def init_layer():
     global _v_layer
     if _v_layer is None:
         _v_layer = VolumeLayer()
-        # Ne lépjen ki a Gtk, ha bezárják az ablakot, csak rejtse el
+        _v_layer.pulseaudio.start_update_loop()
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
-    """Váltás látható és rejtett állapot között."""
     global _v_layer
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
         _v_layer.show()
         _v_layer.present()
+    _v_layer.pulseaudio.start_update_loop()
 
 def hide_layer():
-    """Csak elrejtés."""
     global _v_layer
     _v_layer.hide()
