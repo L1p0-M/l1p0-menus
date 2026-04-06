@@ -55,17 +55,20 @@ class CalendarLayer(Gtk.Window):
         self.clock = Gtk.Label()
         self.clock.set_label(time.strftime(str("%H:%M") ))
         self.clock.get_style_context().add_class("clock")
-        self.clock.set_hexpand(True)
+        self.clock.set_hexpand(False)
+        self.clock.set_halign(Gtk.Align.CENTER)
         self.time_container.append(self.clock)
 
         self.date = Gtk.Label()
         self.date.set_label(time.strftime(str("%Y-%m-%d") ))
         self.date.get_style_context().add_class("date")
-        self.date.set_hexpand(True)
+        self.date.set_hexpand(False)
+        self.date.set_halign(Gtk.Align.CENTER)
         self.time_container.append(self.date)
 
         self.calendar = Gtk.Calendar()
-        self.calendar.set_size_request(200, -1)
+        self.calendar.set_size_request(320, -1)
+        self.calendar.set_halign(Gtk.Align.CENTER)
         self.calendar.set_property("show-week-numbers", False)
         self.calendar.get_style_context().add_class("calendar")
         self.resetToCurrentDate()
@@ -75,7 +78,7 @@ class CalendarLayer(Gtk.Window):
             self.calendar.connect("next-year", self.markKurzeWoche)
             self.calendar.connect("prev-year", self.markKurzeWoche)
             self.markKurzeWoche()
-        self.calendar.set_hexpand(True)
+        self.calendar.set_hexpand(False)
         self.time_container.append(self.calendar)
 
 
@@ -84,7 +87,7 @@ class CalendarLayer(Gtk.Window):
         self.main_weather_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             margin_start=20,
             margin_end=20,
-            margin_top=40,
+            margin_top=20,
             margin_bottom=20,)
         self.horizontal_container.append(self.main_weather_container)
         self.main_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -125,6 +128,7 @@ class CalendarLayer(Gtk.Window):
             self.sunset_container.set_valign(Gtk.Align.END)
         self.upcoming_weather_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.upcoming_weather_container.get_style_context().add_class("upcoming-container")
+        self.upcoming_weather_container.set_homogeneous(True)
         self.main_weather_container.append(self.upcoming_weather_container)
         self.setup_forecast()
 
@@ -173,6 +177,12 @@ class CalendarLayer(Gtk.Window):
             upcoming_temp.set_label(f"{int(weather_forecast[i]["temp"])}°")
             upcoming_desc = Gtk.Label()
             upcoming_desc.set_label(f"{weather_forecast[i]["description"].upper()}")
+            upcoming_desc.set_wrap(True)
+            upcoming_desc.set_wrap_mode(0)
+            upcoming_desc.set_lines(2)
+            upcoming_desc.set_ellipsize(2)
+            upcoming_desc.set_justify(2)
+            upcoming_desc.set_valign(Gtk.Align.CENTER)
             upcoming_desc.get_style_context().add_class("upcoming-description")
             upcoming_icons = Gtk.Image.new_from_icon_name(self.weather.matchIcon(weather_forecast[i]["icon"]))
             upcoming_icons.get_style_context().add_class("upcoming-icons")

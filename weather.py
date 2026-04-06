@@ -1,6 +1,4 @@
 import requests
-import json
-
 
 class OpenWeatherMap():
     def __init__(self, city, api_key, language):
