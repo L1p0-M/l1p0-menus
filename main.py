@@ -1,10 +1,10 @@
 from ctypes import CDLL
 CDLL('libgtk4-layer-shell.so')
-import argparse
+from argparse import ArgumentParser
 import pulse
-import os
+from os import path, environ, remove
 import gi
-import sys
+from sys import exit
 import socket
 import brightness
 import clock
@@ -13,44 +13,48 @@ import json
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 SOCKET_PATH = f"/tmp/l1p0-menus.sock"
 
 
 def handle_socket_input(source, condition, module ):
-    conn, _ = source.accept()
-    data = conn.recv(1024).decode().strip()
-    if data == "toggle_audio":
-        if brightness._v_layer:
-            brightness.hide_layer()
-        if battery._v_layer:
-            battery.hide_layer()
-        pulse.toggle_layer()
-    elif data == "toggle_brightness":
-        if pulse._v_layer:
-            pulse.hide_layer()
-        if battery._v_layer:
-            battery.hide_layer()
-        brightness.toggle_layer()
-    elif data == "toggle_calendar":
-        clock.toggle_layer()
-    elif data == "toggle_battery":
-        if brightness._v_layer:
-            brightness.hide_layer()
-        if pulse._v_layer:
-            pulse.hide_layer()
-        battery.toggle_layer()
+    try:
+        conn, _ = source.accept()
+        data = conn.recv(1024).decode().strip()
+        process_command(data)
+        conn.close()
+    except Exception as e:
+        print(f"Socket error: {e}")
+    return True
+
+def process_command(data):
+    commands = {
+        "toggle_audio": (pulse, ["brightness", "battery"]),
+        "toggle_brightness": (brightness, ["pulse", "battery"]),
+        "toggle_battery": (battery, ["brightness", "pulse"]),
+        "toggle_calendar": (clock, [])
+    }
+
+    if data in commands:
+        module, targets_to_hide = commands[data]
+        
+        for target_name in targets_to_hide:
+            target_mod = globals().get(target_name)
+            if target_mod and getattr(target_mod, "_v_layer", None):
+                target_mod.hide_layer()
+    
+        module.toggle_layer()
+
     elif data == "reload_css":
         print("Reloading CSS..")
         load_css()
         
-    conn.close()
-    return True 
+    return False 
 
 def send_command(command):
-    if not os.path.exists(SOCKET_PATH):
+    if not path.exists(SOCKET_PATH):
         print("Error: Start the daemon first!")
-        sys.exit(1)
+        exit(1)
     try:
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.connect(SOCKET_PATH)
@@ -58,11 +62,11 @@ def send_command(command):
         client.close()
     except Exception as e:
         print(f"Error connecting to the daemon: {e}")
-        sys.exit(1)
+        exit(1)
 
 def run_daemon():
-    if os.path.exists(SOCKET_PATH):
-        os.remove(SOCKET_PATH)
+    if path.exists(SOCKET_PATH):
+        remove(SOCKET_PATH)
 
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(SOCKET_PATH)
@@ -71,6 +75,7 @@ def run_daemon():
 
     GLib.io_add_watch(server, GLib.IO_IN, handle_socket_input, None)
     
+    load_resources()
     config = load_config()
     load_css()
     pulse.init_layer()
@@ -89,7 +94,7 @@ def load_config():
     try:
         home = get_home_dir()
         config_path = f"{home}/.config/l1p0-menu/config.json"
-        if not os.path.exists(config_path):
+        if not path.exists(config_path):
             print(f"User config file not found at: {config_path}")
         else:
             with open(f"{config_path}") as f:
@@ -105,9 +110,8 @@ def load_css():
         css_provider = Gtk.CssProvider()
         user_css_provider = Gtk.CssProvider()
         home = get_home_dir()
-        base_css_path = resource_path('style.css')
         try:
-            css_provider.load_from_path(base_css_path)
+            css_provider.load_from_resource("/l1p0-menus/assets/style.css")
             Gtk.StyleContext.add_provider_for_display(
                 Gdk.Display.get_default(),
                 css_provider,
@@ -116,7 +120,7 @@ def load_css():
         except Exception as e:
             print(f"CSS error: {e}")
         try:
-            if not os.path.exists(f'{home}/.config/l1p0-menu/style.css'):
+            if not path.exists(f'{home}/.config/l1p0-menu/style.css'):
                 print(f"User css file not found at: {home}/.config/l1p0-menu/style.css")
             else:
                 user_css_provider.load_from_path(f'{home}/.config/l1p0-menu/style.css')
@@ -131,36 +135,34 @@ def load_css():
 
 def get_home_dir():
     try:
-        home = os.environ.get('HOME')
+        home = environ.get('HOME')
     except:
-        home = os.path.expanduser('~')
+        home = path.expanduser('~')
     return home
 
-def resource_path(relative_path):
+def load_resources():
     try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+        base_dir = path.dirname(path.abspath(__file__))
+        resource_path = path.join(base_dir, "resources.gresource")
+        resource = Gio.Resource.load(resource_path)
+        resource._register()
+    except Exception as e:
+        print(f"Failed to load resources: {e}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="L1p0 Menus for Hyprland")
+    parser = ArgumentParser(description="L1p0 Menus for Hyprland")
     parser.add_argument('--daemon', action='store_true', help='Start the daemon')
     parser.add_argument('--toggle', type=str, help='Toggle menus, Available options: audio,brightness,calendar,battery')
     parser.add_argument('--reload-css', action='store_true', help='Reload user and internal CSS')
     
     args = parser.parse_args()
+    available_widgets = ["audio", "brightness", "calendar", "battery"]
 
     if args.daemon:
         run_daemon()
-    elif args.toggle == 'audio':
-        send_command("toggle_audio")
-    elif args.toggle == 'brightness':
-        send_command("toggle_brightness")
-    elif args.toggle == 'calendar':
-        send_command("toggle_calendar")
-    elif args.toggle == 'battery':
-        send_command("toggle_battery")
+    elif args.toggle in available_widgets:
+        toggle = args.toggle
+        send_command(f"toggle_{toggle}")
     elif args.reload_css:
         send_command("reload_css")
     else:

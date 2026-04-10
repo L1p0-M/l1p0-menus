@@ -5,7 +5,6 @@ from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 from datetime import timedelta
 from time import strptime
 import os
-import dbus
 import math
 _v_layer = None
 
@@ -29,7 +28,6 @@ class BatteryLayer(Gtk.Window):
         self.main_container.get_style_context().add_class("battery-layer")
         self.main_overlay.set_child(self.main_container)
         self.set_child(self.main_overlay)
-        #self.set_child(self.main_container)
         self.vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.append(self.vertical_container)
         self.overlay = Gtk.Overlay()
@@ -249,8 +247,30 @@ class BatteryLayer(Gtk.Window):
         if mode != self.powerprofile.get_active_profile():
             self.powerprofile.set_power_profile(mode)
 
+    def animate_on_present(self):
+        target = int(round(self.battery.combined_battery_info("Percentage")))
+        self.combined_battery_level.set_label("0%")
+        self.animation_value = 0
+        
+        if hasattr(self, 'tick_id') and self.tick_id:
+            return
+
+        def manage_animation(widget, frame_clock):
+            step = 2
+            diff = target - self.animation_value
+            if abs(diff) < step:
+                self.combined_battery_level.set_label(f"{target}%")
+                self.tick_id = None
+                return False
+            if diff > 0:
+                self.animation_value += step
+            else:
+                self.animation_value -= step
+            self.combined_battery_level.set_label(f"{self.animation_value}%")
+            return True
+        self.tick_id = self.add_tick_callback(manage_animation)
+
     def update_ui_elements(self, battery, data):
-        update_data = data
         things_to_update_bat = ["Percentage", "State", "ChargeCycles", "TimeToEmpty", "TimeToFull"]
         for update in things_to_update_bat:
             if update in data:
@@ -326,7 +346,7 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
             return
 
         def manage_animation(widget, frame_clock):
-            step = 0.015
+            step = 0.020
             diff = self.target - self.fraction
         
             if abs(diff) < step:
@@ -349,42 +369,79 @@ class Battery:
         self.callback = callback
         batterys_path = "/sys/class/power_supply/BAT"
         self.updateables = []
-        self.bus = dbus.SystemBus()
-        self.batterys = {}
-        for i in range(2):
-            path = f"{batterys_path}{i}"
-            if os.path.exists(path):
-                self.batterys[f"BAT{i}"] = path
-        for battery_name in self.batterys:
-            self.connect_to_upower(battery_name)
-            self.updateables.append(battery_name)
-        self.connect_to_upower("DisplayDevice")
-        self.updateables.append("DisplayDevice")
-        
+        self.proxys = {}
+        try:
+            self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+            self.batterys = {}
+            for i in range(2):
+                path = f"{batterys_path}{i}"
+                if os.path.exists(path):
+                    self.batterys[f"BAT{i}"] = path
+            for battery_name in self.batterys:
+                self.connect_to_upower(battery_name)
+                self.updateables.append(battery_name)
+                path = f"/org/freedesktop/UPower/devices/battery_{battery_name}"
+                self.proxys[battery_name] = Gio.DBusProxy.new_sync(
+                    self.bus,
+                    Gio.DBusProxyFlags.NONE,
+                    None,
+                    "org.freedesktop.UPower",
+                    path,
+                    "org.freedesktop.UPower.Device",
+                    None
+                )
+            self.connect_to_upower("DisplayDevice")
+            self.updateables.append("DisplayDevice")
+            self.proxys["DisplayDevice"] = Gio.DBusProxy.new_sync(
+                self.bus,
+                Gio.DBusProxyFlags.NONE,
+                None,
+                "org.freedesktop.UPower",
+                "/org/freedesktop/UPower/devices/DisplayDevice",
+                "org.freedesktop.UPower.Device",
+                None
+            )
+        except Exception as e:
+            print(e)
         
     def combined_battery_info(self, property_name):
         try:
-            display_proxy = self.bus.get_object("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice")
+            variant = self.proxys["DisplayDevice"].get_cached_property(property_name)
+            if variant:
+                return variant.unpack()
+            else:
+                variant = self.proxys["DisplayDevice"].call_sync(
+                    "org.freedesktop.DBus.Properties.Get",
+                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    None
+                )
+                if variant:
+                    return variant.unpack()[0]
+                return None
 
-            return display_proxy.Get(
-                "org.freedesktop.UPower.Device", 
-                property_name, 
-                dbus_interface="org.freedesktop.DBus.Properties"
-            )
         except Exception as e:
             print(f"Error occurred while fetching combined {property_name}: {e}")
             return None
-        
+
     def dbus_call(self, battery_name, property_name):
         try:
-            path = f"/org/freedesktop/UPower/devices/battery_{battery_name}"
-            proxy = self.bus.get_object("org.freedesktop.UPower", path)
-    
-            return proxy.Get(
-                "org.freedesktop.UPower.Device", 
-                property_name, 
-                dbus_interface="org.freedesktop.DBus.Properties"
-            )
+            variant = self.proxys[battery_name].get_cached_property(property_name)
+            if variant:
+                return variant.unpack()
+            else:
+                variant = self.proxys[battery_name].call_sync(
+                    "org.freedesktop.DBus.Properties.Get",
+                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    None
+                )
+                if variant:
+                    return variant.unpack()[0]
+                return None
+
         except Exception as e:
             print(f"Error occurred while fetching {property_name} for {battery_name}: {e}")
             return None
@@ -455,15 +512,20 @@ class Battery:
 class PowerProfiles:
     def __init__(self, callback):
         self.update_ui_elements = callback
-        self.bus = dbus.SystemBus()
         self.dbus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
         self.dbus_path = "/net/hadess/PowerProfiles"
         self.bus_name = "net.hadess.PowerProfiles"
         self.object = "org.freedesktop.UPower.PowerProfiles"
-        self.proxy = self.bus.get_object(self.object, self.dbus_path)
-        self.iface = "org.freedesktop.UPower.PowerProfiles"
-        self.interface = dbus.Interface(self.proxy, "org.freedekstop.DBus.Properties")
         self.connect_to_dbus()
+        self.proxy = Gio.DBusProxy.new_sync(
+                self.dbus,
+                Gio.DBusProxyFlags.NONE,
+                None,
+                self.bus_name,
+                self.dbus_path,
+                self.object,
+                None
+            )
 
     def connect_to_dbus(self):
         self.dbus.signal_subscribe(
@@ -480,9 +542,9 @@ class PowerProfiles:
     def set_power_profile(self, profile_name):
         
         parameters = GLib.Variant('(ssv)', (
-            "net.hadess.PowerProfiles", # Interfész neve
-            "ActiveProfile",            # Tulajdonság neve
-            GLib.Variant('s', profile_name) # Az új érték
+            "net.hadess.PowerProfiles",
+            "ActiveProfile",
+            GLib.Variant('s', profile_name)
         ))
 
         try:
@@ -499,16 +561,26 @@ class PowerProfiles:
             )
         except Exception as e:
             print(f"Error occured while changing profile: {e}")
-
+        
     def get_active_profile(self):
         try:
-            return self.proxy.Get(
-                self.bus_name, 
-                "ActiveProfile", 
-                dbus_interface="org.freedesktop.DBus.Properties"
-            )
+            variant = self.proxy.get_cached_property("ActiveProfile")
+            if variant:
+                return variant.unpack()
+            else:
+                variant = self.proxy.call_sync(
+                    "org.freedesktop.DBus.Properties.Get",
+                    GLib.Variant("(ss)", (self.bus_name, "ActiveProfile")),
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    None
+                )
+                if variant:
+                    return variant.unpack()[0]
+                return None
+
         except Exception as e:
-            print(f"Error occurred while fetching activ powerprofile: {e}")
+            print(f"Error occurred while fetching active powerprofile: {e}")
             return None
 
     def on_profile_changed(self, connection, sender, path, interface, signal, parameters, user_data):
@@ -587,6 +659,7 @@ def on_present():
     current_level = _v_layer.level_bar.fraction
     _v_layer.level_bar.set_value(0)
     _v_layer.level_bar.animate_to_value(current_level)
+    _v_layer.animate_on_present()
 
 def init_layer():
     global _v_layer

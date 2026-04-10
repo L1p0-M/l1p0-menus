@@ -385,6 +385,54 @@ menuitem:hover {
     font-weight: 600;
 }
 
+.popup-weather-panel {
+    background-color: rgba(0, 80, 130, 1);
+    color: #FFFFFF;
+    border-radius: 0px 20px 0px 20px;
+    padding: 0px;
+    margin: 10px;
+    border: 1px solid #FFFFFF;
+}
+
+.popup-upcoming-items-container {
+    margin: 10px;
+    min-width: 45px;
+}
+.popup-upcoming-description {
+    font-size: 7px;
+    min-height: 30px;
+}
+
+.popup-upcoming-icons {
+    -gtk-icon-size: 32px;
+}
+
+.popup-upcoming-time {
+    font-weight: 600;
+}
+
+.popup-upcoming-date {
+    border-right: 1px solid #FFFFFF;
+    font-weight: 900;
+    min-width: 40px;
+    padding: 10px;
+    
+}
+
+.weather-menu-button {
+    -gtk-icon-size: 13px;
+    margin-top: 10px;
+    padding: 0px;
+    border-radius: 2px;
+    border: none;
+    background-color: transparent;
+}
+
+.weather-menu-button:hover {
+    color: rgba(0, 80, 130, 0.4);
+    transition: all 0.3s ease;
+}
+
 .battery-level-bar {
     border: none;
     border-radius: 0px 20px 0px 20px;
@@ -424,6 +472,7 @@ menuitem:hover {
     padding: 0px;
     border-radius: 2px;
     border: none;
+    background-color: transparent;
 }
 
 .battery-menu-button:hover {
