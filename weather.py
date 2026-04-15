@@ -79,41 +79,41 @@ class OpenWeatherMap():
         try:
             match icon:
                 case "01d":
-                    icon_name = "weather-clear"
+                    icon_name = "weather-clear-symbolic"
                 case "01n":
-                    icon_name = "weather-clear-night"
+                    icon_name = "weather-clear-night-symbolic"
                 case "02d":
-                    icon_name = "weather-few-clouds"
+                    icon_name = "weather-few-clouds-symbolic"
                 case "02n":
-                    icon_name = "weather-few-clouds-night"
+                    icon_name = "weather-few-clouds-night-symbolic"
                 case "03d":
-                    icon_name = "weather-clouds"
+                    icon_name = "weather-overcast-symbolic"
                 case "03n":
-                    icon_name = "weather-clouds-night"
+                    icon_name = "weather-overcast-symbolic"
                 case "04n":
-                    icon_name = "weather-clouds-night"
+                    icon_name = "weather-overcast-symbolic"
                 case "04d":
-                    icon_name = "weather-clouds"
+                    icon_name = "weather-overcast-symbolic"
                 case "09d":
-                    icon_name = "weather-showers"
+                    icon_name = "weather-showers-symbolic"
                 case "09n":
-                    icon_name = "weather-showers"
+                    icon_name = "weather-showers-symbolic"
                 case "10d":
-                    icon_name = "weather-showers"
+                    icon_name = "weather-showers-symbolic"
                 case "10n":
-                    icon_name = "weather-showers"
+                    icon_name = "weather-showers-symbolic"
                 case "11d":
-                    icon_name = "weather-storm"
+                    icon_name = "weather-storm-symbolic"
                 case "11n":
-                    icon_name = "weather-storm"
+                    icon_name = "weather-storm-symbolic"
                 case "13d":
-                    icon_name = "weather-snow"
+                    icon_name = "weather-snow-symbolic"
                 case "13n":
-                    icon_name = "weather-snow"
+                    icon_name = "weather-snow-symbolic"
                 case "50d":
-                    icon_name = "weather-fog"
+                    icon_name = "weather-fog-symbolic"
                 case "50n":
-                    icon_name = "weather-fog"
+                    icon_name = "weather-fog-symbolic"
                 case "*":
                     icon_name = "image-missing"
             return icon_name

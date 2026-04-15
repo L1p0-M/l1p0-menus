@@ -21,10 +21,15 @@ class CalendarLayer(Gtk.Window):
         Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
         self.set_default_size(300, 150)
         self.get_style_context().add_class("calendar-window")
+        self.overlay = Gtk.Overlay()
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.set_margin_start(0)
         self.main_container.get_style_context().add_class("calendar-layer")
-        self.set_child(self.main_container)
+        self.set_child(self.overlay)
+        self.overlay.set_child(self.main_container)
+        self.revealer = Gtk.Revealer()
+        self.revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
+        self.revealer.set_valign(Gtk.Align.END)
         self.horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.horizontal_container.set_homogeneous(True)
         self.main_container.append(self.horizontal_container)
@@ -38,6 +43,9 @@ class CalendarLayer(Gtk.Window):
                 if "show_sunset" in self.config and self.config["show_sunset"] == "True":
                     self.show_sunset = True
                 self.weather = weather.OpenWeatherMap(city, api_key, language,)
+                self.popupwindow = PopupWindow(self)
+                self.revealer.set_child(self.popupwindow.panel)
+                self.overlay.add_overlay(self.revealer)
                 self.setup_weather()
                 self.set_default_size(600, 150)
             except Exception as e:
@@ -88,8 +96,16 @@ class CalendarLayer(Gtk.Window):
             margin_start=20,
             margin_end=20,
             margin_top=20,
-            margin_bottom=20,)
+            margin_bottom=0,)
         self.horizontal_container.append(self.main_weather_container)
+        menu_button = Gtk.Button()
+        menu_button.connect("clicked", lambda x: self.revealer.set_reveal_child(True))
+        menu_button.set_hexpand(True)
+        menu_button.set_halign(Gtk.Align.END)
+        self.main_weather_container.append(menu_button)
+        menu_button.get_style_context().add_class("weather-menu-button")
+        menu_button_icon = Gtk.Image.new_from_icon_name("open-menu-symbolic")
+        menu_button.set_child(menu_button_icon)
         self.main_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.main_weather_container.append(self.main_horizontal_container)
         weather_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -132,7 +148,6 @@ class CalendarLayer(Gtk.Window):
         self.main_weather_container.append(self.upcoming_weather_container)
         self.setup_forecast()
 
-
     def set_weather_values(self):
         current_weather = self.weather.GetWeeklyForecast(type="weather")[0]
         self.current_weather_icon = Gtk.Image.new_from_icon_name(self.weather.matchIcon(current_weather["icon"]))
@@ -165,6 +180,7 @@ class CalendarLayer(Gtk.Window):
     def setup_forecast(self):
         try:
             weather_forecast = self.weather.GetWeeklyForecast(type="forecast")
+            self.popupwindow.setup_ui(weather_forecast)
         except Exception as e:
             print(f"Unable to get weather forecast! {e}")
             return
@@ -253,6 +269,83 @@ class CalendarLayer(Gtk.Window):
         self.resetToCurrentDate()
         if self.config is not None and "kurzewoche" in self.config and self.config["kurzewoche"] == "True":
             self.markKurzeWoche()
+
+class PopupWindow:
+    def __init__(self, main_window):
+        self.main_window = main_window
+        self.weather = weather
+        self.panel = Gtk.ScrolledWindow()
+        self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.panel.set_propagate_natural_height(True)
+        self.panel.set_max_content_height(180) 
+        self.panel.set_min_content_height(100)
+        self.panel.add_css_class("popup-weather-panel")
+        #self.panel.set_size_request(-1, 170)
+        self.panel_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+            spacing=10,
+            margin_start=0,
+            margin_end=10,
+            margin_top=10,
+            margin_bottom=10
+            )
+        self.panel.set_child(self.panel_content)
+
+    def setup_ui(self, weather_forecast):
+        while child := self.panel_content.get_first_child():
+            self.panel_content.remove(child)
+        close_btn = Gtk.Button()
+        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
+        close_btn.set_child(close_icon)
+        close_btn.connect("clicked", lambda x: self.main_window.revealer.set_reveal_child(False))
+        close_btn.get_style_context().add_class("close-button")
+        close_btn.set_halign(Gtk.Align.END)
+        self.panel_content.append(close_btn)
+        containers = {}
+        date = None
+        for i in range(len(weather_forecast)):
+            #next_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            
+            dates = weather_forecast[i]["date"]
+            dates_object = time.strptime(dates, "%Y-%m-%d %H:%M:%S")
+            dates_formated = time.strftime("%H:%M", dates_object)
+            show_date = time.strftime("%Y-%m-%d", dates_object)
+            upcoming_temp = Gtk.Label()
+            upcoming_temp.set_label(f"{int(weather_forecast[i]["temp"])}°")
+            upcoming_desc = Gtk.Label()
+            upcoming_desc.set_label(f"{weather_forecast[i]["description"].upper()}")
+            upcoming_desc.set_wrap(True)
+            upcoming_desc.set_wrap_mode(0)
+            upcoming_desc.set_lines(2)
+            upcoming_desc.set_ellipsize(2)
+            upcoming_desc.set_justify(2)
+            upcoming_desc.set_valign(Gtk.Align.CENTER)
+            upcoming_desc.get_style_context().add_class("popup-upcoming-description")
+            upcoming_icons = Gtk.Image.new_from_icon_name(self.main_window.weather.matchIcon(weather_forecast[i]["icon"]))
+            upcoming_icons.get_style_context().add_class("popup-upcoming-icons")
+            upcoming_time = Gtk.Label()
+            upcoming_time.set_label(f"{dates_formated}")
+            upcoming_time.get_style_context().add_class("popup-upcoming-time")
+            if show_date not in containers:
+                containers[show_date] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+                #containers[show_date].set_homogeneous(True)
+            next_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            next_container.get_style_context().add_class("popup-upcoming-items-container")
+            next_container.append(upcoming_icons)
+            next_container.append(upcoming_temp)
+            next_container.append(upcoming_desc)
+            next_container.append(upcoming_time)
+            if date == None or date != show_date:
+                date_label = Gtk.Label(label=f"{show_date}")
+                date_label.get_style_context().add_class("popup-upcoming-date")
+                containers[show_date].append(date_label)
+                #self.panel_content.append(date_label)
+                date_label.set_halign(Gtk.Align.CENTER)
+                date = show_date
+            containers[show_date].append(next_container)
+        for container in containers.keys():
+            self.panel_content.append(containers[container])
+        
+
 
 def init_layer(config):
     global _v_layer

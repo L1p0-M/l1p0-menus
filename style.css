@@ -75,6 +75,37 @@ notebook header {
     box-shadow: none;
 }
 
+.header {
+    background-color: rgba(45, 45, 67, 0.2);
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+}
+
+.header-button {
+    font-weight: 900;
+    font-size: medium;
+    padding: 4px;
+    margin: 5px 5px 5px 5px;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 9999px;
+    border: none;
+    box-shadow: none;
+}
+
+.header-button.active {
+    color: #FFFFFF;
+    background-color: #005082;
+    border-radius: 999px;
+    box-shadow: none;
+}
+.header-button:hover {
+    background-color: rgba(0, 80, 130, 0.9);
+    border-color: rgba(0, 80, 130, 0.9);
+    border-radius: 9999px;
+    transition: all .7s ease;
+}
+
 notebook > header > tabs > tab {
     font-weight: 900;
     font-size: medium;
@@ -220,6 +251,38 @@ menuitem:hover {
     transition: all 0.2s ease;
 }
 
+.audio-device-menu {
+    background-color: rgba(0, 80, 130, 0.9); 
+    color: #FFFFFF;
+    border-radius: 0px 20px 0px 20px;
+    padding: 0px;
+    margin: 10px;
+    border: 1px solid #FFFFFF;
+}
+
+.audio-device-button {
+    color: #FFFFFF;
+    font-weight: 300;
+}
+.audio-device-button.active{
+    font-weight: 900;
+    color: #000000;
+    background-color: #FFFFFF;
+}
+
+.audio-menu-button {
+    background-color: transparent;
+    color: #FFFFFF;
+    padding: 0px;
+    margin: 2px;
+    border: none;
+}
+.audio-menu-button:hover {
+    color: rgba(0, 80, 130, 0.4);
+    transition: all 0.3s ease;
+
+}
+
 .night-switch {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 9999px;
@@ -337,7 +400,7 @@ menuitem:hover {
 }
 
 .weather-icon {
-    -gtk-icon-size: 64px;
+    -gtk-icon-size: 45px;
 }
 
 .weather-description {
@@ -375,10 +438,12 @@ menuitem:hover {
 .upcoming-items-container{
     padding: 2px;
     margin: 5px;
+    margin-bottom: 1px;
+    margin-top: 10px;
 }
 
 .upcoming-icons {
-    -gtk-icon-size: 32px;
+    -gtk-icon-size: 20px;
 }
 
 .upcoming-time {
@@ -404,7 +469,7 @@ menuitem:hover {
 }
 
 .popup-upcoming-icons {
-    -gtk-icon-size: 32px;
+    -gtk-icon-size: 25px;
 }
 
 .popup-upcoming-time {
@@ -421,7 +486,8 @@ menuitem:hover {
 
 .weather-menu-button {
     -gtk-icon-size: 13px;
-    margin-top: 10px;
+    margin-top: 5px;
+    margin-bottom: 0px;
     padding: 0px;
     border-radius: 2px;
     border: none;
