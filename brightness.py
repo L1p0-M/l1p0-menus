@@ -1,19 +1,15 @@
 import gi
-import dbus
 import socket
 import os
-from gi.repository import Gio
-import time
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 _v_layer = None
 
 class BrightnessLayer(Gtk.Window):
     def __init__(self):
         super().__init__(title="Brightness Layer")
-
         Gtk4LayerShell.init_for_window(self)
         Gtk4LayerShell.set_namespace(self, "brightness-control")
         Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
@@ -26,163 +22,213 @@ class BrightnessLayer(Gtk.Window):
         main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         main_container.set_margin_start(0)
         main_container.add_css_class("brightness-layer")
-        #main_container.set_margin_all(20)
+        self.brightness = DBusBrightness(self.apply_brightness_update)
+        self.hyprsunset = HyprSunsetSocket(self.apply_night_update)
         self.set_child(main_container)
-        self.notebook = Gtk.Notebook()
-        main_container.append(self.notebook)
-
-        self.hyprctl = HyprctlSocket(self.apply_night_update)
-        self.dbusbrightness = DBusBrightness(self.apply_brightness_update)
-        self.setup_brightness_tab("Fényerő", tab="brightness")
-        self.setup_brightness_tab("Éjszakai fény", tab="night")
+        self.tabs = Gtk.Stack()
+        self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        main_brightness_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        main_nightlight_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.brightness_page = self.tabs.add_named(main_brightness_container, "Bright-Tab")
+        self.nightlight_page = self.tabs.add_named(main_nightlight_container, "Night-Tab")
+        self.main_header_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+            margin_start = 10,
+            margin_end = 10,
+            margin_top = 10,
+            margin_bottom = 10 )
+        self.main_header_container.get_style_context().add_class("header")
+        self.main_header_container.set_homogeneous(True)
+        self.tab_buttons = {}
+        self.brightness_widgets = {}
+        self.night_widgets = {}
+        self.setup_header("Fényerő", "display-brightness-high-symbolic", "Bright-Tab")
+        self.setup_header("Éjszakai Fény", "weather-clear-night-symbolic", "Night-Tab")
+        main_container.append(self.main_header_container)
+        self.setup_brightness_tab(container = main_brightness_container)
+        self.setup_night_tab(container = main_nightlight_container)
+        main_container.append(self.tabs)
         
 
-    def setup_brightness_tab(self, label_text, tab):
+    def setup_header(self, name, icon_name, tab_name):
+        container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        container.set_halign(Gtk.Align.CENTER)
+        label = Gtk.Label(label=name)
+        icon = Gtk.Image.new_from_icon_name(icon_name)
+        button = Gtk.Button()
+        button.get_style_context().add_class("header-button")
+        container.append(icon)
+        container.append(label)
+        button.set_child(container)
+        self.main_header_container.append(button)
+        self.tab_buttons[tab_name] = button
+        button.connect("clicked", lambda x: self.change_tab(tab_name))
+        self.tab_buttons[tab_name] = button
+    
+    def change_tab(self, tab_name):
+        for name, button in self.tab_buttons.items():
+            if name == tab_name:
+                button.get_style_context().add_class("active")
+            else:
+                button.get_style_context().remove_class("active")
+        self.tabs.set_visible_child_name(tab_name)
+
+    def setup_brightness_tab(self, container):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             spacing=15,
             margin_start=20,
             margin_end=20,
             margin_top=20,
             margin_bottom=20,)
-        #vbox.set_border_width(20)
-        hbox_top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        current_brightness = self.brightness.get_brightness()
+        adj = Gtk.Adjustment(value=0, lower=1, upper=100, step_increment=1)
+        label = Gtk.Label(label=f"{int(round(current_brightness))}%")
+        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+        scale.set_value(current_brightness)
+        scale_handler = scale.connect("value-changed", self.on_brightness_change)
+        self.brightness_widgets = {
+            "scale": scale,
+            "scale_handler": scale_handler,
+            "label": label,
+            "container_horizontal": hbox
+        }
+        self.add_widgets_to_layout(self.brightness_widgets)
+        vbox.append(hbox)
+        container.append(vbox)
 
-        #only on brightness tab
-        if tab == "brightness":
-            current_brightness = self.dbusbrightness.get_brightness(type="percentage")
-            adj = Gtk.Adjustment(value=0, lower=1, upper=100, step_increment=1)
-            self.brightness_label = Gtk.Label(label=f"{int(current_brightness)}%")
-            self.label = self.brightness_label
-            self.brightness_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-            self.brightness_handler_id = self.brightness_scale.connect("value-changed", self.on_brightness_change)
-            self.brightness_scale.set_value(current_brightness)
-            self.scale = self.brightness_scale
 
-        #only on nightmode tab
-        elif tab == "night":
-            adj = Gtk.Adjustment(value=0, lower=1000, upper=6000, step_increment=100)
-            self.current_temp = int(self.hyprctl.hyprsunset("temperature"))
-            self.switch = Gtk.Switch()
-            self.switch_handler_id = self.switch.connect("notify::active", self.on_night_switch)
-            self.temp_label = Gtk.Label(label=f"{int(self.current_temp)}K")
-            self.label = self.temp_label
-            self.temp_scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-            self.temp_handler_id = self.temp_scale.connect("value-changed", self.on_temp_change)
-            self.temp_scale.set_value(self.current_temp)
-            self.scale = self.temp_scale
-            self.light_status = (self.current_temp != 6000)
-            #self.switch.set_hexpand(True)
-            self.switch.set_active(self.light_status)
-            self.switch.get_style_context().add_class("night-switch")
-            self.switch.set_halign(Gtk.Align.END)
-            self.switch.set_margin_start(5)
-            #hbox_top.append(self.switch)
+    def setup_night_tab(self, container):
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+            spacing=15,
+            margin_start=20,
+            margin_end=20,
+            margin_top=20,
+            margin_bottom=20,)
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        adj = Gtk.Adjustment(value=0, lower=1000, upper=6000, step_increment=100)
+        current_temp = self.hyprsunset.hyprsunset("temperature")     
+        switch = Gtk.Switch()
+        light_status = (int(current_temp) < 6000)
+        switch.set_active(light_status)
+        switch.get_style_context().add_class("night-switch")
+        switch_handler = switch.connect("notify::active", self.on_night_switch)
+        label = Gtk.Label(label=f"{int(current_temp)}K")
+        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+        scale.set_value(int(current_temp))
+        scale_handler = scale.connect("value-changed", self.on_temp_change)
+        self.night_widgets = {
+            "scale": scale,
+            "scale_handler": scale_handler,
+            "label": label,
+            "switch": switch,
+            "switch_handler": switch_handler,
+            "container_horizontal": hbox
+        }
+        self.add_widgets_to_layout(self.night_widgets)
+        vbox.append(hbox)
+        container.append(vbox)
 
-        
-        self.label.set_size_request(40, -1)
-        self.label.get_style_context().add_class("percent-text")
-        self.label.set_margin_start(5)
-        self.label.set_margin_end(5)
-        hbox_top.append(self.label)
 
-        self.scale.get_style_context().add_class("brightness-slider")
-        self.scale.set_draw_value(False) # disable value at the top of the slider
-        self.scale.set_size_request(250, -1)
-        self.scale.set_hexpand(True)
-        self.scale.set_valign(Gtk.Align.CENTER)
-        self.scale.set_margin_start(5)
-        self.scale.set_margin_end(5)
-        
-        hbox_top.append(self.scale)
-        if hasattr(self, 'switch'):
-            hbox_top.append(self.switch)
+    def add_widgets_to_layout(self, widgets):
+        try:
+            available_keys = []
+            for key, widget in widgets.items():
+                available_keys.append(key) 
+            if "label" in available_keys:
+                label = widgets["label"]
+                label.set_size_request(40, -1)
+                label.get_style_context().add_class("percent-text")
+                label.set_margin_start(5)
+                label.set_margin_end(5)
+            if "scale" in available_keys:
+                scale = widgets["scale"]
+                scale.get_style_context().add_class("brightness-slider")
+                scale.set_draw_value(False)
+                scale.set_size_request(200, -1)
+                scale.set_hexpand(True)
+                scale.set_margin_start(5)
+                scale.set_margin_end(5)
+            if "container_horizontal" in available_keys:
+                hbox =  widgets["container_horizontal"]
+                hbox.append(widgets["label"])
+                hbox.append(widgets["scale"])
+                if "switch" in available_keys:
+                    hbox.append(widgets["switch"])
+        except Exception as e:
+            print(f"Failed to setup ui: {e}")
 
-        vbox.append(hbox_top)
-
-        tab_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        tab_box.set_halign(Gtk.Align.CENTER)
-        tab_box.set_valign(Gtk.Align.CENTER)
-    
-        icon_name = "display-brightness-high-symbolic" if tab=="brightness" else "weather-clear-night-symbolic" #"night-light-symbolic"
-        tab_icon = Gtk.Image.new_from_icon_name(icon_name)
-        tab_icon.set_icon_size(Gtk.IconSize.NORMAL)
-        tab_label = Gtk.Label(label=label_text)
-        tab_icon.set_valign(Gtk.Align.CENTER)
-        tab_label.set_valign(Gtk.Align.CENTER)
-
-        tab_box.append(tab_icon)
-        tab_box.append(tab_label)
-
-        page_num = self.notebook.append_page(vbox, tab_box)
-        child = self.notebook.get_page(vbox)
-        child.set_property("tab-expand", True)
-        child.set_property("tab-fill", True)
 
     def on_brightness_change(self, scale):
         value = int(scale.get_value())
-        valuenew = int((int(value) / 100) * int(self.dbusbrightness.get_brightness(type="max")))
-        self.dbusbrightness.SetBrightness("intel_backlight", int(valuenew))
-        self.brightness_label.set_text(f"{value}%")
+        valuenew = int((int(value) / 100) * int(self.brightness.max_brightness))
+        self.brightness.SetBrightness("intel_backlight", int(valuenew))
+        self.brightness_widgets["label"].set_text(f"{value}%")
 
     def on_temp_change(self, scale):
         value = scale.get_value()
-        self.hyprctl.hyprsunset("temperature", str(value))
-        self.temp_label.set_text(f"{int(value)}K")
+        self.hyprsunset.hyprsunset("temperature", str(value))
+        self.night_widgets["label"].set_text(f"{int(value)}K")
         self.update_switch(value)
 
     def update_switch(self, value):
+        switch = self.night_widgets["switch"]
+        switch_handler = self.night_widgets["switch_handler"]
         if value < 6000:
-            self.switch.handler_block(self.switch_handler_id)
-            self.switch.set_active(True)
-            self.switch.handler_unblock(self.switch_handler_id)
+            switch.handler_block(switch_handler)
+            switch.set_active(True)
+            switch.handler_unblock(switch_handler)
         elif value >= 6000:
-            self.switch.handler_block(self.switch_handler_id)
-            self.switch.set_active(False)
-            self.switch.handler_unblock(self.switch_handler_id)
+            switch.handler_block(switch_handler)
+            switch.set_active(False)
+            switch.handler_unblock(switch_handler)
 
     def on_night_switch(self, switch, state):
         value = switch.get_state()
         if value == True:
-            self.hyprctl.hyprsunset("temperature", 2500)
-            self.temp_scale.set_value(2500)
+            self.hyprsunset.hyprsunset("temperature", 2500)
+            self.apply_night_update(2500)
         else:
-            self.hyprctl.hyprsunset("temperature", 6000)
-            self.temp_scale.set_value(6000)
+            self.hyprsunset.hyprsunset("temperature", 6000)
+            self.apply_night_update(6000)
 
     def apply_brightness_update(self, percentage):
-        self.brightness_scale.handler_block(self.brightness_handler_id)
-        self.brightness_scale.set_value(percentage)
-        self.brightness_label.set_text(f"{percentage}%")
-        self.brightness_scale.handler_unblock(self.brightness_handler_id)
+        scale = self.brightness_widgets["scale"]
+        if percentage != scale.get_value():
+            scale.handler_block(self.brightness_widgets["scale_handler"])
+            scale.set_value(percentage)
+            self.brightness_widgets["label"].set_text(f"{percentage}%")
+            scale.handler_unblock(self.brightness_widgets["scale_handler"])
 
     def apply_night_update(self, temperature):
         try:
-            if int(temperature) != int(self.current_temp):
-                self.current_temp = int(temperature)
-                self.temp_scale.handler_block(self.temp_handler_id)
-                self.temp_scale.set_value(int(temperature))
-                self.temp_label.set_text(f"{int(temperature)}K")
-                self.temp_scale.handler_unblock(self.temp_handler_id)
-                self.update_switch(int(temperature))
+            scale = self.night_widgets["scale"]
+            scale.handler_block(self.night_widgets["scale_handler"])
+            scale.set_value(int(temperature))
+            self.night_widgets["label"].set_text(f"{int(temperature)}K")
+            scale.handler_unblock(self.night_widgets["scale_handler"])
+            self.update_switch(int(temperature))
         except Exception as e:
-            print(e)
+            print(f"Error during gui update: {e}")
             return False
 
 
-class HyprctlSocket():
+class HyprSunsetSocket():
     def __init__(self, callback=None):
         self.update_gui = callback
+        self.internal_update = True
         runtime = os.environ['XDG_RUNTIME_DIR']
         instance_sig = os.environ['HYPRLAND_INSTANCE_SIGNATURE']
-        self.hypr_socket_path=f"{runtime}/hypr/{instance_sig}/.socket.sock"
         self.sunset_socket_path=f"{runtime}/hypr/{instance_sig}/.hyprsunset.sock"
-        GLib.timeout_add(500, self.update_temp)
-
-    def hyprsunset(self, attr=str, value=None):
+        self.current_temp = 6000
+        self._update_loop_id = None
+        
+    def hyprsunset(self, attr:str, value=None):
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                client.settimeout(0.2)
                 client.connect(self.sunset_socket_path)
                 if value is not None:
+                    self.internal_update = True
                     cmd = f"{attr} {value}"
                 else:
                     cmd = f"{attr}"
@@ -190,67 +236,103 @@ class HyprctlSocket():
                 response = client.recv(4096)
                 return response.decode('utf-8')
         except Exception as e:
-            return e
+            print(f"Error while getting/setting temperature: {e}")
+            return None
 
     def update_temp(self):
-        try:
+        try:    
+            if self.internal_update:
+                self.internal_update = False
+                return True
+    
             new_temp = self.hyprsunset("temperature")
-            GLib.idle_add(self.update_gui, new_temp)
+            if new_temp is None or not str(new_temp).isdigit():
+                return True
+            
+            if int(new_temp) != int(self.current_temp):
+                self.current_temp = new_temp
+                GLib.idle_add(self.update_gui, new_temp)
+            return True
         except Exception as e:
-            return e
-        return True
+            print(f"Error while updateing temp: {e}")
+            return True
 
+    def start_update_loop(self):
+        global _v_layer
+        if self._update_loop_id is not None:
+            GLib.source_remove(self._update_loop_id)
+            self._update_loop_id = None
+        self.was_visible = _v_layer.get_visible()
+        if self.was_visible:
+            self._update_loop_id = GLib.timeout_add(200, self.update_temp)
+        else:
+            self._update_loop_id = GLib.timeout_add_seconds(10, self.update_temp)
     
 class DBusBrightness():
     def __init__(self, callback=None):
-        self.last_internal_update = 0
+        self.internal_update = False
         self.on_change_callback = callback
         self.brightness_path = "/sys/class/backlight/intel_backlight/brightness"
-        self.bus = dbus.SystemBus()
-        self.proxy = self.bus.get_object(
-            "org.freedesktop.login1", "/org/freedesktop/login1/session/auto"
-            )
-        self.interface = dbus.Interface(self.proxy, "org.freedesktop.login1.Session")
+        self.max_brightness = self.get_brightness(type="max")
+        self.dbus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        self.dbus_name = "org.freedesktop.login1"
+        self.dbus_path = "/org/freedesktop/login1/session/auto"
+        self.dbus_object = "org.freedesktop.login1.Session"
+        self.proxy = Gio.DBusProxy.new_sync(
+            self.dbus,
+            Gio.DBusProxyFlags.NONE,
+            None,
+            self.dbus_name,
+            self.dbus_path,
+            self.dbus_object,
+            None
+        )
 
-        
         file = Gio.File.new_for_path(self.brightness_path)
         self.monitor = file.monitor_file(Gio.FileMonitorFlags.NONE, None)
         self.monitor.connect("changed", self.on_file_changed)
 
-
-    def SetBrightness(self, device=str, value=int):
-        self.last_internal_update = time.time()
+    def SetBrightness(self, device:str, value:int):
+        parameters = GLib.Variant('(ssu)', ("backlight", device, int(value)))
+        self.internal_update = True
         try:
-            self.interface.SetBrightness("backlight", device, dbus.UInt32(value))
-        except dbus.DBusException as e:
-            self.ignore_next_change = False
-            print(f"Error setting brightness via DBus: {e}")
+            self.dbus.call_sync(
+                self.dbus_name,
+                self.dbus_path,
+                self.dbus_object,
+                "SetBrightness",
+                parameters,
+                None,
+                Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION,
+                -1,
+                None
+            )
+        except Exception as e:
+            print(f"Error occured while changing brightness: {e}")
 
-    @staticmethod
-    def get_brightness(type="percentage"):
+    def get_brightness(self, type="percentage"):
         try:
             base_path = "/sys/class/backlight/intel_backlight"
             with open(f"{base_path}/max_brightness", "r") as f:
-                max_brightness = int(f.read().strip())
+                max_brightness = float(f.read().strip())
             with open(f"{base_path}/brightness", "r") as f:
-                current_brightness = int(f.read().strip())
+                current_brightness = float(f.read().strip())
             if type == "percentage":
-                return int(current_brightness) / int(max_brightness) * 100
+                return int(round(float(current_brightness) / float(max_brightness) * 100))
             elif type == "raw":
                 return current_brightness 
             elif type == "max":
                 return max_brightness
-        except:
+        except Exception as e:
+            print(f"Error while getting brightness: {e}")
             return 0
         
     def on_file_changed(self, monitor, file, other_file, event_type):
         if event_type != Gio.FileMonitorEvent.CHANGED:
             return
-        if (time.time() - self.last_internal_update) < 0.2:
+        if self.internal_update == True:
+            self.internal_update = False
             return
-        if hasattr(self, '_update_pending') and self._update_pending:
-            return
-        self._update_pending = True
         try:
             percentage = self.get_brightness("percentage")
             if self.on_change_callback:
@@ -258,14 +340,14 @@ class DBusBrightness():
         except Exception as e:
                 print(f"Olvasási hiba: {e}")
         finally:
-            self._update_pending = False
+            self.internal_update = False
         return False
-
 
 def init_layer():
     global _v_layer
     if _v_layer is None:
         _v_layer = BrightnessLayer()
+        _v_layer.hyprsunset.start_update_loop()
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
@@ -273,8 +355,10 @@ def toggle_layer():
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
+        _v_layer.change_tab("Bright-Tab")
         _v_layer.show()
         _v_layer.present()
+    _v_layer.hyprsunset.start_update_loop()
 
 def hide_layer():
     global _v_layer

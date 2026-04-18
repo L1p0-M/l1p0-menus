@@ -4,9 +4,6 @@
 }
 
 .audio-window {
-    /*background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 0px 30px 0px 30px;
-    border: 1px solid #FFFFFF;*/
     background-color: transparent;
 }
 
@@ -18,9 +15,6 @@
 }
 
 .brightness-window{
-    /*background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 0px 30px 0px 30px;
-    border: 1px solid #FFFFFF;*/
     background-color: transparent;
 }
 
@@ -32,9 +26,6 @@
 }
 
 .calendar-window {
-    /*background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 0px 30px 0px 30px;
-    border: 1px solid #FFFFFF; */
     background-color: transparent;
 }
 
@@ -46,9 +37,6 @@
 }
 
 .battery-window {
-    /*background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 0px 30px 0px 30px;
-    border: 1px solid #FFFFFF; */
     background-color: transparent;
 }
 
@@ -57,22 +45,6 @@
     border: 1px solid #FFFFFF;
     border-radius: 0px 30px 0px 30px;
     padding: 20px;
-}
-
-notebook {
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
-}
-notebook > stack {
-    background-color: transparent;
-}
-
-notebook header {
-    background-color: rgba(45, 45, 67, 0.2);
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: none;
 }
 
 .header {
@@ -93,7 +65,8 @@ notebook header {
     box-shadow: none;
 }
 
-.header-button.active {
+.header-button.active,
+.header-button.active:hover {
     color: #FFFFFF;
     background-color: #005082;
     border-radius: 999px;
@@ -106,29 +79,6 @@ notebook header {
     transition: all .7s ease;
 }
 
-notebook > header > tabs > tab {
-    font-weight: 900;
-    font-size: medium;
-    padding: 4px;
-    margin: 5px 5px 5px 5px;
-    color: rgba(255, 255, 255, 0.7);
-    border-radius: 9999px;
-    border: none;
-    box-shadow: none;
-}
-
-notebook > header > tabs > tab:checked {
-    color: #FFFFFF;
-    background-color: #005082;
-    border-radius: 999px;
-    box-shadow: none;
-}
-notebook > header > tabs > tab:hover {
-    background-color: rgba(0, 80, 130, 0.9);
-    border-color: rgba(0, 80, 130, 0.9);
-    border-radius: 9999px;
-    transition: all .7s ease;
-}
 
 button {
     background-color: rgba(45, 45, 67, 0.2);
@@ -202,53 +152,6 @@ scale trough slider:hover {
     font-weight: 900;
     color: #FFFFFF;
     font-size: 13px;
-}
-
-.device-switcher {
-    background-color: rgba(0, 80, 130, 0.4);
-    color: #ffffff;
-    border: 1px solid #FFFFFF;
-    border-radius: 0px 20px 0px 20px;
-    padding: 2px;
-    margin-top: 2px;
-    font-weight: 900;
-}
-
-
-.device-switcher:hover {
-    background-color: rgba(0, 80, 130, 0.9);
-    border: 1px solid #FFFFFF;
-    transition: all 0.7s ease;
-}
-
-
-.device-switcher popover {
-    background-color: rgba(45, 45, 67, 0.2);
-    border: 1px solid #FFFFFF;
-    box-shadow: none;
-    padding: 3px;
-    margin: 10px;
-    border-radius: 0px 20px 0px 20px;
-}
-
-.device-switcher > popover > contents {
-    padding: 5px 10px;
-    box-shadow: none;
-    color: #FFFFFF;
-    border-radius: 0px 20px 0px 20px;
-}
-
-
-menuitem:hover {
-    background-color: #005082;
-    color: #FFFFFF;
-}
-.device-switcher button {
-    background-color: transparent;
-    color: #FFFFFF;     
-    border-color: transparent;
-    font-weight: bold;
-    transition: all 0.2s ease;
 }
 
 .audio-device-menu {
