@@ -62,7 +62,6 @@ class BrightnessLayer(Gtk.Window):
         self.main_header_container.append(button)
         self.tab_buttons[tab_name] = button
         button.connect("clicked", lambda x: self.change_tab(tab_name))
-        self.tab_buttons[tab_name] = button
     
     def change_tab(self, tab_name):
         for name, button in self.tab_buttons.items():

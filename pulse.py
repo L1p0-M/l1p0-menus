@@ -83,7 +83,6 @@ class VolumeLayer(Gtk.Window):
         self.main_header_container.append(button)
         self.tab_buttons[tab_name] = button
         button.connect("clicked", lambda x: self.change_tab(tab_name))
-        self.tab_buttons[tab_name] = button
         
     def setup_tab(self, is_mic, container):
         current_window = self.setup_revealer(is_mic)

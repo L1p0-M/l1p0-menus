@@ -9,6 +9,7 @@ import socket
 import brightness
 import clock
 import battery
+import wifi
 import json
 
 gi.require_version('Gtk', '4.0')
@@ -29,10 +30,11 @@ def handle_socket_input(source, condition, module ):
 
 def process_command(data):
     commands = {
-        "toggle_audio": (pulse, ["brightness", "battery"]),
-        "toggle_brightness": (brightness, ["pulse", "battery"]),
-        "toggle_battery": (battery, ["brightness", "pulse"]),
-        "toggle_calendar": (clock, [])
+        "toggle_audio": (pulse, ["brightness", "battery", "wifi"]),
+        "toggle_brightness": (brightness, ["pulse", "battery", "wifi"]),
+        "toggle_battery": (battery, ["brightness", "pulse", "wifi"]),
+        "toggle_calendar": (clock, []),
+        "toggle_network": (wifi, ["brightness", "battery", "pulse"])
     }
 
     if data in commands:
@@ -82,6 +84,7 @@ def run_daemon():
     brightness.init_layer()
     clock.init_layer(config)
     battery.init_layer()
+    wifi.init_layer()
     print("Daemon runing...")
     loop = GLib.MainLoop()
     try:
@@ -89,6 +92,10 @@ def run_daemon():
     except KeyboardInterrupt:
         print("Stopping...")
         loop.quit()
+    finally:
+        print("Cleaning up...")
+        wifi.cleanup()
+        server.close()
 
 def load_config():
     try:
@@ -152,11 +159,11 @@ def load_resources():
 if __name__ == "__main__":
     parser = ArgumentParser(description="L1p0 Menus for Hyprland")
     parser.add_argument('--daemon', action='store_true', help='Start the daemon')
-    parser.add_argument('--toggle', type=str, help='Toggle menus, Available options: audio,brightness,calendar,battery')
+    parser.add_argument('--toggle', type=str, help='Toggle menus, Available options: audio,brightness,calendar,battery,network')
     parser.add_argument('--reload-css', action='store_true', help='Reload user and internal CSS')
     
     args = parser.parse_args()
-    available_widgets = ["audio", "brightness", "calendar", "battery"]
+    available_widgets = ["audio", "brightness", "calendar", "battery", "network"]
 
     if args.daemon:
         run_daemon()
