@@ -45,7 +45,9 @@ class BrightnessLayer(Gtk.Window):
         self.setup_header("Éjszakai Fény", "weather-clear-night-symbolic", "Night-Tab")
         main_container.append(self.main_header_container)
         self.setup_brightness_tab(container = main_brightness_container)
-        self.setup_night_tab(container = main_nightlight_container)
+
+        if os.environ['HYPRLAND_INSTANCE_SIGNATURE']:
+            self.setup_night_tab(container = main_nightlight_container)
         main_container.append(self.tabs)
         
 
@@ -218,10 +220,10 @@ class HyprSunsetSocket():
         runtime = os.environ['XDG_RUNTIME_DIR']
         try:
             instance_sig = os.environ['HYPRLAND_INSTANCE_SIGNATURE']
+            self.sunset_socket_path=f"{runtime}/hypr/{instance_sig}/.hyprsunset.sock"
         except KeyError:
             print("Not running under Hyprland... Hyprsunset Disabled")
             return
-        self.sunset_socket_path=f"{runtime}/hypr/{instance_sig}/.hyprsunset.sock"
         self.current_temp = 6000
         self._update_loop_id = None
         
