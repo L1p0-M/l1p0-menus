@@ -216,7 +216,11 @@ class HyprSunsetSocket():
         self.update_gui = callback
         self.internal_update = True
         runtime = os.environ['XDG_RUNTIME_DIR']
-        instance_sig = os.environ['HYPRLAND_INSTANCE_SIGNATURE']
+        try:
+            instance_sig = os.environ['HYPRLAND_INSTANCE_SIGNATURE']
+        except KeyError:
+            print("Not running under Hyprland... Hyprsunset Disabled")
+            return
         self.sunset_socket_path=f"{runtime}/hypr/{instance_sig}/.hyprsunset.sock"
         self.current_temp = 6000
         self._update_loop_id = None
