@@ -352,7 +352,8 @@ def init_layer():
     global _v_layer
     if _v_layer is None:
         _v_layer = BrightnessLayer()
-        _v_layer.hyprsunset.start_update_loop()
+        if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
+            _v_layer.hyprsunset.start_update_loop()
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
@@ -363,7 +364,8 @@ def toggle_layer():
         _v_layer.change_tab("Bright-Tab")
         _v_layer.show()
         _v_layer.present()
-    _v_layer.hyprsunset.start_update_loop()
+    if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
+        _v_layer.hyprsunset.start_update_loop()
 
 def hide_layer():
     global _v_layer
