@@ -46,7 +46,7 @@ class BrightnessLayer(Gtk.Window):
         main_container.append(self.main_header_container)
         self.setup_brightness_tab(container = main_brightness_container)
 
-        if os.environ['HYPRLAND_INSTANCE_SIGNATURE']:
+        if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
             self.setup_night_tab(container = main_nightlight_container)
         main_container.append(self.tabs)
         
