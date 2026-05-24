@@ -12,6 +12,7 @@ class WifiDbus:
         self._get_device_proxy()
         self._get_settings_proxy()
         self._get_ethernet_device_proxy()
+        self.ipv4_proxy = {}
 
         if self.callback is not None:
             self._subscribe_to_changes()
@@ -133,10 +134,71 @@ class WifiDbus:
             "org.freedesktop.NetworkManager.Settings",
             None
         )
+
+    def _get_ipv4_proxy(self, path):
+        if not path in self.ipv4_proxy.keys():
+            self.ipv4_proxy[path] = Gio.DBusProxy.new_sync(
+                self.bus,
+                Gio.DBusProxyFlags.NONE,
+                None,
+                "org.freedesktop.NetworkManager",
+                path,
+                "org.freedesktop.NetworkManager.IP4Config",
+                None
+            )
     
     def get_ethernet_speed(self):
         if self.ethernet_device_proxy:
             return self.ethernet_device_proxy.get_cached_property("Speed").unpack()
+
+    def get_active_network_details(self):
+        details = {}
+        if self.device_proxy:
+            propertys = ["Bitrate", "HwAddress"]
+            for prop in propertys:
+                prop_value = self.device_proxy.get_cached_property(prop).unpack()
+                if prop_value is None:
+                    prop_value = self._get_property_forced(
+                        self.device_proxy,
+                        "org.freedesktop.NetworkManager.Device.Wireless",
+                        prop
+                    )
+                if prop_value is not None:
+                    if prop == "Bitrate":
+                        prop_value = f"{int(int(prop_value) / 1000)} Mb/s"
+                else:
+                    prop_value = "N/A"
+                details[prop] = prop_value
+
+        if self.dev_proxy:
+            ipv4config = self.dev_proxy.get_cached_property("Ip4Config").unpack()
+            if ipv4config is None:
+                ipv4config = self._get_property_forced(
+                    self.dev_proxy,
+                    "org.freedesktop.NetworkManager.Device",
+                    "Ip4Config"
+                )
+            if not ipv4config in self.ipv4_proxy.keys():
+                self._get_ipv4_proxy(ipv4config)
+        if self.ipv4_proxy[ipv4config]:
+            propertys = ["Gateway", "AddressData", "NameserverData"]
+            for prop in propertys:
+                prop_value = self.ipv4_proxy[ipv4config].get_cached_property(prop).unpack()
+                if prop_value is None:
+                    prop_value = self._get_property_forced(
+                        self.ipv4_proxy[ipv4config],
+                        "org.freedesktop.NetworkManager.IP4Config",
+                        prop
+                    )
+                no_value = [None, [], ""]
+                if prop_value not in no_value:
+                    if prop == "AddressData" or prop == "NameserverData":
+                        prop_value = prop_value[0]["address"]
+                else:
+                    prop_value = "N/A"
+                details[prop] = prop_value
+        return details
+
 
 
     def _get_network_details(self, ap_path):
@@ -239,6 +301,7 @@ class WifiDbus:
                 self.active_connections[ssid] = path
         return self.active_connections
                 
+
     def request_scan(self):
         try:
             self.device_proxy.call(
@@ -325,6 +388,16 @@ class WifiDbus:
     def toggle_wifi(self, toggle, state):
         self._block_update(state)
         self._set_nm_property("WirelessEnabled", GLib.Variant('b', toggle.get_active()))
+
+    def get_wifi_status(self):
+        wifistatus = self.nm_proxy.get_cached_property("WirelessEnabled")
+        if wifistatus is None:
+            wifistatus = self._get_property_forced(
+                    self.nm_proxy,
+                    "org.freedesktop.NetworkManager",
+                    "WirelessEnabled"
+                ).unpack()
+        return wifistatus
 
     def _block_update(self, toggle):
         if toggle == False:
@@ -511,182 +584,3 @@ class WifiDbus:
         
     def _decode_ssid(self, ssid_bytes):
         return bytes(ssid_bytes).decode('utf-8', errors='replace')
-
-
-class SecretAgent:
-    AGENT_INTERFACE = "org.freedesktop.NetworkManager.SecretAgent"
-    AGENT_MANAGER_PATH = "/org/freedesktop/NetworkManager/AgentManager"
-    AGENT_MANAGER_INTERFACE = "org.freedesktop.NetworkManager.AgentManager"
-    AGENT_ID = "com.freedesktop.l1p0menus.secretagent"
-    
-    def __init__(self, password_callback, wifidbus):
-        self.password_callback = password_callback
-        self.wifidbus = wifidbus
-        self.pending_requests = {}
-        self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
-        self.registration_id = None
-        
-    def register(self):
-        introspection_xml = """
-        <node>
-            <interface name="org.freedesktop.NetworkManager.SecretAgent">
-                <method name="GetSecrets">
-                    <arg name="connection" type="a{sa{sv}}" direction="in"/>
-                    <arg name="connection_path" type="o" direction="in"/>
-                    <arg name="setting_name" type="s" direction="in"/>
-                    <arg name="hints" type="as" direction="in"/>
-                    <arg name="flags" type="u" direction="in"/>
-                    <arg name="secrets" type="a{sa{sv}}" direction="out"/>
-                </method>
-                <method name="CancelGetSecrets">
-                    <arg name="connection_path" type="o" direction="in"/>
-                    <arg name="setting_name" type="s" direction="in"/>
-                </method>
-                <method name="SaveSecrets">
-                    <arg name="connection" type="a{sa{sv}}" direction="in"/>
-                    <arg name="connection_path" type="o" direction="in"/>
-                </method>
-                <method name="DeleteSecrets">
-                    <arg name="connection" type="a{sa{sv}}" direction="in"/>
-                    <arg name="connection_path" type="o" direction="in"/>
-                </method>
-            </interface>
-        </node>
-        """
-        
-        node_info = Gio.DBusNodeInfo.new_for_xml(introspection_xml)
-        interface_info = node_info.lookup_interface(self.AGENT_INTERFACE)
-
-        self.registration_id = self.bus.register_object(
-            "/org/freedesktop/NetworkManager/SecretAgent",
-            interface_info,
-            self._handle_method_call,
-            None,
-            None
-        )
-
-        agent_manager = Gio.DBusProxy.new_sync(
-            self.bus,
-            Gio.DBusProxyFlags.NONE,
-            None,
-            "org.freedesktop.NetworkManager",
-            self.AGENT_MANAGER_PATH,
-            self.AGENT_MANAGER_INTERFACE,
-            None
-        )
-        
-        try:
-            agent_manager.call_sync(
-                "Register",
-                GLib.Variant("(s)", (self.AGENT_ID,)),
-                Gio.DBusCallFlags.NONE,
-                -1,
-                None
-            )
-            print(f"Secret agent registered: {self.AGENT_ID}")
-        except Exception as e:
-            print(f"Failed to register agent: {e}")
-            raise
-    
-    def unregister(self):
-        if self.registration_id:
-            self.bus.unregister_object(self.registration_id)
-            
-        try:
-            agent_manager = Gio.DBusProxy.new_sync(
-                self.bus,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                "org.freedesktop.NetworkManager",
-                self.AGENT_MANAGER_PATH,
-                self.AGENT_MANAGER_INTERFACE,
-                None
-            )
-            agent_manager.call_sync(
-                "Unregister",
-                None,
-                Gio.DBusCallFlags.NONE,
-                -1,
-                None
-            )
-        except Exception:
-            pass
-            
-    def _handle_method_call(self, connection, sender, object_path, 
-                           interface_name, method_name, parameters, invocation):
-
-        if method_name == "GetSecrets":
-            self._handle_get_secrets(parameters, invocation)
-        elif method_name == "CancelGetSecrets":
-            self._handle_cancel(parameters, invocation)
-        elif method_name == "SaveSecrets":
-            invocation.return_value(None)
-        elif method_name == "DeleteSecrets":
-            invocation.return_value(None)
-        else:
-            invocation.return_error_literal(
-                Gio.dbus_error_quark(),
-                Gio.DBusError.UNKNOWN_METHOD,
-                f"Unknown method: {method_name}"
-            )
-    
-    def _handle_get_secrets(self, parameters, invocation):
-        connection_settings, connection_path, setting_name, hints, flags = parameters.unpack()
-        
-
-        ssid = "Unknown"
-        if "802-11-wireless" in connection_settings:
-            wireless = connection_settings["802-11-wireless"]
-            if "ssid" in wireless:
-                ssid_bytes = wireless["ssid"]
-                ssid = self.wifidbus._decode_ssid(ssid_bytes)
-    
-        request_id = f"{connection_path}:{setting_name}"
-        self.pending_requests[request_id] = invocation
-        
-        def on_password_received(password):
-            if request_id not in self.pending_requests:
-                return
-    
-            del self.pending_requests[request_id]
-            
-            if password is None:
-                self.wifidbus.deactivate_connection(ssid)
-                invocation.return_error_literal(
-                    Gio.dbus_error_quark(),
-                    Gio.DBusError.ACCESS_DENIED,
-                    "User cancelled"
-                )
-                return
-            
-            secrets = {
-                setting_name: {
-                    "psk": GLib.Variant("s", password)
-                }
-            }
-
-            secrets_variant = self._build_secrets_variant(secrets)
-            invocation.return_value(GLib.Variant("(a{sa{sv}})", (secrets_variant,)))
-        
-        GLib.idle_add(
-            lambda: self.password_callback(ssid, flags, on_password_received)
-        )
-    
-    def _build_secrets_variant(self, secrets_dict):
-        result = {}
-        for setting_name, setting_secrets in secrets_dict.items():
-            inner = {}
-            for key, variant in setting_secrets.items():
-                inner[key] = variant
-            result[setting_name] = inner
-        return result
-    
-    def _handle_cancel(self, parameters, invocation):
-        connection_path, setting_name = parameters.unpack()
-        request_id = f"{connection_path}:{setting_name}"
-        
-        if request_id in self.pending_requests:
-            del self.pending_requests[request_id]
-            
-        invocation.return_value(None)
-

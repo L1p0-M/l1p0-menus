@@ -1,15 +1,15 @@
 from ctypes import CDLL
 CDLL('libgtk4-layer-shell.so')
 from argparse import ArgumentParser
-import pulse
+import popups.pulse as pulse
 from os import path, environ, remove
 import gi
 from sys import exit
 import socket
-import brightness
-import clock
-import battery
-import wifi
+import popups.brightness as brightness
+import popups.clock as clock
+import popups.battery as battery
+import popups.wifi as wifi
 import json
 
 gi.require_version('Gtk', '4.0')
@@ -138,7 +138,7 @@ def load_css():
                 )
         except Exception as e:
             print(f"User css error: {e}")
-        print("CSS fájlok betöltve.")
+        print("CSS files loaded.")
 
 def get_home_dir():
     try:

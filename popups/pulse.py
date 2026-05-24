@@ -320,7 +320,7 @@ class Pulseaudio:
         with pulsectl.Pulse('event-listener') as pulse_listener:
             pulse_listener.event_mask_set('sink', 'server', 'source')
             pulse_listener.event_callback_set(self.on_pulse_event)
-            print("PulseAudio figyelő szál elindult...")
+            print("PulseAudio event listener started...")
             try:
                 while not self.stop_event.is_set():
                     pulse_listener.event_listen(timeout=0.5)

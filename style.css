@@ -16,7 +16,8 @@
 .calendar-layer,
 .battery-layer,
 .network-layer {
-    background-color: rgba(0, 0, 0, 0.1);
+    background: #0F2348;
+    background: linear-gradient(310deg,rgba(15, 35, 72, 0.8) 50%, rgba(21, 41, 89, 0.8) 85%, rgba(0, 80, 130, 0.8) 100%);
     padding: 20px;
     border-radius: 0px 30px 0px 30px;
     border: 1px solid #FFFFFF;
@@ -131,7 +132,8 @@ scale trough slider:hover {
 }
 
 .audio-device-menu {
-    background-color: rgba(0, 80, 130, 0.9); 
+    background: #0F2348;
+    background: linear-gradient(310deg,rgba(15, 35, 72, 0.9) 50%, rgba(21, 41, 89, 0.9) 70%, rgba(0, 80, 130, 0.9) 100%); 
     color: #FFFFFF;
     border-radius: 0px 20px 0px 20px;
     padding: 0px;
@@ -344,7 +346,7 @@ scale trough slider:hover {
 .popup-weather-panel {
     /*background-color: rgba(0, 80, 130, 1);*/
     background: #0F2348;
-    background: linear-gradient(310deg,rgba(15, 35, 72, 1) 50%, rgba(21, 41, 89, 1) 70%, rgba(0, 80, 130, 1) 100%);
+    background: linear-gradient(310deg,rgba(15, 35, 72, 1) 50%, rgba(21, 41, 89, 1) 85%, rgba(0, 80, 130, 1) 100%);
     color: #FFFFFF;
     border-radius: 0px 20px 0px 20px;
     padding: 0px;
@@ -426,7 +428,8 @@ scale trough slider:hover {
     min-width: 50px;
 }
 
-.battery-menu-button {
+.battery-menu-button,
+.wifi-details-button {
     -gtk-icon-size: 13px;
     padding: 0px;
     border-radius: 2px;
@@ -434,7 +437,8 @@ scale trough slider:hover {
     background-color: transparent;
 }
 
-.battery-menu-button:hover {
+.battery-menu-button:hover,
+.wifi-details-button:hover {
     color: rgba(0, 80, 130, 0.4);
     transition: all 0.3s ease;
 }
@@ -451,7 +455,7 @@ scale trough slider:hover {
 .floating-panel{
     /*background-color: rgba(0, 80, 130, 1);*/
     background: #0F2348;
-    background: linear-gradient(310deg,rgba(15, 35, 72, 0.9) 50%, rgba(21, 41, 89, 0.9) 70%, rgba(0, 80, 130, 0.9) 100%);
+    background: linear-gradient(310deg,rgba(15, 35, 72, 0.9) 50%, rgba(21, 41, 89, 0.9) 85%, rgba(0, 80, 130, 0.9) 100%);
     backdrop-filter: blur(10px);
     border-radius: 0px 20px 0px 20px;
     margin: 10px;
@@ -461,6 +465,8 @@ scale trough slider:hover {
 .popup-parameter {
     font-size: 13px;
     color: #FFFFFF;
+    margin-top: 2px;
+    margin-bottom: 2px;
 
 }
 
@@ -468,6 +474,8 @@ scale trough slider:hover {
     font-size: 13px;
     font-weight: 900;
     color: #FFFFFF;
+    margin-top: 2px;
+    margin-bottom: 2px;
 }
 
 .close-button {
@@ -579,7 +587,8 @@ scale trough slider:hover {
 }
 
 .wifi-reload,
-.saved-menu-button {
+.saved-menu-button,
+.bluetooth-reload {
     background-color: #005082;
     border-radius: 0px 20px 0px 20px;
     color: #FFFFFF;
@@ -587,22 +596,36 @@ scale trough slider:hover {
 }
 
 .wifi-reload:hover,
-.saved-menu-button:hover {
+.saved-menu-button:hover,
+.bluetooth-reload:hover {
     background-color: rgba(0, 80, 130, 0.6);
     transition: all 0.7s ease;
     box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
 }
 
-.connect-button {
+.bluetooth-reload {
+    padding: 11px 20px 11px 20px;
+}
+
+.connect-button,
+.forget-button,
+.confirm-button {
     background-color: #005082;
     color: #FFFFFF;
     border-radius: 0px 15px 0px 15px;
     border: none;
 }
 
-.connect-button:hover{
+.connect-button:hover,
+.forget-button:hover,
+.confirm-button:hover {
     background-color: rgba(0, 80, 130, 0.6);
     transition: all 0.7s ease;
+}
+
+.connect-button {
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .header-label {
@@ -638,36 +661,42 @@ scale trough slider:hover {
 
 .floating-panel-wifi {
     background: #0F2348;
-    background: linear-gradient(310deg,rgba(15, 35, 72, 0.8) 50%, rgba(21, 41, 89, 0.8) 70%, rgba(0, 80, 130, 0.8) 100%);
+    background: linear-gradient(310deg,rgba(15, 35, 72, 0.8) 50%, rgba(21, 41, 89, 0.8) 85%, rgba(0, 80, 130, 0.8) 100%);
     backdrop-filter: blur(10px);
     border: 1px solid #FFFFFF;
     border-radius: 0px 20px 0px 20px;
     margin: 10px;
 }
 
-.autoconnect-switch {
+.autoconnect-switch,
+.popup-switch {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 9999px;
     margin: 10px;
 }
-.autoconnect-switch:checked {
+.autoconnect-switch:checked,
+.popup-switch:checked {
     background-color: #005082;
 }
-.autoconnect-switch:checked > slider {
+.autoconnect-switch:checked > slider,
+.popup-switch:checked > slider {
     background-color: #005082;
     border: 1px solid #ffffff;
     border-radius: 9999px;
 }
-.autoconnect-switch:hover > slider{
+.autoconnect-switch:hover > slider,
+.popup-switch:hover > slider {
     box-shadow: 0 0px 16px rgba(255, 255, 255, 0.5);
 }
-.autoconnect-switch > slider {
+.autoconnect-switch > slider,
+.popup-switch > slider {
     background-color: rgba(255, 255, 255, 0.3);
     border: 1px solid #ffffff;
     border-radius: 9999px;
 }
 
-.autoconnect-switch > image {
+.autoconnect-switch > image,
+.popup-switch > image {
     color: transparent; }
 
 .saved-network-card {
@@ -677,3 +706,23 @@ scale trough slider:hover {
     margin: 10px;
 
 }
+
+.subname {
+    color: #FFFFFF;
+    opacity: 0.7;
+    -gtk-icon-size: 13px;
+}
+
+.popup-switch {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    margin: 0px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.auth-code {
+    font-size: 40px;
+    font-weight: 900;
+}
+

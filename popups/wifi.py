@@ -3,10 +3,10 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 _v_layer = None
-from assets.utils import Header
-from assets.wifi import WifiDbus, SecretAgent
-from time import time
-
+from assets.utils import Header, Popups, window_utils
+from assets.wifi_dbus import WifiDbus
+from assets.agent import SecretAgent
+from popups.bluetooth import Bluetooth
 
 class NetworkLayer(Gtk.Window):
     def __init__(self):
@@ -27,30 +27,25 @@ class NetworkLayer(Gtk.Window):
         self.main_overlay.set_child(main_container)
         self.set_child(self.main_overlay)
         self.wifidbus = WifiDbus(self.update_ui_elements)
-        self.secret_agent = SecretAgent(self.on_password_required, self.wifidbus)
-        self.secret_agent.register()
         self.passwd_windows = {}
         self.saved_windows = {}
-        self._init_empty_text()
-        self.setup_tabs()
-        self.last_wifi_update = 0
+        self.empty_widgets = window_utils().init_empty_text("Wi-fi is currently disabled", "network-wireless-disabled-symbolic")
         self.retry_num = 0
         self.loading = False
         self.before_scan = True
+        self.setup_tabs()
         main_container.append(self.main_header_container)
         main_container.append(self.tabs)
+        self.secret_agent = SecretAgent(self.on_password_required, self.wifidbus, self.bluetooth.on_agent_call)
+        self.secret_agent.register()
 
-    def setup_revealer(self, passwd=False):
+    def setup_revealer(self, windowtype="saved"):
         windows = {}
-        if passwd:
-            self.passwd_windows = windows
-        else:
-            self.saved_windows = windows
         revealer = Gtk.Revealer()
         revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
         revealer.set_valign(Gtk.Align.END)
         windows["revealer"] = revealer
-        overlay_window = PopupWindow(self, passwd, self.wifidbus, windows)
+        overlay_window = PopupWindow(self, windowtype, self.wifidbus, windows)
         windows["overlay"] = overlay_window
         windows["revealer"].set_child(overlay_window.panel)
         self.main_overlay.add_overlay(revealer)
@@ -75,6 +70,7 @@ class NetworkLayer(Gtk.Window):
         self.header.setup_header("Internet", "network-wireless-signal-excellent-symbolic", "Wifi-Tab")
         self.header.setup_header("Bluetooth", "bluetooth-symbolic", "Bluetooth-Tab")
         self.setup_wifi_tab()
+        self.bluetooth = Bluetooth(self.main_bluetooth_container, self.main_overlay)
 
     def setup_scrolled_windows(self):
         panel = Gtk.ScrolledWindow()
@@ -92,8 +88,9 @@ class NetworkLayer(Gtk.Window):
         return panel, panel_content
         
     def setup_wifi_tab(self):
-        saved = self.setup_revealer()
-        passwordwindow = self.setup_revealer(passwd=True)
+        self.saved_windows = self.setup_revealer(windowtype="saved")
+        self.passwd_windows = self.setup_revealer(windowtype="password")
+        self.details_windows = self.setup_revealer(windowtype="details")
         self.setup_wifi_switches()
         self.scrolled_wifi_panel, self.scrolled_wifi_container = self.setup_scrolled_windows()
         self.networks = self.wifidbus.get_wifi_networks_data()
@@ -108,7 +105,7 @@ class NetworkLayer(Gtk.Window):
         self.wifi_reload_btn.set_child(Gtk.Image.new_from_icon_name("view-refresh-symbolic"))
         self.wifi_reload_btn.connect("clicked", lambda x: self.wifidbus.request_scan())
         self.saved_networks_btn = Gtk.Button()
-        self.saved_networks_btn.connect("clicked", lambda x, reveal=saved["revealer"]: reveal.set_reveal_child(True))
+        self.saved_networks_btn.connect("clicked", lambda x, reveal=self.saved_windows["revealer"]: reveal.set_reveal_child(True))
         self.saved_networks_btn.set_hexpand(False)
         self.saved_networks_btn.set_margin_top(20)
         saved_icon_overlay = Gtk.Overlay()
@@ -127,6 +124,8 @@ class NetworkLayer(Gtk.Window):
         bottom_box.append(self.wifi_reload_btn)
         bottom_box.append(self.saved_networks_btn)
         self.main_wifi_container.append(bottom_box)
+        if not self.wifi_switch.get_active():
+            self.empty_state()
 
     def setup_wifi_switches(self):
         switch_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, 
@@ -137,24 +136,23 @@ class NetworkLayer(Gtk.Window):
             spacing=10)
         switch_box.set_hexpand(True)
         switch_box.set_halign(Gtk.Align.CENTER)
-        wifi_switch = Gtk.Switch()
-        wifi_switch.set_active(True)
-        wifi_switch.get_style_context().add_class("wifi-switch")
-        wifi_switch.connect("state-set", self.on_wifi_switch)
+        self.wifi_switch = Gtk.Switch()
+        self.wifi_switch.get_style_context().add_class("wifi-switch")
+        self.wifi_switch.connect("state-set", self.on_wifi_switch)
+        self.wifi_switch.set_active(self.wifidbus.get_wifi_status())
         net_switch = Gtk.Switch()
         net_switch.set_active(True)
         net_switch.get_style_context().add_class("network-switch")
         net_switch.connect("state-set", self.on_network_switch)
         wifi_label = Gtk.Label(label="Wi-Fi")
         net_label = Gtk.Label(label="Network")
-        switch_box.append(wifi_switch)
+        switch_box.append(self.wifi_switch)
         switch_box.append(wifi_label)
         switch_box.append(net_switch)
         switch_box.append(net_label)
         self.main_wifi_container.append(switch_box)
 
     def setup_wifi_cards(self, networks):
-        self.last_wifi_update = time()
         self.wifi_cards_details = {}
         while child := self.scrolled_wifi_container.get_first_child():
             self.scrolled_wifi_container.remove(child)
@@ -173,6 +171,7 @@ class NetworkLayer(Gtk.Window):
             ssid = Gtk.Label(label=f"{network_details['ssid']}")
             ssid.set_halign(Gtk.Align.START)
             strength = Gtk.Label(label=f"Signal - {network_details['strength']}%")
+            strength.get_style_context().add_class("subname")
             strength.set_halign(Gtk.Align.START)
             strength_icon = Gtk.Image.new_from_icon_name(self.get_wifi_signal_icon(network_details['strength']))
             strength_icon.get_style_context().add_class("wifi-icon")
@@ -193,16 +192,26 @@ class NetworkLayer(Gtk.Window):
             loader_container.append(spinner)
             loader_container.append(loading_label)
             loader_container.set_visible(False)
+            details_btn = Gtk.Button()
+            details_btn.set_child(Gtk.Image.new_from_icon_name("info-outline-symbolic"))
+            details_btn.get_style_context().add_class("wifi-details-button")
+            details_btn.set_margin_end(10)
+            details_btn.connect("clicked", lambda x, revealer=self.details_windows["revealer"]: revealer.set_reveal_child(True))
+            details_btn.set_visible(False)
             card.append(strength_icon)
             card.append(ssid_container)
             card.append(lock_icon)
             card.append(loader_container)
+            card.append(details_btn)
             card.append(connect_btn)
             card.get_style_context().add_class("network-card")
             row.set_child(card)
             self.scrolled_wifi_container.append(row)
             if active:
                 card.get_style_context().add_class("active")
+                if not self.loading:
+                    lock_icon.set_visible(False)
+                    details_btn.set_visible(True)
             self.wifi_cards_details[network_details['ssid']] = {
                 "details": network_details,
                 "row": row,
@@ -214,8 +223,8 @@ class NetworkLayer(Gtk.Window):
                 "spinner": spinner,
                 "loader_container": loader_container,
                 "loading_label": loading_label,
+                "details_btn": details_btn,
                 "active": active,
-                "flags": network_details["flags"]
             }
             self.update_card_css(network_details, card, connect_btn)
         self.check_for_wired_connection()
@@ -259,6 +268,7 @@ class NetworkLayer(Gtk.Window):
                 return -1 if row1.is_active else 1
             if hasattr(row1, "strength") and hasattr(row2, "strength"):
                 return row2.strength - row1.strength
+        return 0
     
     def update_headers(self, row, before):
         if before is None and hasattr(row, "is_active"):
@@ -366,6 +376,8 @@ class NetworkLayer(Gtk.Window):
                     details["active"] = False
                     details["card"].get_style_context().remove_class("active")
                     details["spinner"].get_style_context().remove_class("active")
+                    details["details_btn"].set_visible(False)
+                    details["lock_icon"].set_visible(True)
                     self.update_card_css(details["details"], details["card"], details["connect_btn"])
                 self.scrolled_wifi_container.invalidate_sort()
             else:
@@ -379,7 +391,12 @@ class NetworkLayer(Gtk.Window):
                             self.wifi_cards_details[ssid]["spinner"].get_style_context().remove_class("active")
                             self.wifi_cards_details[ssid]["row"].is_active = True
                             self.wifi_cards_details[ssid]["connect_btn"].set_visible(True)
+                            self.wifi_cards_details[ssid]["details_btn"].set_visible(True)
+                            self.wifi_cards_details[ssid]["lock_icon"].set_visible(False)
                             self.scrolled_wifi_container.invalidate_sort()
+                            details = self.wifidbus.get_active_network_details()
+                            for key, value in self.details_windows["overlay"].match_names.items():
+                                self.details_windows["overlay"].details[value].set_label(details[value])
                             self.update_card_css(self.wifi_cards_details[ssid]["details"], self.wifi_cards_details[ssid]["card"], self.wifi_cards_details[ssid]["connect_btn"])
                         elif status == "preparing":
                             self.loading = True
@@ -387,6 +404,7 @@ class NetworkLayer(Gtk.Window):
                                 self.wifi_cards_details[ssid]["loader_container"].set_visible(True)
                                 self.wifi_cards_details[ssid]["spinner"].get_style_context().add_class("active")
                                 self.wifi_cards_details[ssid]["connect_btn"].set_visible(False)
+                                self.wifi_cards_details[ssid]["lock_icon"].set_visible(False)
         return False
     
     def cleanup(self):
@@ -396,56 +414,43 @@ class NetworkLayer(Gtk.Window):
     def on_wifi_switch(self, switch, state):
         self.wifidbus.toggle_wifi(switch, state)
         def on_false():
-            self.empty_widgets["loader"].set_visible(False)
-            self.empty_widgets["loader"].get_style_context().remove_class("active")
-            self.empty_widgets["text"].set_label("Wi-fi is currently disabled")
-            if self.empty_widgets["box"].get_parent() is None:
-                self.scrolled_wifi_container.append(self.empty_widgets["box"])
+            self.empty_state()
             return False
          
         def on_true():
             self.empty_widgets["loader"].set_visible(True)
             self.empty_widgets["loader"].get_style_context().add_class("active")
+            self.empty_widgets["icon"].set_visible(False)
             self.empty_widgets["text"].set_label("Scanning for available networks...")
             self.before_scan = True
             return False
         
         if not state:
-            GLib.timeout_add(300, on_false)
+            GLib.timeout_add(500, on_false)
         if state:
-            GLib.timeout_add(300, on_true)
+            GLib.timeout_add(500, on_true)
         return False
             
-
+    def empty_state(self):
+        self.empty_widgets["loader"].set_visible(False)
+        self.empty_widgets["icon"].set_visible(True)
+        self.empty_widgets["loader"].get_style_context().remove_class("active")
+        self.empty_widgets["text"].set_label("Wi-fi is currently disabled")
+        if self.empty_widgets["box"].get_parent() is None:
+            self.scrolled_wifi_container.append(self.empty_widgets["box"])
             
 
     def on_network_switch(self, switch, state):
         self.wifidbus.toggle_network(switch, state)
 
-
-    def _init_empty_text(self):
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        box.set_size_request(-1, 340)
-        text = Gtk.Label(label="Wi-fi is currently disabled")
-        loader = Gtk.Image.new_from_icon_name("process-working-symbolic")
-        loader.get_style_context().add_class("spinner")
-        loader.set_visible(False)
-        box.append(loader)
-        box.append(text)
-        box.set_halign(Gtk.Align.CENTER)
-        box.set_valign(Gtk.Align.CENTER)
-        self.empty_widgets = {
-            "box": box,
-            "text": text,
-            "loader": loader,
-        }
-
 class PopupWindow:
-    def __init__(self, main_window, is_passwd, wifidbus, windows):
+    def __init__(self, main_window, windowtype, wifidbus, windows):
         self.main_window = main_window
         self.password_callback = None
+        self.popup = Popups()
+        self.details = {}
         self.wifidbus = wifidbus
-        self.is_passwd = is_passwd
+        self.type = windowtype
         self.windows = windows
         self.panel = Gtk.Frame()
         self.panel.add_css_class("floating-panel-wifi")
@@ -458,11 +463,30 @@ class PopupWindow:
             margin_bottom=20
             )
         self.panel.set_child(self.panel_content)
+        self.match_names = {
+            "IPv4 Address": "AddressData",
+            "Gateway": "Gateway",
+            "DNS": "NameserverData",
+            "MAC Address": "HwAddress",
+            "Speed": "Bitrate"
+        }
+        self.icons = {
+            "IPv4 Address": "network-server-symbolic",
+            "Gateway": "network-modem-symbolic",
+            "DNS": "network-vpn-symbolic",
+            "MAC Address": "network-wired-activated-symbolic",
+            "Speed": "preferences-system-network-symbolic"
+        }
         self.setup_ui()
     
     def setup_ui(self):
         header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        header_label = Gtk.Label(label=f"{('Saved Networks').upper() if not self.is_passwd else ('Enter Password').upper()}")
+        header_text = {
+            "saved": "Saved Networks",
+            "details": "Network Details",
+            "password": "Enter password"
+        }
+        header_label = Gtk.Label(label=f"{(header_text[self.type]).upper()}")
         header_label.set_halign(Gtk.Align.START)
         header_label.set_hexpand(True)
         header_label.get_style_context().add_class("header-label")
@@ -470,17 +494,26 @@ class PopupWindow:
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
         close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x: self.on_close(self.is_passwd))
+        close_btn.connect("clicked", lambda x: self.on_close(self.type))
         close_btn.get_style_context().add_class("close-button")
         close_btn.set_halign(Gtk.Align.END)
+        close_btn.set_valign(Gtk.Align.CENTER)
         header_box.append(close_btn)
         self.panel_content.append(header_box)
-        if self.is_passwd:
+        if self.type == "password":
             self.setup_password_ui()
             self.panel_content.append(self.passwdinput)
+        elif self.type == "details":
+            self.hor_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            self.hor_container.set_homogeneous(True)
+            self.details = self.popup.setup_details(
+                match_names=self.match_names,
+                match_icons=self.icons,
+                details = self.wifidbus.get_active_network_details(),
+                container=self.hor_container)
+            self.panel_content.append(self.hor_container)
         else:
-            self.setup_wifi_box()
-
+            self.setup_wifi_box()        
 
     def setup_wifi_box(self):
         self.wifi_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
@@ -496,7 +529,6 @@ class PopupWindow:
     def setup_saved(self):
         while child := self.wifi_container.get_first_child():
            self.wifi_container.remove(child)
-
         saved_networks = self.wifidbus.get_saved_connections()
         if saved_networks:
             for ssids in saved_networks:
@@ -507,7 +539,8 @@ class PopupWindow:
                 ssid = Gtk.Label(label=f"{ssids}")
                 ssid.set_halign(Gtk.Align.START)
                 autoconnect = str(saved_networks[ssids]["autoconnect"])
-                autoconnect_status = Gtk.Label(label=f"Autoconnect - {autoconnect}")
+                autoconnect_status = Gtk.Label(label=f"{'Autoconnect Enabled' if autoconnect else 'Manual Connect Only'}")
+                autoconnect_status.get_style_context().add_class("subname")
                 autoconnect_status.set_halign(Gtk.Align.START)
                 icon = Gtk.Image.new_from_icon_name("network-wireless-signal-excellent-symbolic")
             #strength_icon.set_pixel_size(25)
@@ -518,9 +551,8 @@ class PopupWindow:
                 autoconnect_switch.set_active(saved_networks[ssids]["autoconnect"])
                 autoconnect_switch.get_style_context().add_class("autoconnect-switch")
                 autoconnect_switch.connect("state-set", self.on_autoconnect_switched, saved_networks[ssids]["path"], autoconnect_status, )
-
                 forget_btn = Gtk.Button(label="Forget")
-                forget_btn.get_style_context().add_class("connect-button")
+                forget_btn.get_style_context().add_class("forget-button")
                 forget_btn.set_halign(Gtk.Align.END)
                 forget_btn.connect("clicked", lambda x, path=saved_networks[ssids]["path"]: self.wifidbus.forget_network(path))
                 card.append(icon)
@@ -551,7 +583,7 @@ class PopupWindow:
 
     def on_autoconnect_switched(self, switch, state, path, label):
         self.wifidbus.update_autoconnect(path, state)
-        label.set_text(f"Autoconnect - {state}")
+        label.set_text(f"{'Autoconnect Enabled' if state else 'Manual Connect Only'}")
 
 
     def on_password_entered(self, entry):
@@ -566,10 +598,10 @@ class PopupWindow:
         self.windows["revealer"].set_reveal_child(False)
         Gtk4LayerShell.set_keyboard_mode(self.main_window, Gtk4LayerShell.KeyboardMode.NONE)
 
-    def on_close(self, is_passwd=False):
+    def on_close(self, windowtype="saved"):
         self.windows["revealer"].set_reveal_child(False)
         Gtk4LayerShell.set_keyboard_mode(self.main_window, Gtk4LayerShell.KeyboardMode.NONE)
-        if is_passwd:
+        if windowtype == "password":
             self.password_callback(None)
         
 
@@ -582,9 +614,11 @@ def init_layer():
 def toggle_layer():
     global _v_layer
     if _v_layer.get_visible():
+        _v_layer.bluetooth.dbusbluez.discovery(False)
         _v_layer.hide()
     else:
         _v_layer.header.change_tab("Wifi-Tab")
+        _v_layer.bluetooth.dbusbluez.discovery(True)
         _v_layer.show()
         _v_layer.present()
 
