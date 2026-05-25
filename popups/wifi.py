@@ -76,8 +76,10 @@ class NetworkLayer(Gtk.Window):
         self.wifi_reload_btn.get_style_context().add_class("wifi-reload")
         self.wifi_reload_btn.set_hexpand(True)
         self.wifi_reload_btn.set_margin_top(20)
-        self.wifi_reload_btn.set_child(Gtk.Image.new_from_icon_name("view-refresh-symbolic"))
-        self.wifi_reload_btn.connect("clicked", lambda x: self.wifidbus.request_scan())
+        self.reload_icon = Gtk.Image.new_from_icon_name("view-refresh-symbolic")
+        self.reload_icon.get_style_context().add_class("reload-icon")
+        self.wifi_reload_btn.set_child(self.reload_icon)
+        self.wifi_reload_btn.connect("clicked", lambda x: self.on_refresh())
         self.saved_networks_btn = Gtk.Button()
         self.saved_networks_btn.connect("clicked", lambda x, reveal=self.saved_windows["revealer"]: reveal.set_reveal_child(True))
         self.saved_networks_btn.set_hexpand(False)
@@ -115,15 +117,15 @@ class NetworkLayer(Gtk.Window):
         self.wifi_switch.get_style_context().add_class("wifi-switch")
         self.wifi_switch.connect("state-set", self.on_wifi_switch)
         self.wifi_switch.set_active(self.wifidbus.get_wifi_status())
-        net_switch = Gtk.Switch()
-        net_switch.set_active(True)
-        net_switch.get_style_context().add_class("network-switch")
-        net_switch.connect("state-set", self.on_network_switch)
+        self.net_switch = Gtk.Switch()
+        self.net_switch.set_active(True)
+        self.net_switch.get_style_context().add_class("network-switch")
+        self.net_switch.connect("state-set", self.on_network_switch)
         wifi_label = Gtk.Label(label="Wi-Fi")
         net_label = Gtk.Label(label="Network")
         switch_box.append(self.wifi_switch)
         switch_box.append(wifi_label)
-        switch_box.append(net_switch)
+        switch_box.append(self.net_switch)
         switch_box.append(net_label)
         self.main_wifi_container.append(switch_box)
 
@@ -199,9 +201,10 @@ class NetworkLayer(Gtk.Window):
             "details_btn": details_btn,
             "active": active,
         }
-        self.update_card_css(network_details, card, connect_btn)
         if network["ssid"] == self.preparing:
             self.toggle_loader(network["ssid"], True)
+            return
+        self.update_card_css(network_details, card, connect_btn)
         self.scrolled_wifi_container.invalidate_sort()
 
     def check_for_wired_connection(self):
@@ -328,6 +331,10 @@ class NetworkLayer(Gtk.Window):
         if "available_networks" in parameters:
             if not self.wifi_switch.get_active():
                 return
+            print("Updating available networks...")
+            if hasattr(self, "refresh_timeout") and self.refresh_timeout:
+                GLib.source_remove(self.refresh_timeout)
+                self.reload_icon.get_style_context().remove_class("active")
             if parameters["available_networks"]:
                 if self.empty_widgets["box"].get_parent() is not None:
                     self.hide_empty_widgets()
@@ -353,7 +360,6 @@ class NetworkLayer(Gtk.Window):
                         self.wifi_cards_details[keys]["details"]["strength"] = parameters["strength"]
                         self.wifi_cards_details[keys]["strength"].set_text(f"Signal - {parameters['strength']}%")
                         break
-
 
         if "status_update" in parameters:
             network = parameters["status_update"]
@@ -392,7 +398,6 @@ class NetworkLayer(Gtk.Window):
                             else:
                                 self.preparing = ssid
                             break
-        return False
     
     def toggle_loader(self, ssid, state):
         if ssid in self.wifi_cards_details:
@@ -408,6 +413,17 @@ class NetworkLayer(Gtk.Window):
     def cleanup(self):
         if self.secret_agent:
             self.secret_agent.unregister()
+
+    def on_refresh(self):
+        if self.wifi_switch.get_active() and self.net_switch.get_active():
+            self.wifidbus.request_scan()
+            self.reload_icon.get_style_context().add_class("active")
+            def timeout_func():
+                self.reload_icon.get_style_context().remove_class("active")
+                self.refresh_timeout = None
+                return False
+            self.refresh_timeout = GLib.timeout_add(5000, timeout_func)
+
 
     def on_wifi_switch(self, switch, state):
         self.wifidbus.toggle_wifi(switch, state)        
@@ -428,7 +444,6 @@ class NetworkLayer(Gtk.Window):
         self.empty_widgets["icon"].set_visible(True)
         self.empty_widgets["box"].set_visible(True)
         self.empty_widgets["loader"].get_style_context().remove_class("active")
-        #self.empty_widgets["text"].set_label("Wi-fi is currently disabled")
         if self.empty_widgets["box"].get_parent() is None:
             self.scrolled_wifi_container.append(self.empty_widgets["box"])
 

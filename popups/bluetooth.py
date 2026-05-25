@@ -47,10 +47,12 @@ class Bluetooth:
         bottom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.bluetooth_reload_btn = Gtk.Button()
         self.bluetooth_reload_btn.get_style_context().add_class("bluetooth-reload")
-        self.bluetooth_reload_btn.connect("clicked", lambda x: self.dbusbluez._get_bluez_objects())
+        self.bluetooth_reload_btn.connect("clicked", lambda x: self.on_refresh())
         self.bluetooth_reload_btn.set_hexpand(True)
         self.bluetooth_reload_btn.set_margin_top(20)
-        self.bluetooth_reload_btn.set_child(Gtk.Image.new_from_icon_name("view-refresh-symbolic"))
+        self.reload_icon = Gtk.Image.new_from_icon_name("view-refresh-symbolic")
+        self.reload_icon.get_style_context().add_class("reload-icon")
+        self.bluetooth_reload_btn.set_child(self.reload_icon)
         bottom_box.append(self.bluetooth_reload_btn)
         self.main_container.append(bottom_box)
         self._default_state()
@@ -208,6 +210,9 @@ class Bluetooth:
             discovering_state = message["discovering"]
 
         elif "devices" in message:
+            if hasattr(self, "refresh_timeout") and self.refresh_timeout:
+                GLib.source_remove(self.refresh_timeout)
+                self.reload_icon.get_style_context().remove_class("active")
             if self.empty_widgets["box"].get_parent() is not None:
                 self.hide_empty_widgets()
             for device in message["devices"]:
@@ -342,6 +347,16 @@ class Bluetooth:
         self.empty_widgets["loader"].get_style_context().add_class("active")
         self.empty_widgets["text"].set_label("Loading devices...")
         self.empty_widgets["icon"].set_visible(False)
+
+    def on_refresh(self):
+        if self.toggle_switch.get_active():
+            self.dbusbluez._get_bluez_objects()
+            self.reload_icon.get_style_context().add_class("active")
+            def timeout_func():
+                self.reload_icon.get_style_context().remove_class("active")
+                self.refresh_timeout = None
+                return False
+            self.refresh_timeout = GLib.timeout_add(5000, timeout_func)
                     
 
     def _default_state(self):
