@@ -46,6 +46,11 @@ class DbusBluez:
 
     def toggle_bluetooth(self, switch, state):
         subprocess.Popen(f"rfkill {'unblock' if state else 'block'} bluetooth", shell=True)
+        if not state:
+            self.bluez_proxy = None
+            self.adapter_object_path = None
+        if state:
+            GLib.timeout_add_seconds(3, self._get_bluez_objects)
 
 
     def toggle_discoverable(self, switch, state):
@@ -187,6 +192,7 @@ class DbusBluez:
             if not any('org.bluez.Adapter1' in subdict for subdict in nodes.values()):
                 print("Adapter not found, Bluetooth is likely hardware disabled.")
                 GLib.timeout_add_seconds(5, self._get_bluez_objects)
+                return
             print("Found bluetooth adapter, setting up devices...")
             for path, interfaces in nodes.items():
                 if "org.bluez.Adapter1" in interfaces:

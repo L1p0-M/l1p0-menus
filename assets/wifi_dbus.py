@@ -6,8 +6,14 @@ from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 class WifiDbus:
     def __init__(self, callback=None):
         self.callback = callback
-        self.update_to_none = False
+        self.wifi_path = None
+        self.ethernet_path = None 
+        self.ap_count = 0
+        self.completed_ap_count = 0
+        self._scanning = False
+        self.update_job = None
         self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        self.networks = {}
         self._get_nm_proxy()
         self._get_device_proxy()
         self._get_settings_proxy()
@@ -30,7 +36,7 @@ class WifiDbus:
         )
 
     def get_wifi_networks_data(self):
-        return self._get_available_networks()
+        self._get_available_networks()
 
     def _get_wifi_path(self): 
         devices = self.nm_proxy.GetDevices()
@@ -203,7 +209,7 @@ class WifiDbus:
 
     def _get_network_details(self, ap_path):
         try:
-            res = self.bus.call_sync(
+            self.bus.call(
                 "org.freedesktop.NetworkManager",
                 ap_path,
                 "org.freedesktop.DBus.Properties",
@@ -212,14 +218,24 @@ class WifiDbus:
                 GLib.VariantType.new("(a{sv})"),
                 Gio.DBusCallFlags.NONE,
                 -1,
-                None
+                None,
+                self._setup_networks,
+                ap_path
             )
-        
-            unpacked_data = res.unpack()[0]
+        except Exception as e:
+            print(f"Error while getting network details for ({ap_path}): {e}")
+            return None
+
+    def _setup_networks(self, source_object, res, user_data):
+        try:
+            result = source_object.call_finish(res)
+            unpacked_data = result.unpack()[0]
+            ap_path = user_data
         
             ssid_variant = unpacked_data.get("Ssid")
             ssid = self._decode_ssid(ssid_variant) if ssid_variant else "Unknown"
             if ssid == "Unknown":
+                self._sort_networks(None)
                 return
             strength = int(unpacked_data.get("Strength", 0))
         
@@ -227,7 +243,7 @@ class WifiDbus:
             rsn_flags = unpacked_data.get("RsnFlags", 0)
             is_secured = (wpa_flags != 0 or rsn_flags != 0)
 
-            return {
+            self._sort_networks({
                 "ssid": ssid,
                 "strength": strength,
                 "secured": is_secured,
@@ -235,24 +251,53 @@ class WifiDbus:
                 "rsn_flags": rsn_flags if rsn_flags != 0 else None,
                 "flags": unpacked_data.get("Flags", 0),
                 "path": ap_path
-            }
+            })
         
         except GLib.Error as e:
             if "UnknownMethod" not in e.message and "UnknownObject" not in e.message:
                 print(f"Error getting data from ({ap_path}): {e}")
-            return None
+            self._sort_networks(None)
     
     def _get_available_networks(self, ap_paths=None):
-        unique_networks = {}
-        if ap_paths == None:
+        if self._scanning:
+            return
+        self.networks = {}
+        if not ap_paths:
+            if not self.device_proxy:
+                self._get_device_proxy()
             ap_paths = self.device_proxy.GetAllAccessPoints()
+        else:
+            if hasattr(self, "update_job") and self.update_job:
+                try:
+                    GLib.source_remove(self.update_job)
+                except:
+                    pass
+            self.update_job = GLib.timeout_add(200, self._run_update, ap_paths)
+            return
+        self._run_update(ap_paths)
+
+    def _run_update(self, ap_paths):
+        self._scanning = True
+        if self.update_job:
+            self.update_job = None
+        self.ap_count = len(ap_paths)
+        self.completed_ap_count = 0
+        if self.ap_count == 0:
+            self._scanning = False
+            return False
         for path in ap_paths:
-            details = self._get_network_details(path)
-            if details is not None:
-                if details["ssid"] not in unique_networks or details["strength"] > unique_networks[details["ssid"]]["strength"]:
-                    unique_networks[details["ssid"]] = details
-        return unique_networks
+            self._get_network_details(path)
+        return False
     
+    def _sort_networks(self, details):
+        self.completed_ap_count += 1
+        if details is not None:
+            if details["ssid"] not in self.networks or details["strength"] > self.networks[details["ssid"]]["strength"]:
+                self.networks[details["ssid"]] = details
+        if self.completed_ap_count == self.ap_count:
+            self.callback({"available_networks": self.networks})
+            self._scanning = False
+
     def get_active_networks(self):
         self.active_connections = {}
         active_connections = self.nm_proxy.get_cached_property("ActiveConnections").unpack()
@@ -314,14 +359,14 @@ class WifiDbus:
         except Exception as e:
             print(f"Error while rescan: {e}")
 
-    def deactivate_connection(self, type="wifi"):
+    def deactivate_connection(self, con_type="wifi"):
         try:
-            if type == "wifi":
+            if con_type == "wifi":
                 proxy = self.dev_proxy
-            elif type == "ethernet":
+            elif con_type == "ethernet":
                 proxy = self.ethernet_dev_proxy
             if proxy:
-                proxy.call_sync(
+                proxy.call(
                     "Disconnect",
                     None,
                     Gio.DBusCallFlags.NONE,
@@ -382,12 +427,10 @@ class WifiDbus:
             print(f"Error while connecting to network: {e}")
 
     def toggle_network(self, toggle, state):
-        self._block_update(state)
-        self._call_nm_proxy("Enable", GLib.Variant('(b)', [toggle.get_active()]))
+        self._call_nm_proxy("Enable", GLib.Variant('(b)', [state]))
 
     def toggle_wifi(self, toggle, state):
-        self._block_update(state)
-        self._set_nm_property("WirelessEnabled", GLib.Variant('b', toggle.get_active()))
+        self._set_nm_property("WirelessEnabled", GLib.Variant('b', state))
 
     def get_wifi_status(self):
         wifistatus = self.nm_proxy.get_cached_property("WirelessEnabled")
@@ -398,12 +441,6 @@ class WifiDbus:
                     "WirelessEnabled"
                 ).unpack()
         return wifistatus
-
-    def _block_update(self, toggle):
-        if toggle == False:
-            self.update_to_none = True
-        else:
-            self.update_to_none = False
 
     def forget_network(self, path):
         try:
@@ -469,6 +506,7 @@ class WifiDbus:
             return
         #print(f"Signal received: {signal_name} from {sender_name} at {object_path}")
         #print(f"{parameter}")
+        #print(signal_name)
         if "org.freedesktop.NetworkManager.Device" in str(parameter[0]):
             props = parameter[1]
             if "State" in props:
@@ -486,27 +524,22 @@ class WifiDbus:
                     GLib.idle_add(self.callback, {"status_update": target_path, "status": "disconnected", "state_code": state})
 
         if "org.freedesktop.NetworkManager.Device.Wireless" in str(parameter[0]):
-            if "AccessPoints" in str(parameter[1]):
-                if not self.update_to_none:
-                    GLib.timeout_add(500, self._delayed_network_update)
-                else:
-                    GLib.idle_add(self.callback, {"available_networks": []})
+            props = parameter[1] if len(parameter) > 1 else {}
+            if "AccessPoints" in props:
+                ap_paths = props["AccessPoints"]
+                GLib.idle_add(self._get_available_networks, ap_paths)
+            if "Bitrate" in props:
+                GLib.idle_add(self.callback, {"updated_network": object_path, "bitrate": props['Bitrate']})
 
         elif "org.freedesktop.NetworkManager.AccessPoint" in str(parameter[0]):
             props = parameter[1] if len(parameter) > 1 else {}
             if "Strength" in props:
                 GLib.idle_add(self.callback, {"updated_network": object_path, "strength": props['Strength']})
 
-    def _delayed_network_update(self):
-        try:
-            ap_paths = self.device_proxy.GetAllAccessPoints()
-            wifis = self._get_available_networks(ap_paths)
-            GLib.idle_add(self.callback, {"available_networks": wifis})
-        except Exception as e:
-            print(f"Error while network update: {e}")
-        return False
 
     def _call_nm_proxy(self, method, value):
+        if not self.nm_proxy:
+            self._get_nm_proxy()
         self.nm_proxy.call(
             method,
             value,

@@ -166,7 +166,8 @@ scale trough slider:hover {
 
 .night-switch,
 .wifi-switch,
-.network-switch {
+.network-switch,
+.wifi-switch.disabled:checked {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 9999px;
     min-width: 32px;
@@ -193,7 +194,8 @@ scale trough slider:hover {
 }
 .night-switch > slider,
 .wifi-switch > slider,
-.network-switch > slider {
+.network-switch > slider,
+.wifi-switch.disabled:checked > slider {
     background-color: rgba(255, 255, 255, 0.3);
     border: 1px solid #ffffff;
     border-radius: 9999px;
@@ -203,7 +205,8 @@ scale trough slider:hover {
 
 .night-switch > image,
 .wifi-switch > image,
-.network-switch > image {
+.network-switch > image,
+.wifi-switch.disabled:checked > image {
     color: transparent; }
 
 .clock {
