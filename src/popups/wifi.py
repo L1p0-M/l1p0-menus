@@ -6,7 +6,7 @@ _v_layer = None
 from ..assets.utils import Header, Popups, window_utils
 from ..assets.wifi_dbus import WifiDbus
 from ..assets.agent import SecretAgent
-from bluetooth import Bluetooth
+from .bluetooth import Bluetooth
 
 class NetworkLayer(Gtk.Window):
     def __init__(self):
