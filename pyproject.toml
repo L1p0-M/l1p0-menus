@@ -29,4 +29,5 @@ artifacts = ["src/resources.gresource"]
 
 [tool.hatch.build.targets.wheel.hooks.custom]
 
+[tool.hatch.build.targets.wheel.sources]
 "src" = "l1p0_menus"
