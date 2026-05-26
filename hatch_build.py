@@ -1,6 +1,6 @@
 import subprocess
 from pathlib import Path
-from hatchling.build.hooks.plugin.interface import BuildHookInterface
+from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 class CustomBuildHook(BuildHookInterface):
     def initialize(self, version, build_data):
