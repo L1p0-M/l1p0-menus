@@ -1,15 +1,15 @@
 from ctypes import CDLL
 CDLL('libgtk4-layer-shell.so')
 from argparse import ArgumentParser
-import popups.pulse as pulse
 from os import path, environ, remove
 import gi
 from sys import exit
 import socket
-import popups.brightness as brightness
-import popups.clock as clock
-import popups.battery as battery
-import popups.wifi as wifi
+from .popups import brightness as brightness
+from .popups import clock as clock
+from .popups import battery as battery
+from .popups import wifi as wifi
+from .popups import pulse as pulse
 import json
 
 gi.require_version('Gtk', '4.0')
