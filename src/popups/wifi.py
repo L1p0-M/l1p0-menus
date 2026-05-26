@@ -3,10 +3,10 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 _v_layer = None
-from assets.utils import Header, Popups, window_utils
-from assets.wifi_dbus import WifiDbus
-from assets.agent import SecretAgent
-from popups.bluetooth import Bluetooth
+from ..assets.utils import Header, Popups, window_utils
+from ..assets.wifi_dbus import WifiDbus
+from ..assets.agent import SecretAgent
+from bluetooth import Bluetooth
 
 class NetworkLayer(Gtk.Window):
     def __init__(self):

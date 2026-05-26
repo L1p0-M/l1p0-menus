@@ -2,8 +2,8 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
-from assets.utils import window_utils, Popups
-from assets.bluetooth_dbus import DbusBluez
+from ..assets.utils import window_utils, Popups
+from ..assets.bluetooth_dbus import DbusBluez
 
 
 class Bluetooth:

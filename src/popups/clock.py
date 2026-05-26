@@ -1,7 +1,7 @@
 import gi
 import time
 import datetime
-import assets.weather as weather
+from ..assets import weather as weather
 
 
 gi.require_version('Gtk', '4.0')
