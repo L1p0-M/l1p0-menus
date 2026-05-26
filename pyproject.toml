@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "l1p0-menus"
+dynamic = ["version"]
+description = "GTK4 Layer Shell menus for Hyprland"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "L1p0", email = "lipovicsmartin@l1p0-industries.hu" }
+]
+dependencies = [
+    "pygobject",
+    "pulsectl"
+]
+
+[project.scripts]
+l1p0-menus = "l1p0_menus.main:main"
+
+[tool.hatch.version]
+path = "src/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+artifacts = ["src/resources.gresource"]
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+
+"src" = "l1p0_menus"

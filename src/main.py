@@ -156,7 +156,7 @@ def load_resources():
     except Exception as e:
         print(f"Failed to load resources: {e}")
 
-if __name__ == "__main__":
+def main():
     parser = ArgumentParser(description="L1p0 Menus for Hyprland")
     parser.add_argument('--daemon', action='store_true', help='Start the daemon')
     parser.add_argument('--toggle', type=str, help='Toggle menus, Available options: audio,brightness,calendar,battery,network')
@@ -174,3 +174,6 @@ if __name__ == "__main__":
         send_command("reload_css")
     else:
         parser.print_help()
+
+if __name__ == "__main__":
+    main()
