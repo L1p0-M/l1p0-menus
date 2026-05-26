@@ -4,9 +4,10 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 class CustomBuildHook(BuildHookInterface):
     def initialize(self, version, build_data):
-        assets_dir = Path(self.root) / "src" / "assets"
+        base_dir = Path(__file__).parent.resolve()
+        assets_dir = base_dir / "src" / "assets"
         xml_file = assets_dir / "resources.xml"
-        output_file = Path(self.root) / "src" / "resources.gresource"
+        output_file = base_dir / "src" / "resources.gresource"
 
         if xml_file.exists():
             print(f"Compiling GResource: {xml_file} to {output_file}")
