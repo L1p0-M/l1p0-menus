@@ -7,33 +7,43 @@ class OpenWeatherMap():
         self.language = language
 
     def GetWeatherObject(self, type="weather"):
-        if type == "forecast":
-            base_url= 'http://api.openweathermap.org/data/2.5/forecast'
-        else:
-            base_url= 'http://api.openweathermap.org/data/2.5/weather'
-            
-        params = {
-            'q' : self.city,
-            'appid' : self.api_key,
-            'units' : 'metric',
-            'lang' : self.language
-        }
+        try:
+            if type == "forecast":
+                base_url= 'http://api.openweathermap.org/data/2.5/forecast'
+            else:
+                base_url= 'http://api.openweathermap.org/data/2.5/weather'
 
-        response = requests.get(base_url,params=params)
-        self.weather_data = response.json()
+            if self.city is None or self.api_key is None:
+                print("City or API key not set in config!")
+                return None
+            params = {
+                'q' : self.city,
+                'appid' : self.api_key,
+                'units' : 'metric',
+                'lang' : self.language
+            }
 
-        if self.weather_data['cod'] == '404':
-            print('Error on getting data')
-        if type == "forecast":
-            self.weather_object = self.weather_data["list"]
-        else:
-            self.weather_object = self.weather_data
-        return self.weather_object
+            response = requests.get(base_url,params=params)
+            self.weather_data = response.json()
+
+            if self.weather_data['cod'] == '404':
+                print('Error on getting data')
+                return None
+            if type == "forecast":
+                self.weather_object = self.weather_data["list"]
+            else:
+                self.weather_object = self.weather_data
+            return self.weather_object
+        except Exception as e:
+            print(f"Unable to get weather data! {e}")
+            return None
 
 
     def GetWeeklyForecast(self, type="weather"):
         forecast_day = []
         self.forecast = self.GetWeatherObject(type)
+        if self.forecast is None:
+            return None
         if type == "forecast":
             for i in range(len(self.forecast)):
                 self.forecast_main = self.forecast[i]["main"]

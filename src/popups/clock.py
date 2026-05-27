@@ -34,12 +34,14 @@ class CalendarLayer(Gtk.Window):
         self.horizontal_container.set_homogeneous(True)
         self.main_container.append(self.horizontal_container)
         self.setup_time()
-        if self.config is not None:
+        self.clock_update_timer = None
+        self.weather_timer = None
+        if self.config is not None and "api_key" in self.config:
             try:
                 self.show_sunset = False
-                api_key = self.config["api_key"]
-                language = self.config["language"]
-                city = self.config["city"]
+                api_key = self.config.get('api_key', None)
+                language = self.config.get('language', 'en')
+                city = self.config.get('city', None)
                 if "show_sunset" in self.config and self.config["show_sunset"] == "True":
                     self.show_sunset = True
                 self.weather = weather.OpenWeatherMap(city, api_key, language,)
@@ -47,15 +49,21 @@ class CalendarLayer(Gtk.Window):
                 self.revealer.set_child(self.popupwindow.panel)
                 self.overlay.add_overlay(self.revealer)
                 self.setup_weather()
-                self.set_default_size(600, 150)
+                #self.set_default_size(600, 150)
             except Exception as e:
                 print(f"Missing variable from config: {e}")
         self.StartUpdateLoop()
 
 
     def StartUpdateLoop(self):
-        GLib.timeout_add_seconds(1, self.update_clock)
-        GLib.timeout_add_seconds(3600, self.update_weather)
+        if self.clock_update_timer:
+            try:
+                GLib.source_remove(self.clock_update_timer)
+            except:
+                pass
+        self.clock_update_timer = GLib.timeout_add_seconds(1, self.update_clock)
+        if self.config is not None and "api_key" in self.config:
+            self.update_weather()
 
     def setup_time(self):
         self.time_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -124,7 +132,7 @@ class CalendarLayer(Gtk.Window):
         self.current_weather_wind = Gtk.Label()
         self.current_weather_place = Gtk.Label()
         self.current_weather_place.get_style_context().add_class("weather-city")
-        self.set_weather_values()
+        self.current_weather_icon = Gtk.Image.new_from_icon_name("weather-clear-symbolic")
         self.current_weather_temp.set_hexpand(True)
         self.current_weather_feel.set_hexpand(True)
         self.current_weather_desc.set_hexpand(True)
@@ -146,11 +154,16 @@ class CalendarLayer(Gtk.Window):
         self.upcoming_weather_container.get_style_context().add_class("upcoming-container")
         self.upcoming_weather_container.set_homogeneous(True)
         self.main_weather_container.append(self.upcoming_weather_container)
+        self.set_weather_values()
         self.setup_forecast()
 
     def set_weather_values(self):
-        current_weather = self.weather.GetWeeklyForecast(type="weather")[0]
-        self.current_weather_icon = Gtk.Image.new_from_icon_name(self.weather.matchIcon(current_weather["icon"]))
+        weather = self.weather.GetWeeklyForecast(type="weather")
+        if weather is None:
+            self.main_weather_container.set_visible(False)
+            raise ValueError("API returned empty weather data")
+        current_weather = weather[0]
+        self.current_weather_icon.set_from_icon_name(self.weather.matchIcon(current_weather["icon"]))
         self.current_weather_desc.set_label(f"{current_weather["description"].upper()}")
         self.current_weather_temp.set_label(f"{int(current_weather["temp"])}°")
         self.current_weather_feel.set_label(f"{int(current_weather["feels_like"])}°")
@@ -160,6 +173,8 @@ class CalendarLayer(Gtk.Window):
             sunset_info = self.calculate_sunset(current_weather["sunset"], current_weather["sunrise"], current_weather["timezone"])
             self.current_sunset.set_label(f"{sunset_info["sunset"]}")
             self.current_sunrise.set_label(f"{sunset_info["sunrise"]}")
+        if not self.main_weather_container.get_visible():
+            self.main_weather_container.set_visible(True)
 
     def setup_sunrise_sunset(self):
         self.sunrise_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -178,12 +193,11 @@ class CalendarLayer(Gtk.Window):
         self.sunset_container.append(self.current_sunset)
 
     def setup_forecast(self):
-        try:
-            weather_forecast = self.weather.GetWeeklyForecast(type="forecast")
-            self.popupwindow.setup_ui(weather_forecast)
-        except Exception as e:
-            print(f"Unable to get weather forecast! {e}")
-            return
+        weather_forecast = self.weather.GetWeeklyForecast(type="forecast")
+        if weather_forecast is None:
+            self.main_weather_container.set_visible(False)
+            raise ValueError("API returned empty weather data")
+        self.popupwindow.setup_ui(weather_forecast)
         while child := self.upcoming_weather_container.get_first_child():
             self.upcoming_weather_container.remove(child)
         for i in range(4):
@@ -213,6 +227,8 @@ class CalendarLayer(Gtk.Window):
             next_container.append(upcoming_desc)
             next_container.append(upcoming_time)
             self.upcoming_weather_container.append(next_container)
+        if not self.main_weather_container.get_visible():
+            self.main_weather_container.set_visible(True)
         
     def calculate_sunset(self, sunset, sunrise, shift_seconds):
         utc_sunset_time = datetime.datetime.fromtimestamp(sunset, tz=datetime.timezone.utc)
@@ -257,12 +273,22 @@ class CalendarLayer(Gtk.Window):
         return True
 
     def update_weather(self):
+        if self.weather_timer:
+            try:
+                GLib.source_remove(self.weather_timer)
+                self.weather_timer = None
+            except:
+                pass
+        polling_delay = 3600
         try:
             self.set_weather_values()
             self.setup_forecast()
         except Exception as e:
-            print(f"Unable to update weather! {e}")
-        return True
+            if hasattr(self, 'main_weather_container'):
+                self.main_weather_container.set_visible(False)
+            polling_delay = 60
+        self.weather_timer = GLib.timeout_add_seconds(polling_delay, self.update_weather)
+        return False
 
     
     def on_present(self):
