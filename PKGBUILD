@@ -12,6 +12,8 @@ depends=(
     'gtk4'
     'gtk4-layer-shell'
     'python-pulsectl'
+    'bluez'
+    'networkmanager'
 )
 makedepends=(
     'git'
