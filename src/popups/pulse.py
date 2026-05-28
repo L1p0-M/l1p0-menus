@@ -5,6 +5,7 @@ import threading
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
+from ..assets.utils import Header, window_utils, GtkLayerShellUtils
 _v_layer = None
 
 
@@ -12,13 +13,7 @@ class VolumeLayer(Gtk.Window):
     def __init__(self):
         super().__init__(title="Audio Layer")
         self.pulseaudio = Pulseaudio(self.update_ui_elements)
-        Gtk4LayerShell.init_for_window(self)
-        Gtk4LayerShell.set_namespace(self, "audio-control")
-        Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.TOP, True)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.RIGHT, True)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.RIGHT, 10)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
+        GtkLayerShellUtils(self).setup_layer_shell("audio", "top-right", [10, 10])
         self.set_default_size(400, 150)
         self.get_style_context().add_class("audio-window")
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)

@@ -4,6 +4,7 @@ gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 from datetime import timedelta
 from time import strptime
+from ..assets.utils import window_utils, GtkLayerShellUtils
 import os
 import math
 _v_layer = None
@@ -13,13 +14,7 @@ class BatteryLayer(Gtk.Window):
     def __init__(self, config=None):
         super().__init__(title="Battery Layer")
         self.config = config
-        Gtk4LayerShell.init_for_window(self)
-        Gtk4LayerShell.set_namespace(self, "battery-layer")
-        Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.TOP, True)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.RIGHT, True)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.RIGHT, 10)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
+        GtkLayerShellUtils(self).setup_layer_shell("battery", "top-right", [10, 10])
         self.set_default_size(400, 300)
         self.get_style_context().add_class("battery-window")
         self.main_overlay = Gtk.Overlay()

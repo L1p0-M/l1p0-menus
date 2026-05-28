@@ -164,3 +164,31 @@ class Popups:
         container.append(details_container)
         container.append(value_container)
         return return_details
+    
+class GtkLayerShellUtils:
+    def __init__(self, window):
+        self.window = window
+
+    def setup_layer_shell(self, window_name, anchor, margin):
+        Gtk4LayerShell.init_for_window(self.window)
+        Gtk4LayerShell.set_namespace(self.window, f"{window_name}-layer")
+        Gtk4LayerShell.set_layer(self.window, Gtk4LayerShell.Layer.TOP)
+        self._match_anchor(anchor)
+        
+
+        get_margins = lambda lst, idx, default=0: lst[idx] if len(lst) > idx else default
+        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.TOP, get_margins(margin, 0))
+        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.RIGHT, get_margins(margin, 1))
+        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.BOTTOM, get_margins(margin, 2))
+        Gtk4LayerShell.set_margin(self.window, Gtk4LayerShell.Edge.LEFT, get_margins(margin, 3))
+
+    def _match_anchor(self, anchor):
+        anchor_mapping = {
+            "top": Gtk4LayerShell.Edge.TOP,
+            "bottom": Gtk4LayerShell.Edge.BOTTOM,
+            "left": Gtk4LayerShell.Edge.LEFT,
+            "right": Gtk4LayerShell.Edge.RIGHT
+        }
+        for anchor_name, anchor_value in anchor_mapping.items():
+            is_active = anchor_name in anchor.lower()
+            Gtk4LayerShell.set_anchor(self.window, anchor_value, is_active)

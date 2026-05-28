@@ -2,6 +2,7 @@ import gi
 import time
 import datetime
 from ..assets import weather as weather
+from ..assets.utils import Header, window_utils, GtkLayerShellUtils
 
 
 gi.require_version('Gtk', '4.0')
@@ -14,11 +15,7 @@ class CalendarLayer(Gtk.Window):
     def __init__(self, config=None):
         super().__init__(title="Calendar Layer")
         self.config = config
-        Gtk4LayerShell.init_for_window(self)
-        Gtk4LayerShell.set_namespace(self, "calendar-layer")
-        Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.TOP, True)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
+        GtkLayerShellUtils(self).setup_layer_shell("calendar", "top-center", [10])
         self.set_default_size(300, 150)
         self.get_style_context().add_class("calendar-window")
         self.overlay = Gtk.Overlay()

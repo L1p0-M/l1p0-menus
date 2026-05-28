@@ -3,7 +3,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 _v_layer = None
-from ..assets.utils import Header, Popups, window_utils
+from ..assets.utils import Header, Popups, window_utils, GtkLayerShellUtils
 from ..assets.wifi_dbus import WifiDbus
 from ..assets.agent import SecretAgent
 from .bluetooth import Bluetooth
@@ -11,13 +11,7 @@ from .bluetooth import Bluetooth
 class NetworkLayer(Gtk.Window):
     def __init__(self):
         super().__init__(title="Network Layer")
-        Gtk4LayerShell.init_for_window(self)
-        Gtk4LayerShell.set_namespace(self, "network-layer")
-        Gtk4LayerShell.set_layer(self, Gtk4LayerShell.Layer.TOP)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.TOP, True)
-        Gtk4LayerShell.set_anchor(self, Gtk4LayerShell.Edge.RIGHT, True)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.RIGHT, 10)
-        Gtk4LayerShell.set_margin(self, Gtk4LayerShell.Edge.TOP, 10)
+        GtkLayerShellUtils(self).setup_layer_shell("network", "top-right", [10, 10])
         self.set_default_size(400, 500)
         self.get_style_context().add_class("network-window")
         self.main_overlay = Gtk.Overlay()
