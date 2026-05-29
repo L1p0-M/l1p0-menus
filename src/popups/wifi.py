@@ -37,6 +37,8 @@ class NetworkLayer(Gtk.Window):
         self.secret_agent.register()
 
     def load_config(self, config):
+        if self.config != config:
+            self.config = config
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
 

@@ -48,6 +48,8 @@ class BrightnessLayer(Gtk.Window):
         main_container.append(self.tabs)
 
     def load_config(self, config):
+        if config != self.config:
+            self.config = config
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
         

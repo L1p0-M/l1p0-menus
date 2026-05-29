@@ -50,6 +50,8 @@ class VolumeLayer(Gtk.Window):
         self.main_container.append(self.tabs)
 
     def load_config(self, config):
+        if self.config != config:
+            self.config = config
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
 

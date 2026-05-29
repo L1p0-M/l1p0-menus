@@ -42,6 +42,8 @@ class BatteryLayer(Gtk.Window):
             self.main_overlay.add_overlay(revealer)
 
     def load_config(self, config):
+        if config != self.config:
+            self.config = config
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
             
