@@ -10,10 +10,12 @@ _v_layer = None
 
 
 class VolumeLayer(Gtk.Window):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__(title="Audio Layer")
+        self.config = config
         self.pulseaudio = Pulseaudio(self.update_ui_elements)
-        GtkLayerShellUtils(self).setup_layer_shell("audio", "top-right", [10, 10])
+        self.shellutils = GtkLayerShellUtils(self, "audio")
+        self.load_config(self.config)
         self.set_default_size(400, 150)
         self.get_style_context().add_class("audio-window")
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -47,6 +49,9 @@ class VolumeLayer(Gtk.Window):
         self.setup_tab(is_mic=True, container = main_mic_container)
         self.main_container.append(self.tabs)
 
+    def load_config(self, config):
+        anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
+        self.shellutils.setup_layer_shell(anchor, margin)
 
     def setup_revealer(self, is_mic):
         windows = {}
@@ -411,10 +416,10 @@ class Pulseaudio:
         self.pulse.default_set(target) if is_mic == False else self.pulse.source_default_set(target)
         GLib.timeout_add(100, callback, is_mic, dev_name)
 
-def init_layer():
+def init_layer(config):
     global _v_layer
     if _v_layer is None:
-        _v_layer = VolumeLayer()
+        _v_layer = VolumeLayer(config)
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
@@ -425,6 +430,11 @@ def toggle_layer():
         _v_layer.change_tab("Volume-Tab")
         _v_layer.show()
         _v_layer.present()
+
+def reload_config(config):
+    global _v_layer
+    if _v_layer:
+        _v_layer.load_config(config)
 
 def hide_layer():
     global _v_layer

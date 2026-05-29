@@ -9,9 +9,11 @@ from ..assets.agent import SecretAgent
 from .bluetooth import Bluetooth
 
 class NetworkLayer(Gtk.Window):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__(title="Network Layer")
-        GtkLayerShellUtils(self).setup_layer_shell("network", "top-right", [10, 10])
+        self.config = config
+        self.shellutils = GtkLayerShellUtils(self, "network")
+        self.load_config(self.config)
         self.set_default_size(400, 500)
         self.get_style_context().add_class("network-window")
         self.main_overlay = Gtk.Overlay()
@@ -33,6 +35,10 @@ class NetworkLayer(Gtk.Window):
         main_container.append(self.tabs)
         self.secret_agent = SecretAgent(self.on_password_required, self.wifidbus, self.bluetooth.on_agent_call)
         self.secret_agent.register()
+
+    def load_config(self, config):
+        anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
+        self.shellutils.setup_layer_shell(anchor, margin)
 
     
     def setup_tabs(self):
@@ -644,10 +650,10 @@ class PopupWindow:
             self.password_callback(None)
         
 
-def init_layer():
+def init_layer(config):
     global _v_layer
     if _v_layer is None:
-        _v_layer = NetworkLayer()
+        _v_layer = NetworkLayer(config)
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
@@ -660,6 +666,11 @@ def toggle_layer():
         _v_layer.bluetooth.dbusbluez.discovery(True)
         _v_layer.show()
         _v_layer.present()
+
+def reload_config(config):
+    global _v_layer
+    if _v_layer:
+        _v_layer.load_config(config)
 
 def hide_layer():
     global _v_layer

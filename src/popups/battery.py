@@ -11,10 +11,11 @@ _v_layer = None
 
 
 class BatteryLayer(Gtk.Window):
-    def __init__(self, config=None):
+    def __init__(self, config):
         super().__init__(title="Battery Layer")
         self.config = config
-        GtkLayerShellUtils(self).setup_layer_shell("battery", "top-right", [10, 10])
+        self.shellutils = GtkLayerShellUtils(self, "battery")
+        self.load_config(self.config)
         self.set_default_size(400, 300)
         self.get_style_context().add_class("battery-window")
         self.main_overlay = Gtk.Overlay()
@@ -39,6 +40,10 @@ class BatteryLayer(Gtk.Window):
             self.overlay_windows[f"{battery_name}_overlay"] = overlay_window
             self.overlay_windows[f"{battery_name}_revealer"].set_child(overlay_window.panel)
             self.main_overlay.add_overlay(revealer)
+
+    def load_config(self, config):
+        anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
+        self.shellutils.setup_layer_shell(anchor, margin)
             
 
     def setup_ui(self): 
@@ -656,10 +661,10 @@ def on_present():
     _v_layer.level_bar.animate_to_value(current_level)
     _v_layer.animate_on_present()
 
-def init_layer():
+def init_layer(config):
     global _v_layer
     if _v_layer is None:
-        _v_layer = BatteryLayer()
+        _v_layer = BatteryLayer(config)
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
 
 def toggle_layer():
@@ -671,6 +676,10 @@ def toggle_layer():
         _v_layer.present()
         on_present()
 
+def reload_config(config):
+    global _v_layer
+    if _v_layer:
+        _v_layer.load_config(config)
 
 def hide_layer():
     global _v_layer

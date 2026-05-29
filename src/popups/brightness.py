@@ -9,10 +9,11 @@ from ..assets.utils import Header, window_utils, GtkLayerShellUtils
 _v_layer = None
 
 class BrightnessLayer(Gtk.Window):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__(title="Brightness Layer")
-        Gtk4LayerShell.init_for_window(self)
-        GtkLayerShellUtils(self).setup_layer_shell("brightness", "top-right", [10, 10])
+        self.config = config
+        self.shellutils = GtkLayerShellUtils(self, "brightness")
+        self.load_config(self.config)
         self.set_default_size(400, 150)
         self.get_style_context().add_class("brightness-window")
         main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -45,6 +46,10 @@ class BrightnessLayer(Gtk.Window):
         if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
             self.setup_night_tab(container = main_nightlight_container)
         main_container.append(self.tabs)
+
+    def load_config(self, config):
+        anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
+        self.shellutils.setup_layer_shell(anchor, margin)
         
 
     def setup_header(self, name, icon_name, tab_name):
@@ -344,10 +349,10 @@ class DBusBrightness():
             self.internal_update = False
         return False
 
-def init_layer():
+def init_layer(config):
     global _v_layer
     if _v_layer is None:
-        _v_layer = BrightnessLayer()
+        _v_layer = BrightnessLayer(config)
         if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
             _v_layer.hyprsunset.start_update_loop()
         _v_layer.connect("close-request", lambda w, e: w.hide() or True)
@@ -362,6 +367,11 @@ def toggle_layer():
         _v_layer.present()
     if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
         _v_layer.hyprsunset.start_update_loop()
+
+def reload_config(config):
+    global _v_layer
+    if _v_layer:
+        _v_layer.load_config(config)
 
 def hide_layer():
     global _v_layer

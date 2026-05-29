@@ -8,7 +8,7 @@ import socket
 from .popups import brightness as brightness
 from .popups import clock as clock
 from .popups import battery as battery
-from .popups import wifi as wifi
+from .popups import wifi as network
 from .popups import pulse as pulse
 import json
 
@@ -30,11 +30,11 @@ def handle_socket_input(source, condition, module ):
 
 def process_command(data):
     commands = {
-        "toggle_audio": (pulse, ["brightness", "battery", "wifi"]),
-        "toggle_brightness": (brightness, ["pulse", "battery", "wifi"]),
-        "toggle_battery": (battery, ["brightness", "pulse", "wifi"]),
+        "toggle_audio": (pulse, ["brightness", "battery", "network"]),
+        "toggle_brightness": (brightness, ["pulse", "battery", "network"]),
+        "toggle_battery": (battery, ["brightness", "pulse", "network"]),
         "toggle_calendar": (clock, []),
-        "toggle_network": (wifi, ["brightness", "battery", "pulse"])
+        "toggle_network": (network, ["brightness", "battery", "pulse"])
     }
 
     if data in commands:
@@ -50,6 +50,9 @@ def process_command(data):
     elif data == "reload_css":
         print("Reloading CSS..")
         load_css()
+    elif data == "reload_config":
+        print("Reloading config..")
+        reload_config()
         
     return False 
 
@@ -78,13 +81,15 @@ def run_daemon():
     GLib.io_add_watch(server, GLib.IO_IN, handle_socket_input, None)
     
     load_resources()
-    config = load_config()
+    config = get_config()
     load_css()
-    pulse.init_layer()
-    brightness.init_layer()
-    clock.init_layer(config)
-    battery.init_layer()
-    wifi.init_layer()
+    popups = [pulse, brightness, battery, clock, network]
+    for popup in popups:
+        #if popup == clock:
+         #   popup.init_layer(config=config.get("weather-clock", None) if config is not None else None)
+        #else:
+        popup.init_layer(config=None)
+    reload_config(config)
     print("Daemon runing...")
     loop = GLib.MainLoop()
     try:
@@ -94,10 +99,10 @@ def run_daemon():
         loop.quit()
     finally:
         print("Cleaning up...")
-        wifi.cleanup()
+        network.cleanup()
         server.close()
 
-def load_config():
+def get_config():
     try:
         home = get_home_dir()
         config_path = f"{home}/.config/l1p0-menu/config.json"
@@ -106,12 +111,27 @@ def load_config():
         else:
             with open(f"{config_path}") as f:
                 config = json.load(f)
-                if "api_key" in config:    
-                    return config
-                else:
-                    return None
+                print(config)   
+                return config
     except Exception as e:
         print(e)
+
+def reload_config(config=None):
+    if config is None:
+        config = get_config()
+    if not config:
+        print("No config to reload")
+        return
+    match_config = {
+        pulse: "audio",
+        brightness: "brightness",
+        clock: "weather-clock",
+        battery: "battery",
+        network: "network"
+    }
+    for popup, config_name in match_config.items():
+        print(f"Reloading {config_name} layer config...")
+        popup.reload_config(config.get(config_name, None))
 
 def load_css():
         css_provider = Gtk.CssProvider()
@@ -161,6 +181,7 @@ def main():
     parser.add_argument('--daemon', action='store_true', help='Start the daemon')
     parser.add_argument('--toggle', type=str, help='Toggle menus, Available options: audio,brightness,calendar,battery,network')
     parser.add_argument('--reload-css', action='store_true', help='Reload user and internal CSS')
+    parser.add_argument('--reload-config', action='store_true', help='Reload config and apply to layers')
     
     args = parser.parse_args()
     available_widgets = ["audio", "brightness", "calendar", "battery", "network"]
@@ -172,6 +193,8 @@ def main():
         send_command(f"toggle_{toggle}")
     elif args.reload_css:
         send_command("reload_css")
+    elif args.reload_config:
+        send_command("reload_config")
     else:
         parser.print_help()
 

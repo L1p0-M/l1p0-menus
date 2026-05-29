@@ -12,10 +12,11 @@ _v_layer = None
 
 
 class CalendarLayer(Gtk.Window):
-    def __init__(self, config=None):
+    def __init__(self, config):
         super().__init__(title="Calendar Layer")
         self.config = config
-        GtkLayerShellUtils(self).setup_layer_shell("calendar", "top-center", [10])
+        self.shellutils = GtkLayerShellUtils(self, "calendar")
+        self.load_config(self.config)
         self.set_default_size(300, 150)
         self.get_style_context().add_class("calendar-window")
         self.overlay = Gtk.Overlay()
@@ -33,24 +34,53 @@ class CalendarLayer(Gtk.Window):
         self.setup_time()
         self.clock_update_timer = None
         self.weather_timer = None
-        if self.config is not None and "api_key" in self.config:
-            try:
-                self.show_sunset = False
+        self.setup_weather_config()
+        self.StartUpdateLoop()
+
+    def load_config(self, config):
+        if self.config != config:
+            self.config = config
+            self.setup_weather_config()
+            if self.config is not None and self.config.get('kurzewoche', False):
+                self.markKurzeWoche()
+            else:
+                self.calendar.clear_marks()
+        anchor, margin = self.shellutils.process_config(self.config, default_anchor="top-center", default_margin=[10])
+        self.shellutils.setup_layer_shell(anchor, margin)
+
+    def setup_weather_config(self):
+        try:
+            print("setting up weather")
+            if isinstance(self.config, dict):
+                self.show_sunset = self.config.get("show_sunset", False)
                 api_key = self.config.get('api_key', None)
                 language = self.config.get('language', 'en')
                 city = self.config.get('city', None)
-                if "show_sunset" in self.config and self.config["show_sunset"] == "True":
-                    self.show_sunset = True
-                self.weather = weather.OpenWeatherMap(city, api_key, language,)
+                if hasattr(self, 'weather'):
+                    self.weather.city = city
+                    self.weather.api_key = api_key
+                    self.weather.language = language
+                else:
+                    self.weather = weather.OpenWeatherMap(city, api_key, language)
+            else:
+                if hasattr(self, 'weather'):
+                    self.weather.city = None
+                    self.weather.api_key = None
+                    self.weather.language = "en"
+                else:
+                    self.weather = weather.OpenWeatherMap(city=None, api_key=None, language="en")
+                self.show_sunset = False
+                
+            if not hasattr(self, 'popupwindow'):
                 self.popupwindow = PopupWindow(self)
                 self.revealer.set_child(self.popupwindow.panel)
                 self.overlay.add_overlay(self.revealer)
-                self.setup_weather()
-                #self.set_default_size(600, 150)
-            except Exception as e:
-                print(f"Missing variable from config: {e}")
-        self.StartUpdateLoop()
-
+            if hasattr(self, 'main_weather_container'):
+                self.StartUpdateLoop()
+                return
+            self.setup_weather()
+        except Exception as e:
+            print(f"Missing variable from config: {e}mweather is disabled!")
 
     def StartUpdateLoop(self):
         if self.clock_update_timer:
@@ -85,7 +115,7 @@ class CalendarLayer(Gtk.Window):
         self.calendar.set_property("show-week-numbers", False)
         self.calendar.get_style_context().add_class("calendar")
         self.resetToCurrentDate()
-        if self.config is not None and "kurzewoche" in self.config and self.config["kurzewoche"] == "True":
+        if self.config is not None and "kurzewoche" in self.config and self.config.get("kurzewoche", False):
             self.calendar.connect("next-month", self.markKurzeWoche)
             self.calendar.connect("prev-month", self.markKurzeWoche)
             self.calendar.connect("next-year", self.markKurzeWoche)
@@ -115,10 +145,9 @@ class CalendarLayer(Gtk.Window):
         self.main_weather_container.append(self.main_horizontal_container)
         weather_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         weather_container.set_hexpand(True)
-        if self.show_sunset:
-            self.setup_sunrise_sunset()
-            self.main_horizontal_container.append(self.sunrise_container)
-            self.sunrise_container.set_valign(Gtk.Align.END)
+        self.setup_sunrise_sunset()
+        self.main_horizontal_container.append(self.sunrise_container)
+        self.sunrise_container.set_valign(Gtk.Align.END)
         self.main_horizontal_container.append(weather_container)
         self.current_weather_desc = Gtk.Label()
         self.current_weather_desc.get_style_context().add_class("weather-description")
@@ -144,9 +173,8 @@ class CalendarLayer(Gtk.Window):
         temp_container.append(self.current_weather_feel)
         weather_container.append(self.current_weather_desc)
         weather_container.append(self.current_weather_place)
-        if self.show_sunset:
-            self.main_horizontal_container.append(self.sunset_container)
-            self.sunset_container.set_valign(Gtk.Align.END)
+        self.main_horizontal_container.append(self.sunset_container)
+        self.sunset_container.set_valign(Gtk.Align.END)
         self.upcoming_weather_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.upcoming_weather_container.get_style_context().add_class("upcoming-container")
         self.upcoming_weather_container.set_homogeneous(True)
@@ -166,10 +194,16 @@ class CalendarLayer(Gtk.Window):
         self.current_weather_feel.set_label(f"{int(current_weather["feels_like"])}°")
         self.current_weather_wind.set_label(f"{int(current_weather["wind_speed"])}km/h")
         self.current_weather_place.set_label(f"{current_weather["city"]}, {current_weather["country"]}")
-        if self.show_sunset:
+        if not self.show_sunset:
+            self.sunset_container.set_visible(False)
+            self.sunrise_container.set_visible(False)
+        else:
             sunset_info = self.calculate_sunset(current_weather["sunset"], current_weather["sunrise"], current_weather["timezone"])
             self.current_sunset.set_label(f"{sunset_info["sunset"]}")
             self.current_sunrise.set_label(f"{sunset_info["sunrise"]}")
+            self.sunset_container.set_visible(True)
+            self.sunrise_container.set_visible(True)
+
         if not self.main_weather_container.get_visible():
             self.main_weather_container.set_visible(True)
 
@@ -241,6 +275,8 @@ class CalendarLayer(Gtk.Window):
     
     def markKurzeWoche(self, calendar=None):
         self.calendar.clear_marks()
+        if self.config is not None and not self.config.get('kurzewoche', False):
+            return
         currently_shown_month = self.calendar.get_date().get_month()
         currently_shown_year = self.calendar.get_date().get_year()
         fridays = self.get_fridays(currently_shown_year, currently_shown_month)
@@ -290,13 +326,12 @@ class CalendarLayer(Gtk.Window):
     
     def on_present(self):
         self.resetToCurrentDate()
-        if self.config is not None and "kurzewoche" in self.config and self.config["kurzewoche"] == "True":
+        if self.config is not None and "kurzewoche" in self.config and self.config.get("kurzewoche", False):
             self.markKurzeWoche()
 
 class PopupWindow:
     def __init__(self, main_window):
         self.main_window = main_window
-        self.weather = weather
         self.panel = Gtk.ScrolledWindow()
         self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.panel.set_propagate_natural_height(True)
@@ -384,6 +419,11 @@ def toggle_layer():
         _v_layer.on_present()
         _v_layer.show()
         _v_layer.present()
+
+def reload_config(config):
+    global _v_layer
+    if _v_layer:
+        _v_layer.load_config(config)
 
 def hide_layer():
     global _v_layer
