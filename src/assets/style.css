@@ -66,10 +66,6 @@ button {
     font-weight: bold;
 }
 
-/*button:hover {
-    background-color: #005082;
-}*/
-
 button:checked {
     background-color: rgba(0, 80, 130, 0.7);
     color: #FFFFFF;
@@ -109,7 +105,7 @@ scale trough slider:hover {
     background: transparent;
     border: none;
     box-shadow: none;
-}
+} 
 .volume-slider {
     padding: 8px;
     margin: 0px;
@@ -143,24 +139,34 @@ scale trough slider:hover {
 
 .audio-device-button {
     color: #FFFFFF;
-    font-weight: 300;
+    font-weight: 900;
+    background-color: rgba(0, 80, 130, 0.2);
+    border-radius: 20px;
+    margin: 2px;
+    border: none;
 }
 .audio-device-button.active{
     font-weight: 900;
-    color: #000000;
-    background-color: #FFFFFF;
+    color: #FFFFFF;
+    background-color: #005082;
+}
+
+.audio-device-button:hover {
+    background-color: rgba(0, 80, 130, 0.7);
+    transition: all 0.3s ease;
 }
 
 .audio-menu-button {
     background-color: transparent;
     color: #FFFFFF;
     padding: 0px;
-    margin: 2px;
+    margin: 5px;
     border: none;
 }
 .audio-menu-button:hover {
     color: rgba(0, 80, 130, 0.4);
     transition: all 0.3s ease;
+    background-color: transparent;
 
 }
 
