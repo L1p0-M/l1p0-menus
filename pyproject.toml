@@ -14,7 +14,8 @@ authors = [
 ]
 dependencies = [
     "pygobject",
-    "pulsectl"
+    "pulsectl",
+    "requests"
 ]
 
 [project.scripts]

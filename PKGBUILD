@@ -14,6 +14,7 @@ depends=(
     'python-pulsectl'
     'bluez'
     'networkmanager'
+    'python-requests'
 )
 makedepends=(
     'git'
