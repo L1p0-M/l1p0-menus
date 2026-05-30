@@ -62,7 +62,7 @@ class VolumeLayer(Gtk.Window):
 
         
     def setup_tab(self, is_mic, container):
-        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio)
+        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, callback=self.update_ui_for_new_defaults)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             spacing=15,
             margin_start=20,
@@ -129,10 +129,7 @@ class VolumeLayer(Gtk.Window):
     def update_ui_elements(self, ev):      
         try:
             if ev.facility == pulsectl.PulseEventFacilityEnum.server:
-                self.mic_window["overlay"].setup_devices()
-                self.vol_window["overlay"].setup_devices()
-                self.mic_window["overlay"].update_ui_for_new_defaults(is_mic=True)
-                self.vol_window["overlay"].update_ui_for_new_defaults(is_mic=False)
+                self.update_default_device_ui()
                 return False
             
             new_properties = {}
@@ -145,6 +142,9 @@ class VolumeLayer(Gtk.Window):
 
             if ev.facility == pulsectl.PulseEventFacilityEnum.source:
                 source = self.pulseaudio.pulse.source_info(ev.index)
+                if source.name.endswith('.monitor'):
+                    self.update_default_device_ui()
+                    return False
                 event_type = source
                 widgets = self.mic_widgets
                 is_mic = True
@@ -166,14 +166,12 @@ class VolumeLayer(Gtk.Window):
                     }
 
                     if new_properties[device_name]["volume"] != last_properties["volume"]:
-                        print("volume change!!")
                         widgets["scale"].handler_block(widgets["scale_handler"])
                         widgets["scale"].set_value(new_properties[device_name]["volume"])
                         widgets["label"].set_label(f"{int(round(new_properties[device_name]["volume"] * 100))}%")
                         widgets["scale"].handler_unblock(widgets["scale_handler"])
                         
                     if new_properties[device_name]["mute_status"] != last_properties["mute_status"]:
-                        print("mute change!!")
                         muted = new_properties[device_name]["mute_status"]
                         widgets["mute_btn"].handler_block(widgets["mute_btn_handler"])
                         widgets["mute_btn"].set_active(muted)
@@ -185,15 +183,37 @@ class VolumeLayer(Gtk.Window):
                 last_properties[keys] = new_properties[device_name][keys]
 
         except Exception as e:
-            print(f"Lekérdezési hiba: {e}")
+            print(f"Error while updating ui: {e}")
         finally:
             self.pulseaudio.update_id = None
         return False
+    
+    def update_default_device_ui(self):
+        self.mic_window["overlay"].setup_devices()
+        self.vol_window["overlay"].setup_devices()
+        self.mic_window["overlay"].update_ui_for_new_defaults(is_mic=True)
+        self.vol_window["overlay"].update_ui_for_new_defaults(is_mic=False)
+
+    def update_ui_for_new_defaults(self, is_mic, dev_name=None):
+        window = self.mic_window if is_mic else self.vol_window
+        window["overlay"].update_button_css(is_mic, dev_name)
+        values = self.pulseaudio.get_initial_values(is_mic)
+        widgets = self.mic_widgets if is_mic else self.vol_widgets
+        widgets["scale"].handler_block(widgets["scale_handler"])
+        widgets["mute_btn"].handler_block(widgets["mute_btn_handler"])
+        widgets["scale"].set_value(values["volume"])
+        widgets["label"].set_label(f"{int(round(values["volume"] * 100))}%")
+        widgets["mute_btn"].set_active(values["mute_status"])
+        widgets["mute_btn"].set_child(values["mute_icon"])
+        self.update_slider_css_class(is_mic, values["mute_status"], widgets["scale"])
+        widgets["scale"].handler_unblock(widgets["scale_handler"])
+        widgets["mute_btn"].handler_unblock(widgets["mute_btn_handler"])
 
 class PopupWindow:
-    def __init__(self, is_mic, pulseaudio, windows):
+    def __init__(self, is_mic, pulseaudio, callback, windows):
         self.window = windows
         self.Pulse = pulseaudio
+        self.update_ui_for_new_defaults = callback
         self.is_mic = is_mic
         self.panel = Gtk.ScrolledWindow()
         self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -259,19 +279,6 @@ class PopupWindow:
             else:
                 button.get_style_context().remove_class("active")
 
-    def update_ui_for_new_defaults(self, is_mic, dev_name=None):
-        self.update_button_css(is_mic, dev_name)
-        values = self.Pulse.get_initial_values(is_mic)
-        widgets = self.main_window.mic_widgets if is_mic else self.main_window.vol_widgets
-        widgets["scale"].handler_block(widgets["scale_handler"])
-        widgets["mute_btn"].handler_block(widgets["mute_btn_handler"])
-        widgets["scale"].set_value(values["volume"])
-        widgets["label"].set_label(f"{int(round(values["volume"] * 100))}%")
-        widgets["mute_btn"].set_active(values["mute_status"])
-        widgets["mute_btn"].set_child(values["mute_icon"])
-        self.main_window.update_slider_css_class(is_mic, values["mute_status"], widgets["scale"])
-        widgets["scale"].handler_unblock(widgets["scale_handler"])
-        widgets["mute_btn"].handler_unblock(widgets["mute_btn_handler"])
 
 class Pulseaudio:
     def __init__(self, callback=None):
@@ -354,14 +361,9 @@ class Pulseaudio:
     
     def get_mute_icon(self, is_mic, mute_status=None):
         mute_icon = None
-        if mute_status is not None:
-            mute_icon = mute_status
-        else:
-            mute_icon = self.get_mute_status(is_mic)
-        if mute_icon:    
-            return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic")
-        else:
-            return Gtk.Image.new_from_icon_name("audio-volume-high-symbolic")
+        if mute_status is None:
+            mute_status = self.get_mute_status(is_mic)
+        return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic" if mute_status else "audio-volume-high-symbolic")
             
     def on_volume_change(self, widget, is_mic, label):
         self.internal_update = True
