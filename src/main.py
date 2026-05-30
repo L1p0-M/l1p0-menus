@@ -15,7 +15,10 @@ import json
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
-SOCKET_PATH = f"/tmp/l1p0-menus.sock"
+if 'XDG_RUNTIME_DIR' in environ:
+    SOCKET_PATH = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
+else:
+    SOCKET_PATH = "/tmp/l1p0-menus.sock"
 
 
 def handle_socket_input(source, condition, module ):
@@ -85,9 +88,6 @@ def run_daemon():
     load_css()
     popups = [pulse, brightness, battery, clock, network]
     for popup in popups:
-        #if popup == clock:
-         #   popup.init_layer(config=config.get("weather-clock", None) if config is not None else None)
-        #else:
         popup.init_layer(config=None)
     reload_config(config)
     print("Daemon runing...")
@@ -110,8 +110,7 @@ def get_config():
             print(f"User config file not found at: {config_path}")
         else:
             with open(f"{config_path}") as f:
-                config = json.load(f)
-                print(config)   
+                config = json.load(f)  
                 return config
     except Exception as e:
         print(e)
