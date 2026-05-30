@@ -21,32 +21,18 @@ class VolumeLayer(Gtk.Window):
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.get_style_context().add_class("audio-layer")
         self.main_container.set_margin_start(0)
+        self.window_utils = window_utils()
         self.overlay = Gtk.Overlay()
         self.set_child(self.overlay)
         self.overlay.set_child(self.main_container)
-        self.tabs = Gtk.Stack()
-        self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
-        main_vol_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main_mic_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.volume_page = self.tabs.add_named(main_vol_container, "Volume-Tab")
-        self.mic_page = self.tabs.add_named(main_mic_container, "Mic-Tab")
-        self.main_header_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-            margin_start = 10,
-            margin_end = 10,
-            margin_top = 10,
-            margin_bottom = 10 )
-        self.main_header_container.get_style_context().add_class("header")
-        self.main_header_container.set_homogeneous(True)
-        self.tab_buttons = {}
-        self.setup_header("Hangerő", "audio-speakers-symbolic", "Volume-Tab")
-        self.setup_header("Mikrofon", "microphone-sensitivity-high-symbolic", "Mic-Tab")
+        self.setup_header()
         self.main_container.append(self.main_header_container)
         self.mic_widgets = {}
         self.vol_widgets = {}
         self.mic_window = {}
         self.vol_window = {}
-        self.setup_tab(is_mic=False, container = main_vol_container)
-        self.setup_tab(is_mic=True, container = main_mic_container)
+        self.setup_tab(is_mic=False, container = self.main_vol_container)
+        self.setup_tab(is_mic=True, container = self.main_mic_container)
         self.main_container.append(self.tabs)
 
     def load_config(self, config):
@@ -55,39 +41,28 @@ class VolumeLayer(Gtk.Window):
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
 
-    def setup_revealer(self, is_mic):
-        windows = {}
-        if is_mic:
-            self.mic_window = windows
-        else:
-            self.vol_window = windows
-        revealer = Gtk.Revealer()
-        revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
-        revealer.set_valign(Gtk.Align.END)
-        windows["revealer"] = revealer
-        overlay_window = PopupWindow(self, is_mic, self.pulseaudio)
-        windows["overlay"] = overlay_window
-        windows["revealer"].set_child(overlay_window.panel)
-        self.overlay.add_overlay(revealer)
-        return windows
+    def setup_header(self):
+        self.tabs = Gtk.Stack()
+        self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.main_mic_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.main_vol_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.volume_page = self.tabs.add_named(self.main_vol_container, "Volume-Tab")
+        self.mic_page = self.tabs.add_named(self.main_mic_container, "Mic-Tab")
+        self.main_header_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+            margin_start = 10,
+            margin_end = 10,
+            margin_top = 10,
+            margin_bottom = 10 )
+        self.main_header_container.get_style_context().add_class("header")
+        self.main_header_container.set_homogeneous(True)
+        self.tab_buttons = {}
+        self.header = Header(self.main_header_container, self.tab_buttons, self.tabs)
+        self.header.setup_header("Volume", "audio-speakers-symbolic", "Volume-Tab")
+        self.header.setup_header("Mic", "microphone-sensitivity-high-symbolic", "Mic-Tab")
 
-
-    def setup_header(self, name, icon_name, tab_name):
-        container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        container.set_halign(Gtk.Align.CENTER)
-        label = Gtk.Label(label=name)
-        icon = Gtk.Image.new_from_icon_name(icon_name)
-        button = Gtk.Button()
-        button.get_style_context().add_class("header-button")
-        container.append(icon)
-        container.append(label)
-        button.set_child(container)
-        self.main_header_container.append(button)
-        self.tab_buttons[tab_name] = button
-        button.connect("clicked", lambda x: self.change_tab(tab_name))
         
     def setup_tab(self, is_mic, container):
-        current_window = self.setup_revealer(is_mic)
+        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             spacing=15,
             margin_start=20,
@@ -135,16 +110,11 @@ class VolumeLayer(Gtk.Window):
         }
         if is_mic:
             self.mic_widgets = widgets
+            self.mic_window = current_window
         else:
             self.vol_widgets = widgets
+            self.vol_window = current_window
 
-    def change_tab(self, tab_name):
-        for name, button in self.tab_buttons.items():
-            if name == tab_name:
-                button.get_style_context().add_class("active")
-            else:
-                button.get_style_context().remove_class("active")
-        self.tabs.set_visible_child_name(tab_name)
 
     def update_slider_css_class(self, is_mic, mute_status=None, scale_widget=None):
         if mute_status is None:
@@ -221,8 +191,8 @@ class VolumeLayer(Gtk.Window):
         return False
 
 class PopupWindow:
-    def __init__(self, main_window, is_mic, pulseaudio):
-        self.main_window = main_window
+    def __init__(self, is_mic, pulseaudio, windows):
+        self.window = windows
         self.Pulse = pulseaudio
         self.is_mic = is_mic
         self.panel = Gtk.ScrolledWindow()
@@ -246,14 +216,10 @@ class PopupWindow:
         self.panel.set_child(self.panel_content)
     
     def setup_ui(self):
-        if self.is_mic:
-            windows = self.main_window.mic_window
-        else:
-            windows = self.main_window.vol_window
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
         close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x: windows["revealer"].set_reveal_child(False))
+        close_btn.connect("clicked", lambda x: self.window["revealer"].set_reveal_child(False))
         close_btn.get_style_context().add_class("close-button")
         close_btn.set_halign(Gtk.Align.END)
         self.panel_content.append(close_btn)
@@ -429,7 +395,7 @@ def toggle_layer():
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
-        _v_layer.change_tab("Volume-Tab")
+        _v_layer.header.change_tab("Volume-Tab")
         _v_layer.show()
         _v_layer.present()
 

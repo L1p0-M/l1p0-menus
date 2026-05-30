@@ -22,6 +22,24 @@ class BrightnessLayer(Gtk.Window):
         self.brightness = DBusBrightness(self.apply_brightness_update)
         self.hyprsunset = HyprSunsetSocket(self.apply_night_update)
         self.set_child(main_container)
+        self.brightness_widgets = {}
+        self.night_widgets = {}
+        self.night_preset = 2500
+        self.setup_tabs()
+        main_container.append(self.main_header_container)
+        main_container.append(self.tabs)
+
+    def load_config(self, config):
+        if config != self.config:
+            self.config = config
+        anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
+        self.shellutils.setup_layer_shell(anchor, margin)
+        if isinstance(config, dict):
+            self.night_preset = int(self.config.get('night_preset', 2500))
+        else:
+            self.night_preset = 2500
+        
+    def setup_tabs(self):
         self.tabs = Gtk.Stack()
         self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         main_brightness_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -36,45 +54,12 @@ class BrightnessLayer(Gtk.Window):
         self.main_header_container.get_style_context().add_class("header")
         self.main_header_container.set_homogeneous(True)
         self.tab_buttons = {}
-        self.brightness_widgets = {}
-        self.night_widgets = {}
-        self.setup_header("Fényerő", "display-brightness-high-symbolic", "Bright-Tab")
-        self.setup_header("Éjszakai Fény", "weather-clear-night-symbolic", "Night-Tab")
-        main_container.append(self.main_header_container)
+        self.header = Header(self.main_header_container, self.tab_buttons, self.tabs)
+        self.header.setup_header("Brightness", "display-brightness-high-symbolic", "Bright-Tab")
         self.setup_brightness_tab(container = main_brightness_container)
-
         if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
+            self.header.setup_header("Night Light", "weather-clear-night-symbolic", "Night-Tab")
             self.setup_night_tab(container = main_nightlight_container)
-        main_container.append(self.tabs)
-
-    def load_config(self, config):
-        if config != self.config:
-            self.config = config
-        anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
-        self.shellutils.setup_layer_shell(anchor, margin)
-        
-
-    def setup_header(self, name, icon_name, tab_name):
-        container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        container.set_halign(Gtk.Align.CENTER)
-        label = Gtk.Label(label=name)
-        icon = Gtk.Image.new_from_icon_name(icon_name)
-        button = Gtk.Button()
-        button.get_style_context().add_class("header-button")
-        container.append(icon)
-        container.append(label)
-        button.set_child(container)
-        self.main_header_container.append(button)
-        self.tab_buttons[tab_name] = button
-        button.connect("clicked", lambda x: self.change_tab(tab_name))
-    
-    def change_tab(self, tab_name):
-        for name, button in self.tab_buttons.items():
-            if name == tab_name:
-                button.get_style_context().add_class("active")
-            else:
-                button.get_style_context().remove_class("active")
-        self.tabs.set_visible_child_name(tab_name)
 
     def setup_brightness_tab(self, container):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -189,8 +174,8 @@ class BrightnessLayer(Gtk.Window):
     def on_night_switch(self, switch, state):
         value = switch.get_state()
         if value == True:
-            self.hyprsunset.hyprsunset("temperature", 2500)
-            self.apply_night_update(2500)
+            self.hyprsunset.hyprsunset("temperature", int(self.night_preset))
+            self.apply_night_update(int(self.night_preset))
         else:
             self.hyprsunset.hyprsunset("temperature", 6000)
             self.apply_night_update(6000)
@@ -304,7 +289,7 @@ class DBusBrightness():
         parameters = GLib.Variant('(ssu)', ("backlight", device, int(value)))
         self.internal_update = True
         try:
-            self.dbus.call_sync(
+            self.dbus.call(
                 self.dbus_name,
                 self.dbus_path,
                 self.dbus_object,
@@ -364,7 +349,7 @@ def toggle_layer():
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
-        _v_layer.change_tab("Bright-Tab")
+        _v_layer.header.change_tab("Bright-Tab")
         _v_layer.show()
         _v_layer.present()
     if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:

@@ -74,13 +74,13 @@ class window_utils:
         else:
             return "battery-missing-symbolic"
 
-    def setup_revealer(self, overlay, popupwindow,*args):
+    def setup_revealer(self, overlay, popupwindow,**kwargs):
         windows = {}
         revealer = Gtk.Revealer()
         revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
         revealer.set_valign(Gtk.Align.END)
         windows["revealer"] = revealer
-        overlay_window = popupwindow(*args, windows=windows)
+        overlay_window = popupwindow(**kwargs, windows=windows)
         windows["overlay"] = overlay_window
         windows["revealer"].set_child(overlay_window.panel)
         overlay.add_overlay(revealer)
@@ -193,7 +193,7 @@ class GtkLayerShellUtils:
             Gtk4LayerShell.set_anchor(self.window, anchor_value, is_active)
 
     def process_config(self, config, default_anchor="top-right", default_margin=[10, 10]):
-        if config:
+        if config and isinstance(config, dict):
             anchor = config.get("anchor", default_anchor)
             if isinstance(config.get("margin", default_margin), str):
                 margin = [int(x) for x in config.get("margin", default_margin).split(",")]

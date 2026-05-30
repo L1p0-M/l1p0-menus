@@ -66,9 +66,9 @@ class NetworkLayer(Gtk.Window):
         
 
     def setup_wifi_tab(self):
-        self.saved_windows = self.window_utils.setup_revealer(self.main_overlay, PopupWindow, None, "saved", self.wifidbus)
-        self.passwd_windows = self.window_utils.setup_revealer(self.main_overlay, PopupWindow, self.set_keyboard_mode, "password", self.wifidbus)
-        self.details_windows = self.window_utils.setup_revealer(self.main_overlay, PopupWindow, None, "details", self.wifidbus)
+        self.saved_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=None, windowtype="saved", wifidbus=self.wifidbus)
+        self.passwd_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=self.set_keyboard_mode, windowtype="password", wifidbus=self.wifidbus)
+        self.details_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=None, windowtype="details", wifidbus=self.wifidbus)
         self.setup_wifi_switches()
         self.scrolled_wifi_panel, self.scrolled_wifi_container = self.window_utils.setup_scrolled_windows(340, 340, self.update_headers, self.wifi_sort_func)
         #self.setup_wifi_cards(self.networks)

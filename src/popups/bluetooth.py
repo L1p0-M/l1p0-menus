@@ -16,7 +16,7 @@ class Bluetooth:
         self.bluetooth_cards_details = {}
         self.window_utils = window_utils()
         self.empty_widgets = self.window_utils.init_empty_text("Bluetooth is currently disabled", "bluetooth-disabled-symbolic")
-        self.auth_windows = self.window_utils.setup_revealer(self.main_overlay, PopupWindow, "pairing", None, None)
+        self.auth_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="pairing", bluezdbus=None, device=None)
         self.setup_bluetooth_tab()
         self.internal_update = False
 
@@ -405,7 +405,7 @@ class Bluetooth:
             device["details_btn"].set_visible(True)
         if device["revealer"] is not None:
             return
-        revealer = self.window_utils.setup_revealer(self.main_overlay, PopupWindow, "details", self.dbusbluez, device["details"])
+        revealer = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="details", bluezdbus=self.dbusbluez, device=device["details"])
         device["revealer"] = revealer
         device["details_btn"].connect("clicked", lambda x, reveal=device["revealer"]["revealer"]: reveal.set_reveal_child(True))
         
