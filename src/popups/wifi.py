@@ -334,7 +334,12 @@ class NetworkLayer(Gtk.Window):
             if not self.wifi_switch.get_active():
                 return
             if hasattr(self, "refresh_timeout") and self.refresh_timeout:
-                GLib.source_remove(self.refresh_timeout)
+                try:
+                    source_id = self.refresh_timeout
+                    self.refresh_timeout = None
+                    GLib.source_remove(self.refresh_timeout)
+                except:
+                    pass
                 self.reload_icon.get_style_context().remove_class("active")
             if parameters["available_networks"]:
                 if self.empty_widgets["box"].get_parent() is not None:
@@ -420,6 +425,8 @@ class NetworkLayer(Gtk.Window):
             self.wifidbus.request_scan()
             self.reload_icon.get_style_context().add_class("active")
             def timeout_func():
+                if hasattr(self, 'refresh_timeout') and self.refresh_timeout is None:
+                    return False
                 self.reload_icon.get_style_context().remove_class("active")
                 self.refresh_timeout = None
                 return False

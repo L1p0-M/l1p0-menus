@@ -211,7 +211,11 @@ class Bluetooth:
 
         elif "devices" in message:
             if hasattr(self, "refresh_timeout") and self.refresh_timeout:
-                GLib.source_remove(self.refresh_timeout)
+                try:
+                    GLib.source_remove(self.refresh_timeout)
+                    self.refresh_timeout = None
+                except:
+                    pass
                 self.reload_icon.get_style_context().remove_class("active")
             if self.empty_widgets["box"].get_parent() is not None:
                 self.hide_empty_widgets()
@@ -321,7 +325,7 @@ class Bluetooth:
         dev["spinner"].get_style_context().remove_class("active")
         dev["loader_container"].set_visible(False)
         dev["battery_container"].set_visible(False)
-        dev["connect_btn"].set_label(f"{'Disconnect' if message['message']['Connected'] else 'Pair' if self.wait_till_paired else 'Connect'}")
+        dev["connect_btn"].set_label(f"{'Disconnect' if message['message']['Connected'] else 'Pair' if self.wait_till_paired or not dev['paired'] else 'Connect'}")
         dev["subname"].set_label(f"{'Connected' if dev['active'] else 'Paired' if dev['paired'] else 'Available'}")
         dev["row"].is_active = message["message"]["Connected"]
         dev["row"].paired = dev["paired"]

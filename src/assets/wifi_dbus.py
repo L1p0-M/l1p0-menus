@@ -311,8 +311,12 @@ class WifiDbus:
             "org.freedesktop.NetworkManager.Connection.Active",
             None
             )
-            connection_path = active_proxy.get_cached_property("Connection").unpack()
-            conn_type = active_proxy.get_cached_property("Type").unpack()
+            path_var = active_proxy.get_cached_property("Connection")
+            if path_var is not None:
+                connection_path = path_var.unpack()
+            conn_type_var = active_proxy.get_cached_property("Type")
+            if conn_type_var is not None:
+                conn_type = conn_type_var.unpack()
 
             if connection_path is None or conn_type is None:
                 connection_path = self._get_property_forced(
