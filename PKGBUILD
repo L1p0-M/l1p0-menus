@@ -1,6 +1,6 @@
 # Maintainer: L1p0 <lipovicsmartin@l1p0-industries.hu>
 pkgname=l1p0-menus-git
-pkgver=1.0.0.r0.g1234567
+pkgver=1.0.0.0.r0.g1234567
 pkgrel=1
 pkgdesc="GTK4 Layer Shell menus for Hyprland written in Python"
 arch=('any')
@@ -26,21 +26,21 @@ makedepends=(
 )
 provides=('l1p0-menus')
 conflicts=('l1p0-menus')
-source=("git+${url}.git")
+source=("${pkgname%-git}::git+${url}.git")
 sha256sums=('SKIP')
 
 pkgver() {
-  cd "${pkgname%-git}"
-  git describe --long --tags | sed 's/-g/.r/;s/-/./g'
+  cd "$srcdir/${pkgname%-git}"
+  git describe --long --tags | awk -F'-' '{print $1 ".r" $2 "." substr($3,2)}'
 }
 
 build() {
-  cd "${pkgname%-git}"
+  cd "$srcdir/${pkgname%-git}"
   python -m build --wheel --no-isolation
 }
 
 package() {
-  cd "${pkgname%-git}"
+  cd "$srcdir/${pkgname%-git}"
   python -m installer --destdir="${pkgdir}" dist/*.whl
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
