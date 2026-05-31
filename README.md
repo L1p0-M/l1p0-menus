@@ -3,7 +3,8 @@
 A fast, full event-driven desktop popup menu system designed specifically for Wayland and Hyprland environments. 
 
 No polling, no CPU wasting. Built on top of a Python daemon using `gio` for native D-Bus integration.
-##Preview
+
+## Preview
 
 <p align="center">
 <video src="https://github.com/user-attachments/assets/36596ac5-4c08-462e-918b-0e4e2543f144" width="600" autoplay loop muted playsinline></video>
