@@ -31,7 +31,7 @@ sha256sums=('SKIP')
 
 pkgver() {
   cd "${pkgname%-git}"
-  git describe --long --tags | sed 's/\([^-]*-\)*g/r/;s/-/./g'
+  git describe --long --tags | sed 's/-g/.r/;s/-/./g'
 }
 
 build() {
