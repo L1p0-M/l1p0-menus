@@ -1,10 +1,21 @@
 # L1p0-Menus
 
+A fast, full event-driven desktop popup menu system designed specifically for Wayland and Hyprland environments. 
+
+No polling, no CPU wasting. Built on top of a Python daemon using `gio` for native D-Bus integration.
 ##Preview
 
 <p align="center">
 <video src="https://github.com/user-attachments/assets/36596ac5-4c08-462e-918b-0e4e2543f144" width="600" autoplay loop muted playsinline></video>
 </p>
+
+## ✨ Features & Architecture
+
+* **Pure Event-Driven:** Zero-percent idle CPU usage. The daemon sleeps and wakes up instantly only when D-Bus signals or external events trigger it.
+* **GTK4 + Layer Shell:** Leveraging `gtk4-layer-shell` for hardware-accelerated, responsive, and native Wayland layer management.
+* **First-Class D-Bus Citizen:** Built-in `GIO/GDBus` integration. It functions as a fully registered `SecretAgent` for both `NetworkManager` and `BlueZ`, securely handling Wi-Fi passwords and Bluetooth pairing prompts natively within the UI.
+* **Highly Customizable:** Complete separation of logic, configuration, and styling via standard `config.json` and a powerful custom `style.css` file.
+* **Modern Packaging:** Clean, robust deployment built entirely with `Hatchling` following the latest PEP 517 standards. Perfect for simple Arch Linux (AUR) PKGBUILD maintenance.
 
 ## Style
 
