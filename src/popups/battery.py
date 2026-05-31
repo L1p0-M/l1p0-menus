@@ -98,7 +98,7 @@ class BatteryLayer(Gtk.Window):
             battery_name_label = Gtk.Label()
             battery_name_label.get_style_context().add_class("battery-name")
             battery_name_label.set_label(f"{battery_name}")
-            battery_icon = Gtk.Image.new_from_icon_name(self.get_battery_icon(int(info["Status"]), int(round(info["Percentage"]))))
+            battery_icon = Gtk.Image.new_from_icon_name(self.window_utils.get_battery_icon(int(info["Status"]), int(round(info["Percentage"]))))
             battery_icon.get_style_context().add_class("battery-icon")
             battery_level_label = Gtk.Label()
             battery_level_label.set_label(f"{round(battery_level)}%")
@@ -186,7 +186,7 @@ class BatteryLayer(Gtk.Window):
         self.combined_battery_status_code = self.combined_battery_info["status"]
         self.combined_battery_status.set_label(f"{self.battery_status_codes.get(self.combined_battery_info["status"])}")
         self.combined_battery_status.get_style_context().add_class("combined-battery-status")
-        self.combined_icon = Gtk.Image.new_from_icon_name(self.get_battery_icon(int(self.combined_battery_info["status"]), int(round(self.combined_battery_info["level"]))))
+        self.combined_icon = Gtk.Image.new_from_icon_name(self.window_utils.get_battery_icon(int(self.combined_battery_info["status"]), int(round(self.combined_battery_info["level"]))))
         self.combined_icon.set_pixel_size(20)
         self.combined_icon.get_style_context().add_class("combined-battery-icon")
         self.combined_battery_time_to = Gtk.Label()
@@ -199,27 +199,6 @@ class BatteryLayer(Gtk.Window):
             self.combined_battery_time_to.set_label(f"{label}")
         elif self.combined_battery_info["status"] == 4:
             self.combined_battery_time_to.set_label("Fully charged")
-
-    def get_battery_icon(self, status, level):
-        icons = {}
-        status = int(status)
-        if status == 2 or status == 1 or status == 6:
-            for i in range(10, 101, 10):
-                if status == 2 or status == 6:
-                    icons[i] = f"battery-level-{i}-symbolic"
-                else:
-                    icons[i] = f"battery-level-{i}-charging-symbolic"
-            step = int(round(level / 10)) * 10
-            if step == 100 and status == 1:
-                return "battery-level-100-charged-symbolic"
-            else:
-                return icons[step]
-        elif status == 4:
-            return "battery-full-symbolic"
-        elif status == 5:
-            return "battery-level-0-symbolic"
-        else:
-            return "battery-missing-symbolic"
 
     def format_time(self, seconds, label):
         time_formated = str(timedelta(seconds=seconds))
@@ -267,16 +246,16 @@ class BatteryLayer(Gtk.Window):
                             if update == "Percentage":
                                 self.battery_widgets[battery_name]["Percentage"].set_label(f"{round(data["Percentage"])}%")
                                 self.battery_widgets[battery_name]["level_bar"].set_value(float(round(data["Percentage"])))
-                                self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.get_battery_icon(int(self.battery_widgets[battery_name]["Status"]), int(round(data["Percentage"])))}")
+                                self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.battery_widgets[battery_name]["Status"]), int(round(data["Percentage"])))}")
                             if update == "State":
                                 self.battery_widgets[battery_name]["Status"] = data["State"]
-                                self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.get_battery_icon(int(data["State"]), int(round(self.battery_widgets[battery_name]["level_bar"].get_value())))}")
+                                self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(data["State"]), int(round(self.battery_widgets[battery_name]["level_bar"].get_value())))}")
                 elif battery == "DisplayDevice":
                     if update == "Percentage":
                         if self.combined_battery_level.get_label() != f"{round(data["Percentage"])}%":
                             self.combined_battery_level.set_label(f"{round(data["Percentage"])}%")
                             self.level_bar.set_value(round(data["Percentage"]))
-                            self.combined_icon.set_from_icon_name(f"{self.get_battery_icon(int(self.combined_battery_status_code), int(round(data["Percentage"])))}")
+                            self.combined_icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.combined_battery_status_code), int(round(data["Percentage"])))}")
                     global _v_layer
                     if update == "TimeToEmpty":
                         if _v_layer.get_visible():

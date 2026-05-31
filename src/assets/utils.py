@@ -199,7 +199,6 @@ class GtkLayerShellUtils:
                 margin = [int(x) for x in config.get("margin", default_margin).split(",")]
             else:
                 margin = default_margin
-            print(f"Config anchor: {anchor}, margin: {margin}")
         else:
             anchor = default_anchor
             margin = default_margin

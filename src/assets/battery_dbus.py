@@ -2,7 +2,7 @@ import gi
 import os
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
+from gi.repository import GLib, Gio
 
 class Battery:
     def __init__(self, callback=None):

@@ -50,7 +50,6 @@ class CalendarLayer(Gtk.Window):
 
     def setup_weather_config(self):
         try:
-            print("setting up weather")
             if isinstance(self.config, dict):
                 self.show_sunset = self.config.get("show_sunset", False)
                 api_key = self.config.get('api_key', None)
@@ -80,7 +79,10 @@ class CalendarLayer(Gtk.Window):
                 return
             self.setup_weather()
         except Exception as e:
-            print(f"Missing variable from config: {e}mweather is disabled!")
+            if self.config is not None:
+                print(f"Missing variable from config: {e}weather is disabled!")
+            else:
+                pass
 
     def StartUpdateLoop(self):
         if self.clock_update_timer:

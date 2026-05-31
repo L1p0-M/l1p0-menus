@@ -333,7 +333,6 @@ class NetworkLayer(Gtk.Window):
         if "available_networks" in parameters:
             if not self.wifi_switch.get_active():
                 return
-            print("Updating available networks...")
             if hasattr(self, "refresh_timeout") and self.refresh_timeout:
                 GLib.source_remove(self.refresh_timeout)
                 self.reload_icon.get_style_context().remove_class("active")

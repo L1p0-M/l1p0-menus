@@ -13,7 +13,9 @@ class OpenWeatherMap():
             else:
                 base_url= 'http://api.openweathermap.org/data/2.5/weather'
 
-            if self.city is None or self.api_key is None:
+            if self.city is None and self.api_key is None:
+                return None
+            elif self.city is None or self.api_key is None:
                 print("City or API key not set in config!")
                 return None
             params = {

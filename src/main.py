@@ -128,8 +128,8 @@ def reload_config(config=None):
         battery: "battery",
         network: "network"
     }
+    print("Loading config...")
     for popup, config_name in match_config.items():
-        print(f"Reloading {config_name} layer config...")
         popup.reload_config(config.get(config_name, None))
 
 def load_css():
