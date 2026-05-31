@@ -4,7 +4,8 @@ gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 from datetime import timedelta
 from time import strptime
-from ..assets.utils import window_utils, GtkLayerShellUtils
+from ..assets.utils import window_utils, GtkLayerShellUtils, Popups
+from ..assets.battery_dbus import Battery, PowerProfiles
 import os
 import math
 _v_layer = None
@@ -19,6 +20,7 @@ class BatteryLayer(Gtk.Window):
         self.set_default_size(400, 300)
         self.get_style_context().add_class("battery-window")
         self.main_overlay = Gtk.Overlay()
+        self.window_utils = window_utils()
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.set_margin_start(0)
         self.main_container.get_style_context().add_class("battery-layer")
@@ -32,14 +34,7 @@ class BatteryLayer(Gtk.Window):
         self.setup_ui()
         self.overlay_windows={}
         for battery_name in self.battery.batterys.keys():
-            revealer = Gtk.Revealer()
-            revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
-            revealer.set_valign(Gtk.Align.END)
-            self.overlay_windows[f"{battery_name}_revealer"] = revealer
-            overlay_window = PopupWindow(self, battery_name)
-            self.overlay_windows[f"{battery_name}_overlay"] = overlay_window
-            self.overlay_windows[f"{battery_name}_revealer"].set_child(overlay_window.panel)
-            self.main_overlay.add_overlay(revealer)
+            self.overlay_windows[f"{battery_name}"] = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, battery=battery_name, battery_dbus=self.battery)
 
     def load_config(self, config):
         if config != self.config:
@@ -119,7 +114,7 @@ class BatteryLayer(Gtk.Window):
             level_bar.set_value(float(battery_level))
             level_bar.get_style_context().add_class("battery-level-bar")
             menu_button = Gtk.Button()
-            menu_button.connect("clicked", lambda x, name=battery_name: self.overlay_windows[f"{name}_revealer"].set_reveal_child(True))
+            menu_button.connect("clicked", lambda x, name=battery_name: self.overlay_windows[f"{name}"]["revealer"].set_reveal_child(True))
             menu_button.get_style_context().add_class("battery-menu-button")
             menu_button_icon = Gtk.Image.new_from_icon_name("open-menu-symbolic")
             menu_button.set_child(menu_button_icon)
@@ -138,7 +133,7 @@ class BatteryLayer(Gtk.Window):
         self.power_profile_container.get_style_context().add_class("power-profile-container")
         self.power_profile_container.set_homogeneous(True)
         self.power_profile_buttons = {}
-        power_profiles = ["Performance", "Balanced", "Power Saver"]
+        power_profiles = ["Power Saver", "Balanced", "Performance"]
         icons = {
             "Performance": "power-profile-performance-symbolic",
             "Balanced": "power-profile-balanced-symbolic",
@@ -164,23 +159,13 @@ class BatteryLayer(Gtk.Window):
         self.power_profile_container.set_halign(Gtk.Align.CENTER)
 
     def update_power_profile_buttons(self):
-        performance_button = self.power_profile_buttons["Performance"]
-        balanced_button = self.power_profile_buttons["Balanced"]
-        power_saver_button = self.power_profile_buttons["Power Saver"]
         active = self.powerprofile.get_active_profile()
-        match active:
-            case "power-saver":
-                power_saver_button.get_style_context().add_class("active")
-                balanced_button.get_style_context().remove_class("active")
-                performance_button.get_style_context().remove_class("active")
-            case "balanced":
-                power_saver_button.get_style_context().remove_class("active")
-                balanced_button.get_style_context().add_class("active")
-                performance_button.get_style_context().remove_class("active")
-            case "performance":
-                power_saver_button.get_style_context().remove_class("active")
-                balanced_button.get_style_context().remove_class("active")
-                performance_button.get_style_context().add_class("active")     
+        for profile_name, button in self.power_profile_buttons.items():
+            name = profile_name.lower().replace(" ", "-")
+            if name == active:
+                button.get_style_context().add_class("active") 
+            else:
+                button.get_style_context().remove_class("active") 
 
     def setup_combined_battery_info(self):
         self.combined_battery_info = self.battery.get_initial_combined_battery_info()
@@ -366,234 +351,11 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
         self.tick_id = self.add_tick_callback(manage_animation)
 
 
-class Battery:
-    def __init__(self, callback=None):
-        self.callback = callback
-        batterys_path = "/sys/class/power_supply/BAT"
-        self.updateables = []
-        self.proxys = {}
-        try:
-            self.bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
-            self.batterys = {}
-            for i in range(2):
-                path = f"{batterys_path}{i}"
-                if os.path.exists(path):
-                    self.batterys[f"BAT{i}"] = path
-            for battery_name in self.batterys:
-                self.connect_to_upower(battery_name)
-                self.updateables.append(battery_name)
-                path = f"/org/freedesktop/UPower/devices/battery_{battery_name}"
-                self.proxys[battery_name] = Gio.DBusProxy.new_sync(
-                    self.bus,
-                    Gio.DBusProxyFlags.NONE,
-                    None,
-                    "org.freedesktop.UPower",
-                    path,
-                    "org.freedesktop.UPower.Device",
-                    None
-                )
-            self.connect_to_upower("DisplayDevice")
-            self.updateables.append("DisplayDevice")
-            self.proxys["DisplayDevice"] = Gio.DBusProxy.new_sync(
-                self.bus,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                "org.freedesktop.UPower",
-                "/org/freedesktop/UPower/devices/DisplayDevice",
-                "org.freedesktop.UPower.Device",
-                None
-            )
-        except Exception as e:
-            print(e)
-        
-    def combined_battery_info(self, property_name):
-        try:
-            variant = self.proxys["DisplayDevice"].get_cached_property(property_name)
-            if variant:
-                return variant.unpack()
-            else:
-                variant = self.proxys["DisplayDevice"].call_sync(
-                    "org.freedesktop.DBus.Properties.Get",
-                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None
-                )
-                if variant:
-                    return variant.unpack()[0]
-                return None
-
-        except Exception as e:
-            print(f"Error occurred while fetching combined {property_name}: {e}")
-            return None
-
-    def dbus_call(self, battery_name, property_name):
-        try:
-            variant = self.proxys[battery_name].get_cached_property(property_name)
-            if variant:
-                return variant.unpack()
-            else:
-                variant = self.proxys[battery_name].call_sync(
-                    "org.freedesktop.DBus.Properties.Get",
-                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None
-                )
-                if variant:
-                    return variant.unpack()[0]
-                return None
-
-        except Exception as e:
-            print(f"Error occurred while fetching {property_name} for {battery_name}: {e}")
-            return None
-
-
-    def connect_to_upower(self, battery_name):
-        if battery_name != "DisplayDevice":
-            name = f"battery_{battery_name}"
-        else:
-            name = battery_name
-        self.connection = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
-        self.connection.signal_subscribe(
-            "org.freedesktop.UPower",
-            "org.freedesktop.DBus.Properties",
-            "PropertiesChanged",
-            f"/org/freedesktop/UPower/devices/{name}",
-            None,
-            Gio.DBusSignalFlags.NONE,
-            self.on_battery_changed,
-            None
-        )
-
-
-    def on_battery_changed(self, connection, sender, path, interface, signal, parameters, user_data):
-        for battery in self.updateables:
-            if battery in path:
-                changed_properties = parameters.get_child_value(1).unpack()
-                if len(changed_properties) > 1:
-                    self.callback(battery, changed_properties)
-
-    def get_initial_battery_info(self):
-        batterys = {}
-        try:
-            for battery_name, battery_path in self.batterys.items():
-                battery_level = self.dbus_call(battery_name, "Percentage")
-                battery_status = self.dbus_call(battery_name, "State")
-                charge_cycles = self.dbus_call(battery_name, "ChargeCycles")
-                energy_full = self.dbus_call(battery_name, "EnergyFull")
-                energy_full_design = self.dbus_call(battery_name, "EnergyFullDesign")
-                vendor = self.dbus_call(battery_name, "Vendor")
-                model = self.dbus_call(battery_name, "Model")
-                batterys[battery_name] = {
-                    "Percentage": battery_level,
-                    "Status": battery_status,
-                    "ChargeCycles": charge_cycles,
-                    "EnergyFull": energy_full,
-                    "EnergyFullDesign": energy_full_design,
-                    "Vendor": vendor,
-                    "Model": model
-                }
-            return batterys
-                
-        except Exception as e:
-            print(f"Error occurred while fetching battery info: {e}")
-
-    def get_initial_combined_battery_info(self):
-        try:
-            batterys = {}
-            batterys["level"] = self.combined_battery_info("Percentage")
-            batterys["status"] = self.combined_battery_info("State")
-            batterys["time_to_empty"] = self.combined_battery_info("TimeToEmpty")
-            batterys["time_to_full"] = self.combined_battery_info("TimeToFull")
-            return batterys
-                
-        except Exception as e:
-            print(f"Error occurred while fetching battery info: {e}")
-
-class PowerProfiles:
-    def __init__(self, callback):
-        self.update_ui_elements = callback
-        self.dbus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
-        self.dbus_path = "/net/hadess/PowerProfiles"
-        self.bus_name = "net.hadess.PowerProfiles"
-        self.object = "org.freedesktop.UPower.PowerProfiles"
-        self.connect_to_dbus()
-        self.proxy = Gio.DBusProxy.new_sync(
-                self.dbus,
-                Gio.DBusProxyFlags.NONE,
-                None,
-                self.bus_name,
-                self.dbus_path,
-                self.object,
-                None
-            )
-
-    def connect_to_dbus(self):
-        self.dbus.signal_subscribe(
-            self.bus_name,
-            "org.freedesktop.DBus.Properties",
-            "PropertiesChanged",
-            self.dbus_path,
-            None,
-            Gio.DBusSignalFlags.NONE,
-            self.on_profile_changed,
-            None
-        )
-
-    def set_power_profile(self, profile_name):
-        
-        parameters = GLib.Variant('(ssv)', (
-            "net.hadess.PowerProfiles",
-            "ActiveProfile",
-            GLib.Variant('s', profile_name)
-        ))
-
-        try:
-            self.dbus.call_sync(
-                "net.hadess.PowerProfiles",
-                "/net/hadess/PowerProfiles",
-                "org.freedesktop.DBus.Properties",
-                "Set",
-                parameters,
-                None,
-                Gio.DBusCallFlags.ALLOW_INTERACTIVE_AUTHORIZATION,
-                -1,
-                None
-            )
-        except Exception as e:
-            print(f"Error occured while changing profile: {e}")
-        
-    def get_active_profile(self):
-        try:
-            variant = self.proxy.get_cached_property("ActiveProfile")
-            if variant:
-                return variant.unpack()
-            else:
-                variant = self.proxy.call_sync(
-                    "org.freedesktop.DBus.Properties.Get",
-                    GLib.Variant("(ss)", (self.bus_name, "ActiveProfile")),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None
-                )
-                if variant:
-                    return variant.unpack()[0]
-                return None
-
-        except Exception as e:
-            print(f"Error occurred while fetching active powerprofile: {e}")
-            return None
-
-    def on_profile_changed(self, connection, sender, path, interface, signal, parameters, user_data):
-        changed_properties = parameters.get_child_value(1).unpack()
-        if "ActiveProfile" in changed_properties:
-            new_active_profile = changed_properties["ActiveProfile"]
-            self.update_ui_elements()
 
 class PopupWindow:
-    def __init__(self, main_window, battery):
-        self.main_window = main_window
+    def __init__(self, battery, battery_dbus, windows):
+        self.window = windows
+        self.battery_dbus = battery_dbus
         self.battery = battery
         self.panel = Gtk.Frame()
         self.panel.add_css_class("floating-panel")
@@ -605,40 +367,51 @@ class PopupWindow:
             margin_top=20,
             margin_bottom=20
             )
+        self.match_names = {
+            "Vendor": "Vendor",
+            "Model": "Model",
+            "Capacity": "Capacity",
+            "Charge Cycles": "Charge Cycles",
+            "Energy Full": "Energy Full",
+            "Energy Design": "Energy Design"
+        }
+        self.icons = {
+            "Vendor": "preferences-system-symbolic",
+            "Model": "dialog-information-symbolic",
+            "Capacity": "battery-missing-symbolic",
+            "Charge Cycles": "battery-ac-adapter-symbolic",
+            "Energy Full": "battery-level-100-symbolic",
+            "Energy Design": "battery-level-100-symbolic"
+        }
         self.setup_ui()
 
+
     def setup_ui(self):
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        header_label = Gtk.Label(label=f"BATTERY DETAILS ({self.battery})")
+        header_label.set_halign(Gtk.Align.START)
+        header_label.set_hexpand(True)
+        header_label.get_style_context().add_class("header-label")
+        header_box.append(header_label)
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
         close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x, name=f"{self.battery}": self.main_window.overlay_windows[f"{name}_revealer"].set_reveal_child(False))
+        close_btn.connect("clicked", lambda x, name=f"{self.battery}": self.window["revealer"].set_reveal_child(False))
         close_btn.get_style_context().add_class("close-button")
         close_btn.set_halign(Gtk.Align.END)
-        self.panel_content.append(close_btn)
-        
+        close_btn.set_valign(Gtk.Align.CENTER)
+        header_box.append(close_btn)
+        self.panel_content.append(header_box)
         infos = self.get_overlay_window_values()
         main_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         main_horizontal_container.set_homogeneous(True)
-        parameters = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        values = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        available_parameters = ["Vendor", "Model", "Capacity", "Charge Cycles", "Energy Full", "Energy Design"]
-        for parameter in available_parameters:
-            parameter_label = Gtk.Label(label=f"{parameter}:")
-            parameter_label.get_style_context().add_class("popup-parameter")
-            parameters.append(parameter_label)
-            parameter_label.set_halign(Gtk.Align.START)
-            values_label = Gtk.Label(label=f"{infos[parameter]}")
-            values.append(values_label)
-            values_label.set_halign(Gtk.Align.END)
-            values_label.get_style_context().add_class("popup-value")
-        main_horizontal_container.append(parameters)
-        main_horizontal_container.append(values)
+        Popups().setup_details(match_names=self.match_names, match_icons=self.icons, details=infos, container=main_horizontal_container)
         self.panel_content.append(main_horizontal_container)
         self.panel.set_child(self.panel_content)
 
 
     def get_overlay_window_values(self):
-        battery_info = self.main_window.battery.get_initial_battery_info()[self.battery]
+        battery_info = self.battery_dbus.get_initial_battery_info()[self.battery]
         cycle_count = battery_info["ChargeCycles"]
         energie_full = f"{battery_info["EnergyFull"]}Wh"
         energie_full_design = f"{battery_info["EnergyFullDesign"]}Wh"
