@@ -1,5 +1,11 @@
 # L1p0-Menus
 
+##Preview
+
+<p align="center">
+<video src="https://github.com/user-attachments/assets/36596ac5-4c08-462e-918b-0e4e2543f144" width="600" autoplay loop muted playsinline></video>
+</p>
+
 ## Style
 
 To style the menus to match your specific theme, `l1p0-menus` gives you the option to place a `style.css` file in the `~/.config/l1p0-menu/` directory and write your own CSS. :) 
