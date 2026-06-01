@@ -381,10 +381,12 @@ scale trough slider:hover {
 }
 
 .popup-upcoming-date {
-    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
     font-weight: 900;
+    font-size: 20px;
     min-width: 40px;
     padding: 10px;
+    margin-bottom: 10px;
     
 }
 

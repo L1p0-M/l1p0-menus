@@ -82,6 +82,7 @@ class CalendarLayer(Gtk.Window):
             if self.config is not None:
                 print(f"Missing variable from config: {e}weather is disabled!")
             else:
+                print(e)
                 pass
 
     def StartUpdateLoop(self):
@@ -230,7 +231,10 @@ class CalendarLayer(Gtk.Window):
         if weather_forecast is None:
             self.main_weather_container.set_visible(False)
             raise ValueError("API returned empty weather data")
-        self.popupwindow.setup_ui(weather_forecast)
+        try:
+            self.popupwindow.setup_weather(weather_forecast)
+        except Exception as e:
+            print(e)
         while child := self.upcoming_weather_container.get_first_child():
             self.upcoming_weather_container.remove(child)
         for i in range(4):
@@ -334,37 +338,51 @@ class CalendarLayer(Gtk.Window):
 class PopupWindow:
     def __init__(self, main_window):
         self.main_window = main_window
-        self.panel = Gtk.ScrolledWindow()
-        self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.panel.set_propagate_natural_height(True)
-        self.panel.set_max_content_height(180) 
-        self.panel.set_min_content_height(100)
+        self.panel = Gtk.Frame()
+        self.scrolled_weather, self.scrolled_weather_content = window_utils().setup_scrolled_windows(max_height=200, min_height=150)
+        #self.panel = Gtk.ScrolledWindow()
+        #self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        #self.panel.set_propagate_natural_height(True)
+        #self.panel.set_max_content_height(180) 
+        #self.panel.set_min_content_height(100)
         self.panel.add_css_class("popup-weather-panel")
-        #self.panel.set_size_request(-1, 170)
+        self.panel.set_size_request(-1, 170)
         self.panel_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             spacing=10,
-            margin_start=0,
-            margin_end=10,
-            margin_top=10,
-            margin_bottom=10
+            margin_start=20,
+            margin_end=20,
+            margin_top=20,
+            margin_bottom=20
             )
         self.panel.set_child(self.panel_content)
+        self.rows = {}
+        self.setup_ui()
 
-    def setup_ui(self, weather_forecast):
-        while child := self.panel_content.get_first_child():
-            self.panel_content.remove(child)
+    def setup_ui(self):
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        header_label = Gtk.Label(label="UPCOMING WEATHER")
+        header_label.set_halign(Gtk.Align.START)
+        header_label.set_hexpand(True)
+        header_label.get_style_context().add_class("header-label")
+        header_box.append(header_label)
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
         close_btn.set_child(close_icon)
         close_btn.connect("clicked", lambda x: self.main_window.revealer.set_reveal_child(False))
         close_btn.get_style_context().add_class("close-button")
         close_btn.set_halign(Gtk.Align.END)
-        self.panel_content.append(close_btn)
-        containers = {}
-        date = None
+        close_btn.set_valign(Gtk.Align.CENTER)
+        header_box.append(close_btn)
+        self.panel_content.append(header_box)
+        self.panel_content.append(self.scrolled_weather)
+
+    def setup_weather(self, weather_forecast):
+        rows = {}
+        for values in self.rows.values():
+            if values.get_parent() is not None:
+                self.scrolled_weather_content.remove(values)
         for i in range(len(weather_forecast)):
             #next_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            
             dates = weather_forecast[i]["date"]
             dates_object = time.strptime(dates, "%Y-%m-%d %H:%M:%S")
             dates_formated = time.strftime("%H:%M", dates_object)
@@ -385,25 +403,30 @@ class PopupWindow:
             upcoming_time = Gtk.Label()
             upcoming_time.set_label(f"{dates_formated}")
             upcoming_time.get_style_context().add_class("popup-upcoming-time")
-            if show_date not in containers:
-                containers[show_date] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-                #containers[show_date].set_homogeneous(True)
+            if show_date not in rows:
+                rows[show_date] = {}
+                date_label = Gtk.Label(label=f"{show_date}")
+                date_label.get_style_context().add_class("popup-upcoming-date")
+                date_label.set_halign(Gtk.Align.START)
+                rows[show_date]["date"] = date_label
+                rows[show_date]["box"] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+                rows[show_date]["box"].set_homogeneous(True)
+                rows[show_date]["date"].set_hexpand(True)
             next_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             next_container.get_style_context().add_class("popup-upcoming-items-container")
             next_container.append(upcoming_icons)
             next_container.append(upcoming_temp)
             next_container.append(upcoming_desc)
             next_container.append(upcoming_time)
-            if date == None or date != show_date:
-                date_label = Gtk.Label(label=f"{show_date}")
-                date_label.get_style_context().add_class("popup-upcoming-date")
-                containers[show_date].append(date_label)
-                #self.panel_content.append(date_label)
-                date_label.set_halign(Gtk.Align.CENTER)
-                date = show_date
-            containers[show_date].append(next_container)
-        for container in containers.keys():
-            self.panel_content.append(containers[container])
+            next_container.set_halign(Gtk.Align.START)
+            rows[show_date]["box"].append(next_container)
+        for keys in rows.keys():
+            for widget in rows[keys].keys():
+                row = Gtk.ListBoxRow()
+                row.set_child(rows[keys][widget])
+                self.scrolled_weather_content.append(row)
+                self.rows[keys] = row
+            #self.panel_content.append(containers[container])
         
 
 
