@@ -31,6 +31,7 @@ class CalendarLayer(Gtk.Window):
         self.horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.horizontal_container.set_homogeneous(True)
         self.main_container.append(self.horizontal_container)
+        self.date_format = "%Y-%m-%d"
         self.setup_time()
         self.clock_update_timer = None
         self.weather_timer = None
@@ -40,6 +41,12 @@ class CalendarLayer(Gtk.Window):
     def load_config(self, config):
         if self.config != config:
             self.config = config
+            if self.config is not None and "date_format" in self.config:
+                formats_to_diff = ["%d", "%a", "%A"]
+                if any(fmt in self.config.get("date_format", "%Y-%m-%d") for fmt in formats_to_diff):
+                    self.date_format = self.config.get("date_format", "%Y-%m-%d")
+                    self.date.set_label(time.strftime(str(self.date_format)))
+                    self.popupwindow.date_format = self.date_format
             self.setup_weather_config()
             if self.config is not None and self.config.get('kurzewoche', False):
                 self.markKurzeWoche()
@@ -71,7 +78,7 @@ class CalendarLayer(Gtk.Window):
                 self.show_sunset = False
                 
             if not hasattr(self, 'popupwindow'):
-                self.popupwindow = PopupWindow(self)
+                self.popupwindow = PopupWindow(self, self.date_format)
                 self.revealer.set_child(self.popupwindow.panel)
                 self.overlay.add_overlay(self.revealer)
             if hasattr(self, 'main_weather_container'):
@@ -106,7 +113,7 @@ class CalendarLayer(Gtk.Window):
         self.time_container.append(self.clock)
 
         self.date = Gtk.Label()
-        self.date.set_label(time.strftime(str("%Y-%m-%d") ))
+        self.date.set_label(time.strftime(self.date_format))
         self.date.get_style_context().add_class("date")
         self.date.set_hexpand(False)
         self.date.set_halign(Gtk.Align.CENTER)
@@ -306,8 +313,8 @@ class CalendarLayer(Gtk.Window):
     def update_clock(self):
         if str(time.strftime("%H:%M")) != str(self.clock.get_label()):
             self.clock.set_label(time.strftime(str("%H:%M") ))
-        if str(time.strftime("%Y-%m-%d")) != str(self.date.get_label()):
-            self.date.set_label(time.strftime(str("%Y-%m-%d") ))
+        if str(time.strftime(self.date_format)) != str(self.date.get_label()):
+            self.date.set_label(time.strftime(str(self.date_format) ))
             self.resetToCurrentDate()
         return True
 
@@ -336,10 +343,12 @@ class CalendarLayer(Gtk.Window):
             self.markKurzeWoche()
 
 class PopupWindow:
-    def __init__(self, main_window):
+    def __init__(self, main_window, date_format="%Y-%m-%d"):
         self.main_window = main_window
+        self.date_format = date_format
         self.panel = Gtk.Frame()
-        self.scrolled_weather, self.scrolled_weather_content = window_utils().setup_scrolled_windows(max_height=200, min_height=150)
+        self.window_utils = window_utils()
+        self.scrolled_weather, self.scrolled_weather_content = self.window_utils.setup_scrolled_windows(max_height=200, min_height=150, header_function=self.update_headers, sort_function=self._sort_func)
         #self.panel = Gtk.ScrolledWindow()
         #self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         #self.panel.set_propagate_natural_height(True)
@@ -382,11 +391,11 @@ class PopupWindow:
             if values.get_parent() is not None:
                 self.scrolled_weather_content.remove(values)
         for i in range(len(weather_forecast)):
-            #next_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             dates = weather_forecast[i]["date"]
             dates_object = time.strptime(dates, "%Y-%m-%d %H:%M:%S")
             dates_formated = time.strftime("%H:%M", dates_object)
-            show_date = time.strftime("%Y-%m-%d", dates_object)
+            show_date = time.strftime(self.date_format, dates_object)
+            print(show_date)
             upcoming_temp = Gtk.Label()
             upcoming_temp.set_label(f"{int(weather_forecast[i]["temp"])}°")
             upcoming_desc = Gtk.Label()
@@ -404,29 +413,52 @@ class PopupWindow:
             upcoming_time.set_label(f"{dates_formated}")
             upcoming_time.get_style_context().add_class("popup-upcoming-time")
             if show_date not in rows:
-                rows[show_date] = {}
-                date_label = Gtk.Label(label=f"{show_date}")
-                date_label.get_style_context().add_class("popup-upcoming-date")
-                date_label.set_halign(Gtk.Align.START)
-                rows[show_date]["date"] = date_label
-                rows[show_date]["box"] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-                rows[show_date]["box"].set_homogeneous(True)
-                rows[show_date]["date"].set_hexpand(True)
+                rows[show_date] = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+                rows[show_date].set_homogeneous(False)
             next_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             next_container.get_style_context().add_class("popup-upcoming-items-container")
             next_container.append(upcoming_icons)
             next_container.append(upcoming_temp)
             next_container.append(upcoming_desc)
             next_container.append(upcoming_time)
-            next_container.set_halign(Gtk.Align.START)
-            rows[show_date]["box"].append(next_container)
+            rows[show_date].append(next_container)
         for keys in rows.keys():
-            for widget in rows[keys].keys():
-                row = Gtk.ListBoxRow()
-                row.set_child(rows[keys][widget])
-                self.scrolled_weather_content.append(row)
-                self.rows[keys] = row
-            #self.panel_content.append(containers[container])
+            count_childs = 0
+            current_childs = rows[keys].get_first_child()
+            while current_childs is not None:
+                current_childs = current_childs.get_next_sibling()
+                count_childs += 1
+            if count_childs >= 5:
+                rows[keys].set_homogeneous(True)
+            row = Gtk.ListBoxRow()
+            row.date = keys
+            row.set_child(rows[keys])
+            self.scrolled_weather_content.append(row)
+            self.rows[keys] = row
+        self.scrolled_weather_content.invalidate_sort()
+
+    def _sort_func(self, row1, row2):
+        if hasattr(row1, "date") and hasattr(row2, "date"):
+            if row1.date != row2.date:
+                return -1 if row1.date else 1
+        return 0
+
+    
+    def update_headers(self, row, before):
+        try:
+            if before is None:
+                if hasattr(row, "date") and row.date is not None:
+                    row.set_header(self.window_utils.create_header(row.date))
+                return
+            
+            if hasattr(before, "date") and hasattr(row, "date") and before.date != row.date:
+                row.set_header(self.window_utils.create_header(row.date))
+
+            else:
+                row.set_header(None)
+        except Exception as e:
+            print(f"Error updating headers: {e}")
+            row.set_header(None)
         
 
 

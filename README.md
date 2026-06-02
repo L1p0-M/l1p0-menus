@@ -55,7 +55,8 @@ You can place a `config.json` file in `~/.config/l1p0-menu/` to configure the me
         "city": "YOUR CITY",
         "show_sunset": true,
         "margin": "10",
-        "anchor": "top-center"
+        "anchor": "top-center",
+        "date_format": "%Y-%m-%d"
    },
    "network": {
         "margin": "10, 10",
