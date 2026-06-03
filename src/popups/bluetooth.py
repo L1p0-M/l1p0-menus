@@ -13,6 +13,7 @@ class Bluetooth:
         self.loading = False
         self.main_overlay = overlay
         self.wait_till_paired = False
+        self.discoverable_timeout = 180
         self.bluetooth_cards_details = {}
         self.window_utils = window_utils()
         self.empty_widgets = self.window_utils.init_empty_text("Bluetooth is currently disabled", "bluetooth-disabled-symbolic")
@@ -42,7 +43,14 @@ class Bluetooth:
         switch_container.append(self.discover_switch)
         switch_container.append(self.discover_switch_label)
         self.main_container.append(switch_container)
-        self.scrolled_bluetooth_panel, self.scrolled_bluetooth_container = self.window_utils.setup_scrolled_windows(340, 340, self.update_headers, self._sort_func)
+        self.discover_label = Gtk.Label(label=f"Your device is discoverable till {self.discoverable_timeout}s")
+        self.discover_label.set_visible(False)
+        self.discover_label.set_margin_bottom(3)
+        self.discover_label.set_margin_top(3)
+        self.discover_label.set_halign(Gtk.Align.CENTER)
+        self.discover_label.get_style_context().add_class("discoverable-label")
+        self.main_container.append(self.discover_label)
+        self.scrolled_bluetooth_panel, self.scrolled_bluetooth_container = self.window_utils.setup_scrolled_windows(340, 200, self.update_headers, self._sort_func)
         self.main_container.append(self.scrolled_bluetooth_panel)
         bottom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.bluetooth_reload_btn = Gtk.Button()
@@ -205,18 +213,13 @@ class Bluetooth:
                 self.discover_switch.handler_block(self.discover_toggle_event)
                 self.discover_switch.set_active(discoverable_state)
                 self.discover_switch.handler_unblock(self.discover_toggle_event)
+                if discoverable_state:
+                    self.timer_discoverable = GLib.timeout_add_seconds(1, self.on_discoverable_timeout)
 
         elif "discovering" in message:
             discovering_state = message["discovering"]
 
         elif "devices" in message:
-            if hasattr(self, "refresh_timeout") and self.refresh_timeout:
-                try:
-                    GLib.source_remove(self.refresh_timeout)
-                    self.refresh_timeout = None
-                except:
-                    pass
-                self.reload_icon.get_style_context().remove_class("active")
             if self.empty_widgets["box"].get_parent() is not None:
                 self.hide_empty_widgets()
             for device in message["devices"]:
@@ -339,6 +342,20 @@ class Bluetooth:
     def on_discoverable_switch(self, switch, state):
         self.internal_update = True
         self.dbusbluez.toggle_discoverable(switch, state)
+        if state:
+            self.timer_discoverable = GLib.timeout_add_seconds(1, self.on_discoverable_timeout)
+
+    def on_discoverable_timeout(self):
+        self.discover_label.set_visible(True)
+        self.discover_label.set_label(f"Your device is discoverable till {self.discoverable_timeout}s")
+        self.discoverable_timeout -= 1
+        if self.discoverable_timeout < 0 or self.discover_switch.get_active() == False:
+            self.discover_label.set_visible(False)
+            self.discoverable_timeout = 180
+            if hasattr(self, "timer_discoverable") and self.timer_discoverable:
+                self.timer_discoverable = None
+            return False
+        return True
 
     def on_bluetooth_toggle(self, switch, state):
         self.internal_update = True
@@ -360,7 +377,7 @@ class Bluetooth:
                 self.reload_icon.get_style_context().remove_class("active")
                 self.refresh_timeout = None
                 return False
-            self.refresh_timeout = GLib.timeout_add(5000, timeout_func)
+            self.refresh_timeout = GLib.timeout_add(3000, timeout_func)
                     
 
     def _default_state(self):
@@ -481,6 +498,7 @@ class PopupWindow:
         header_box.append(header_label)
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
+        close_icon.get_style_context().add_class("close-icon")
         close_btn.set_child(close_icon)
         close_btn.connect("clicked", lambda x: self.on_close(self.windowtype))
         close_btn.get_style_context().add_class("close-button")

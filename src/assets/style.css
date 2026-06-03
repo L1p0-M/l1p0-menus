@@ -489,6 +489,10 @@ scale trough slider:hover {
     margin-bottom: 2px;
 }
 
+.close-icon {
+    -gtk-icon-size: 15px;
+}
+
 .close-button {
     background-color: #FFFFFF;
     border: 1px solid #FFFFFF;
@@ -532,7 +536,8 @@ scale trough slider:hover {
     color: #FFFFFF;
 }
 
-.time-to {
+.time-to,
+.battery-rate {
     padding: 10px;
     border: 1px solid #FFFFFF;
     border-radius: 0px 20px 0px 20px;
@@ -745,5 +750,11 @@ scale trough slider:hover {
 .auth-code {
     font-size: 40px;
     font-weight: 900;
+}
+
+.discoverable-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+
 }
 

@@ -1,4 +1,4 @@
-# L1p0-Menus /Wi-Fi/Bluetooth/Audio/Brightness/Battery Popup menus for Wayland/Hyprland
+# L1p0-Menus - Wi-Fi/Bluetooth/Audio/Brightness/Battery Popup menus for Wayland/Hyprland
 
 A fast, full event-driven desktop popup menu system designed specifically for Wayland and Hyprland environments. 
 
@@ -12,7 +12,7 @@ No polling, no CPU wasting. Built on top of a Python daemon using `gio` for nati
 
 ## Features & Architecture
 
-* **Pure Event-Driven:** Zero-percent idle CPU usage. The daemon sleeps and wakes up instantly only when D-Bus signals or external events trigger it.
+* **Pure Event-Driven:** Zero idle CPU usage. The daemon sleeps and wakes up instantly only when D-Bus signals or external events trigger it.
 * **GTK4 + Layer Shell:** Leveraging `gtk4-layer-shell` for hardware-accelerated, responsive, and native Wayland layer management.
 * **Modern & Smooth Animations:** Fully animated UI elements using native GTK `Revealer` widgets, providing fluid, hardware-accelerated transitions for dropdowns and detail panels.
 * **First-Class D-Bus Citizen:** Built-in `GIO/GDBus` integration. It functions as a fully registered `SecretAgent` for both `NetworkManager` and `BlueZ`, securely handling Wi-Fi passwords and Bluetooth pairing prompts natively within the UI.
@@ -24,7 +24,7 @@ No polling, no CPU wasting. Built on top of a Python daemon using `gio` for nati
 The package currently includes the following fully-featured popup menus:
 
 * **Weather & Calendar:** A beautiful calendar dropdown equipped with an hourly/daily weather forecast breakdown powered by OpenWeatherMap.
-* **Battery Status:** Displays active discharging/charging rates with a collapsible detailed view showing hardware info (Vendor, Model, Charge Cycles, Energy Pull, and Design Capacity).
+* **Battery Status:** Displays active discharging/charging rates with a collapsible detailed view showing hardware info (Vendor, Model, Charge Cycles, Energy Full, and Design Capacity).
 * **Network Manager:** Full Wi-Fi control. Scan available networks, view connection details (IP, Gateway, DNS, MAC, Speed), and connect securely via the integrated SecretAgent. Manage your saved networks from the ui: Turn off/on autoconnect or forget the network.
 * **Bluetooth Control:** Easily toggle Bluetooth, switch discoverability, scan for devices, pair/disconnect, and view battery levels for connected peripherals.
 * **Brightness & Night Light:** Smooth brightness slider with an integrated Night Light toggle and custom temperature preset adjustment.

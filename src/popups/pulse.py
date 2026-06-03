@@ -238,6 +238,7 @@ class PopupWindow:
     def setup_ui(self):
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
+        close_icon.get_style_context().add_class("close-icon")
         close_btn.set_child(close_icon)
         close_btn.connect("clicked", lambda x: self.window["revealer"].set_reveal_child(False))
         close_btn.get_style_context().add_class("close-button")

@@ -46,20 +46,21 @@ class Battery:
         
     def combined_battery_info(self, property_name):
         try:
-            variant = self.proxys["DisplayDevice"].get_cached_property(property_name)
-            if variant:
-                return variant.unpack()
-            else:
-                variant = self.proxys["DisplayDevice"].call_sync(
-                    "org.freedesktop.DBus.Properties.Get",
-                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None
-                )
-                if variant:
-                    return variant.unpack()[0]
-                return None
+            return self.dbus_call("DisplayDevice", property_name)
+          #  variant = self.proxys["DisplayDevice"].get_cached_property(property_name)
+          #  if variant:
+           #     return variant.unpack()
+           # else:
+            #    variant = self.proxys["DisplayDevice"].call_sync(
+            #        "org.freedesktop.DBus.Properties.Get",
+            #        GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
+            #        Gio.DBusCallFlags.NONE,
+            #        -1,
+            #        None
+            #    )
+            #    if variant:
+            #        return variant.unpack()[0]
+            #    return None
 
         except Exception as e:
             print(f"Error occurred while fetching combined {property_name}: {e}")
@@ -81,6 +82,24 @@ class Battery:
                 if variant:
                     return variant.unpack()[0]
                 return None
+
+        except Exception as e:
+            print(f"Error occurred while fetching {property_name} for {battery_name}: {e}")
+            return None
+        
+    def dbus_call_async(self, battery_name, property_name):
+        try:
+            #variant = self.proxys[battery_name].get_cached_property(property_name)
+            #if variant:
+            #    return variant.unpack()
+            #else:
+                self.proxys[battery_name].call(
+                    "org.freedesktop.DBus.Properties.Get",
+                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    None
+                )
 
         except Exception as e:
             print(f"Error occurred while fetching {property_name} for {battery_name}: {e}")
@@ -144,10 +163,12 @@ class Battery:
             batterys["status"] = self.combined_battery_info("State")
             batterys["time_to_empty"] = self.combined_battery_info("TimeToEmpty")
             batterys["time_to_full"] = self.combined_battery_info("TimeToFull")
+            batterys["energy_rate"] = self.combined_battery_info("EnergyRate")
             return batterys
                 
         except Exception as e:
             print(f"Error occurred while fetching battery info: {e}")
+
 
 
 class PowerProfiles:

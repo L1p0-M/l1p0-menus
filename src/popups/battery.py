@@ -29,6 +29,7 @@ class BatteryLayer(Gtk.Window):
         self.vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.append(self.vertical_container)
         self.overlay = Gtk.Overlay()
+        self.tick_id = None
         self.battery = Battery(self.update_ui_elements)
         self.powerprofile = PowerProfiles(self.update_power_profile_buttons)
         self.setup_ui()
@@ -60,7 +61,13 @@ class BatteryLayer(Gtk.Window):
         self.setup_combined_battery_info()
         battery_overlay_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.top_horizontal_container.append(self.combined_battery_time_to)
+        spacer = Gtk.Box()
+        spacer.set_hexpand(True)
+        self.top_horizontal_container.append(spacer)
+        self.top_horizontal_container.append(self.combined_battery_rate)
         self.combined_battery_time_to.set_halign(Gtk.Align.START)
+        self.combined_battery_rate.set_halign(Gtk.Align.END)
+        self.combined_battery_rate.set_hexpand(True)
         battery_overlay_horizontal_container.append(self.combined_icon)
         self.combined_icon.set_halign(Gtk.Align.START)
         self.combined_battery_status.set_halign(Gtk.Align.CENTER)
@@ -152,9 +159,9 @@ class BatteryLayer(Gtk.Window):
             button.set_child(profile_container)
             self.power_profile_buttons[profile] = button
             self.power_profile_container.append(button)
-        self.performance_handler = self.power_profile_buttons["Performance"].connect("clicked", self.on_power_mode_switched, "performance")
-        self.performance_handler = self.power_profile_buttons["Balanced"].connect("clicked", self.on_power_mode_switched, "balanced")
-        self.performance_handler = self.power_profile_buttons["Power Saver"].connect("clicked", self.on_power_mode_switched, "power-saver")
+        self.power_profile_buttons["Performance"].connect("clicked", self.on_power_mode_switched, "performance")
+        self.power_profile_buttons["Balanced"].connect("clicked", self.on_power_mode_switched, "balanced")
+        self.power_profile_buttons["Power Saver"].connect("clicked", self.on_power_mode_switched, "power-saver")
         self.update_power_profile_buttons()
         self.power_profile_container.set_halign(Gtk.Align.CENTER)
 
@@ -191,6 +198,9 @@ class BatteryLayer(Gtk.Window):
         self.combined_icon.get_style_context().add_class("combined-battery-icon")
         self.combined_battery_time_to = Gtk.Label()
         self.combined_battery_time_to.get_style_context().add_class("time-to")
+        self.combined_battery_rate = Gtk.Label()
+        self.combined_battery_rate.get_style_context().add_class("battery-rate")
+        self.combined_battery_rate.set_label(f"{self.combined_battery_info['energy_rate']:.2f} W")
         if self.combined_battery_info["status"] == 2: #0: Unknown, 1: Charging, 2: Discharging, 3: Empty, 4: Fully charged, 5: Pending charge, 6: Pending discharge
             label = self.format_time(self.combined_battery_info["time_to_empty"], "Empty")
             self.combined_battery_time_to.set_label(f"{label}")
@@ -218,8 +228,8 @@ class BatteryLayer(Gtk.Window):
         self.combined_battery_level.set_label("0%")
         self.animation_value = 0
         
-        if hasattr(self, 'tick_id') and self.tick_id:
-            return
+        if self.tick_id:
+            self.remove_tick_callback(self.tick_id)
 
         def manage_animation(widget, frame_clock):
             step = 2
@@ -237,37 +247,40 @@ class BatteryLayer(Gtk.Window):
         self.tick_id = self.add_tick_callback(manage_animation)
 
     def update_ui_elements(self, battery, data):
-        things_to_update_bat = ["Percentage", "State", "ChargeCycles", "TimeToEmpty", "TimeToFull"]
-        for update in things_to_update_bat:
-            if update in data:
+        things_to_update_bat = ["Percentage", "State", "ChargeCycles", "TimeToEmpty", "TimeToFull", "EnergyRate"]
+        updates = [update for update in things_to_update_bat if update in data]
+        if updates:
+            for update in updates:
                 if battery != "DisplayDevice":
-                    for battery_name in self.battery.batterys:
-                        if battery_name == battery:
-                            if update == "Percentage":
-                                self.battery_widgets[battery_name]["Percentage"].set_label(f"{round(data["Percentage"])}%")
-                                self.battery_widgets[battery_name]["level_bar"].set_value(float(round(data["Percentage"])))
-                                self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.battery_widgets[battery_name]["Status"]), int(round(data["Percentage"])))}")
-                            if update == "State":
-                                self.battery_widgets[battery_name]["Status"] = data["State"]
-                                self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(data["State"]), int(round(self.battery_widgets[battery_name]["level_bar"].get_value())))}")
+                    if battery in self.battery.batterys:
+                        battery_name = battery
+                        if update == "Percentage":
+                            self.battery_widgets[battery_name]["Percentage"].set_label(f"{round(data['Percentage'])}%")
+                            self.battery_widgets[battery_name]["level_bar"].set_value(float(round(data['Percentage'])))
+                            self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.battery_widgets[battery_name]['Status']), int(round(data['Percentage'])))}")
+                        if update == "State":
+                            self.battery_widgets[battery_name]["Status"] = data["State"]
+                            self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(data['State']), int(round(self.battery_widgets[battery_name]['level_bar'].get_value())))}")
                 elif battery == "DisplayDevice":
                     if update == "Percentage":
-                        if self.combined_battery_level.get_label() != f"{round(data["Percentage"])}%":
-                            self.combined_battery_level.set_label(f"{round(data["Percentage"])}%")
-                            self.level_bar.set_value(round(data["Percentage"]))
-                            self.combined_icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.combined_battery_status_code), int(round(data["Percentage"])))}")
-                    global _v_layer
+                        if self.combined_battery_level.get_label() != f"{round(data['Percentage'])}%":
+                            self.combined_battery_level.set_label(f"{round(data['Percentage'])}%")
+                            self.level_bar.set_value(round(data['Percentage']))
+                            self.combined_icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.combined_battery_status_code), int(round(data['Percentage'])))}")
+                        #global _v_layer
                     if update == "TimeToEmpty":
-                        if _v_layer.get_visible():
-                            self.combined_battery_time_to.set_label(self.format_time(data["TimeToEmpty"], "Empty"))
+                        #if _v_layer.get_visible():
+                        self.combined_battery_time_to.set_label(self.format_time(data["TimeToEmpty"], "Empty"))
                     if update == "TimeToFull":
-                        if _v_layer.get_visible():
-                            self.combined_battery_time_to.set_label(self.format_time(data["TimeToFull"], "Full"))
+                        #if _v_layer.get_visible():
+                        self.combined_battery_time_to.set_label(self.format_time(data["TimeToFull"], "Full"))
                     if update == "State":
-                        self.combined_battery_status.set_label(f"{self.battery_status_codes.get(data["State"])}")
+                        self.combined_battery_status.set_label(f"{self.battery_status_codes.get(data['State'])}")
                         self.combined_battery_status_code = int(data["State"])
                         if data["State"] == 4:
                             self.combined_battery_time_to.set_label("Fully charged")
+                    if update == "EnergyRate":
+                        self.combined_battery_rate.set_label(f"{data['EnergyRate']:.2f} W")
 
 class HalfCircleLevelBar(Gtk.DrawingArea):
     def __init__(self, type="level"):
@@ -276,6 +289,7 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
         self.set_content_width(300)
         self.set_content_height(200)
         self.fraction = 0.5
+        self.tick_id = None
         self.get_style_context().add_class("half-circle-bar")
         if self.type == "background":
             self.get_style_context().add_class("background")
@@ -308,8 +322,9 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
 
     def animate_to_value(self, target_fraction):
         self.target = max(0.0, min(1.0, target_fraction))
-        if hasattr(self, 'tick_id') and self.tick_id:
-            return
+
+        if self.tick_id:
+            self.remove_tick_callback(self.tick_id)
 
         def manage_animation(widget, frame_clock):
             step = 0.020
@@ -374,8 +389,9 @@ class PopupWindow:
         header_box.append(header_label)
         close_btn = Gtk.Button()
         close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
+        close_icon.get_style_context().add_class("close-icon")
         close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x, name=f"{self.battery}": self.window["revealer"].set_reveal_child(False))
+        close_btn.connect("clicked", lambda x: self.window["revealer"].set_reveal_child(False))
         close_btn.get_style_context().add_class("close-button")
         close_btn.set_halign(Gtk.Align.END)
         close_btn.set_valign(Gtk.Align.CENTER)
