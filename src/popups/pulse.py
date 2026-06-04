@@ -5,7 +5,7 @@ import threading
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
-from ..assets.utils import Header, window_utils, GtkLayerShellUtils
+from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups
 _v_layer = None
 
 
@@ -62,7 +62,7 @@ class VolumeLayer(Gtk.Window):
 
         
     def setup_tab(self, is_mic, container):
-        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, callback=self.update_ui_for_new_defaults)
+        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             spacing=15,
             margin_start=20,
@@ -210,16 +210,14 @@ class VolumeLayer(Gtk.Window):
         widgets["mute_btn"].handler_unblock(widgets["mute_btn_handler"])
 
 class PopupWindow:
-    def __init__(self, is_mic, pulseaudio, callback, windows):
+    def __init__(self, is_mic, pulseaudio, window_utils, callback, windows):
         self.window = windows
+        self.window_utils = window_utils
         self.Pulse = pulseaudio
         self.update_ui_for_new_defaults = callback
+        self.popups = Popups()
         self.is_mic = is_mic
-        self.panel = Gtk.ScrolledWindow()
-        self.panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.panel.set_propagate_natural_height(True)
-        self.panel.set_max_content_height(200)
-        self.panel.set_min_content_height(100)
+        self.panel = Gtk.Frame()
         self.panel.add_css_class("audio-device-menu")
         self.panel.set_size_request(200, 150)
         self.panel_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -232,25 +230,20 @@ class PopupWindow:
         self.vol_buttons = {}
         self.mic_buttons = {}
         self.device_dict = {}
+        self.rows = []
         self.setup_ui()
         self.panel.set_child(self.panel_content)
     
     def setup_ui(self):
-        close_btn = Gtk.Button()
-        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
-        close_icon.get_style_context().add_class("close-icon")
-        close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x: self.window["revealer"].set_reveal_child(False))
-        close_btn.get_style_context().add_class("close-button")
-        close_btn.set_halign(Gtk.Align.END)
-        self.panel_content.append(close_btn)
-        self.devices_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.popups.create_header(header_text="MICROPHONE" if self.is_mic else "OUTPUT DEVICE", close_function=self.window, main_container=self.panel_content)
+        self.scrolled_audio_panel, self.scrolled_audio_container = self.window_utils.setup_scrolled_windows(max_height=50, min_height=50)
         self.setup_devices()
-        self.panel_content.append(self.devices_container)
+        self.panel_content.append(self.scrolled_audio_panel)
 
     def setup_devices(self):
-        while child := self.devices_container.get_first_child():
-            self.devices_container.remove(child)
+        for row in self.rows:
+            self.scrolled_audio_container.remove(row)
+            self.rows = []
         if self.is_mic:
             devices = [d for d in self.Pulse.pulse.source_list() if 'monitor' not in d.name.lower()]
             self.mic_buttons = {}
@@ -260,10 +253,14 @@ class PopupWindow:
             self.vol_buttons = {}
             buttons = self.vol_buttons
         for d in devices:
+            row = Gtk.ListBoxRow()
             self.device_dict[d.description] = d.name
             device_name_button = Gtk.Button(label=f"{d.description}")
             buttons[f"{d.name}"] = device_name_button
-            self.devices_container.append(device_name_button)
+            row.set_child(device_name_button)
+            row.name = d.name
+            self.rows.append(row)
+            self.scrolled_audio_container.append(row)
             device_name_button.connect("clicked", lambda x, device_name=d.name, is_mic=self.is_mic: self.Pulse.on_device_change(is_mic, device_name, self.update_ui_for_new_defaults))
             device_name_button.get_style_context().add_class("audio-device-button")
 

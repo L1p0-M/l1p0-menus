@@ -133,6 +133,7 @@ class window_utils:
         header.set_margin_bottom(5)
         return header
     
+    
 class Popups:
     def __init__(self):
         pass
@@ -164,6 +165,28 @@ class Popups:
         container.append(details_container)
         container.append(value_container)
         return return_details
+    
+    def create_header(self, header_text, close_function, main_container):
+        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        header_label = Gtk.Label(label=f"{header_text.upper()}")
+        header_label.set_halign(Gtk.Align.START)
+        header_label.set_hexpand(True)
+        header_label.get_style_context().add_class("header-label")
+        header_box.append(header_label)
+        close_btn = Gtk.Button()
+        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
+        close_icon.get_style_context().add_class("close-icon")
+        close_btn.set_child(close_icon)
+        if isinstance(close_function, dict):
+            if "revealer" in close_function:
+                close_btn.connect("clicked", lambda x: close_function["revealer"].set_reveal_child(False))
+        elif callable(close_function):
+            close_btn.connect("clicked", close_function)
+        close_btn.get_style_context().add_class("close-button")
+        close_btn.set_halign(Gtk.Align.END)
+        close_btn.set_valign(Gtk.Align.CENTER)
+        header_box.append(close_btn)
+        main_container.append(header_box)
     
 class GtkLayerShellUtils:
     def __init__(self, window, window_name):

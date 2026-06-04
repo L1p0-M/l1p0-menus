@@ -486,26 +486,11 @@ class PopupWindow:
         self.setup_ui()
     
     def setup_ui(self):
-        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         header_text = {
             "pairing": "Confirm Pairing",
             "details": "Device Details",
         }
-        header_label = Gtk.Label(label=f"{(header_text[self.windowtype]).upper()}")
-        header_label.set_halign(Gtk.Align.START)
-        header_label.set_hexpand(True)
-        header_label.get_style_context().add_class("header-label")
-        header_box.append(header_label)
-        close_btn = Gtk.Button()
-        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
-        close_icon.get_style_context().add_class("close-icon")
-        close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x: self.on_close(self.windowtype))
-        close_btn.get_style_context().add_class("close-button")
-        close_btn.set_halign(Gtk.Align.END)
-        close_btn.set_valign(Gtk.Align.CENTER)
-        header_box.append(close_btn)
-        self.panel_content.append(header_box)
+        self.popups.create_header(header_text=f"{header_text[self.windowtype].upper()}", close_function=lambda x: self.on_close(self.windowtype), main_container=self.panel_content)
         if self.windowtype == "details":
             self.hor_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
             self.hor_container.set_homogeneous(True)

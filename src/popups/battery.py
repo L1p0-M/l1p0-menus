@@ -224,7 +224,7 @@ class BatteryLayer(Gtk.Window):
             self.powerprofile.set_power_profile(mode)
 
     def animate_on_present(self):
-        target = int(round(self.battery.combined_battery_info("Percentage")))
+        target = int(round(self.battery.dbus_call(property_name="Percentage")))
         self.combined_battery_level.set_label("0%")
         self.animation_value = 0
         
@@ -351,6 +351,7 @@ class PopupWindow:
         self.window = windows
         self.battery_dbus = battery_dbus
         self.battery = battery
+        self.popups = Popups()
         self.panel = Gtk.Frame()
         self.panel.add_css_class("floating-panel")
         self.panel.set_size_request(-1, 170)
@@ -381,22 +382,7 @@ class PopupWindow:
 
 
     def setup_ui(self):
-        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        header_label = Gtk.Label(label=f"BATTERY DETAILS ({self.battery})")
-        header_label.set_halign(Gtk.Align.START)
-        header_label.set_hexpand(True)
-        header_label.get_style_context().add_class("header-label")
-        header_box.append(header_label)
-        close_btn = Gtk.Button()
-        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
-        close_icon.get_style_context().add_class("close-icon")
-        close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x: self.window["revealer"].set_reveal_child(False))
-        close_btn.get_style_context().add_class("close-button")
-        close_btn.set_halign(Gtk.Align.END)
-        close_btn.set_valign(Gtk.Align.CENTER)
-        header_box.append(close_btn)
-        self.panel_content.append(header_box)
+        self.popups.create_header(header_text=f"BATTERY DETAILS ({self.battery})", close_function=self.window, main_container=self.panel_content)
         infos = self.get_overlay_window_values()
         main_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         main_horizontal_container.set_homogeneous(True)

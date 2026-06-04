@@ -2,7 +2,7 @@ import gi
 import time
 import datetime
 from ..assets import weather as weather
-from ..assets.utils import Header, window_utils, GtkLayerShellUtils
+from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups
 
 
 gi.require_version('Gtk', '4.0')
@@ -20,14 +20,12 @@ class CalendarLayer(Gtk.Window):
         self.set_default_size(300, 150)
         self.get_style_context().add_class("calendar-window")
         self.overlay = Gtk.Overlay()
+        self.window_utils = window_utils()
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.set_margin_start(0)
         self.main_container.get_style_context().add_class("calendar-layer")
         self.set_child(self.overlay)
         self.overlay.set_child(self.main_container)
-        self.revealer = Gtk.Revealer()
-        self.revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
-        self.revealer.set_valign(Gtk.Align.END)
         self.horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.horizontal_container.set_homogeneous(True)
         self.main_container.append(self.horizontal_container)
@@ -78,9 +76,9 @@ class CalendarLayer(Gtk.Window):
                 self.show_sunset = False
                 
             if not hasattr(self, 'popupwindow'):
-                self.popupwindow = PopupWindow(self, self.date_format)
-                self.revealer.set_child(self.popupwindow.panel)
-                self.overlay.add_overlay(self.revealer)
+                windows = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, match_icons=self.weather.matchIcon, date_format=self.date_format)
+                self.popupwindow = windows["overlay"]
+                self.revealer = windows["revealer"]
             if hasattr(self, 'main_weather_container'):
                 self.StartUpdateLoop()
                 return
@@ -343,10 +341,12 @@ class CalendarLayer(Gtk.Window):
             self.markKurzeWoche()
 
 class PopupWindow:
-    def __init__(self, main_window, date_format="%Y-%m-%d"):
-        self.main_window = main_window
+    def __init__(self, match_icons, date_format="%Y-%m-%d", windows=None):
+        self.windows = windows
+        self.match_icons = match_icons
         self.date_format = date_format
         self.panel = Gtk.Frame()
+        self.popups = Popups()
         self.window_utils = window_utils()
         self.scrolled_weather, self.scrolled_weather_content = self.window_utils.setup_scrolled_windows(max_height=200, min_height=150, header_function=self.update_headers, sort_function=self._sort_func)
         self.panel.add_css_class("popup-weather-panel")
@@ -363,22 +363,7 @@ class PopupWindow:
         self.setup_ui()
 
     def setup_ui(self):
-        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        header_label = Gtk.Label(label="UPCOMING WEATHER")
-        header_label.set_halign(Gtk.Align.START)
-        header_label.set_hexpand(True)
-        header_label.get_style_context().add_class("header-label")
-        header_box.append(header_label)
-        close_btn = Gtk.Button()
-        close_icon = Gtk.Image.new_from_icon_name("window-close-symbolic")
-        close_icon.get_style_context().add_class("close-icon")
-        close_btn.set_child(close_icon)
-        close_btn.connect("clicked", lambda x: self.main_window.revealer.set_reveal_child(False))
-        close_btn.get_style_context().add_class("close-button")
-        close_btn.set_halign(Gtk.Align.END)
-        close_btn.set_valign(Gtk.Align.CENTER)
-        header_box.append(close_btn)
-        self.panel_content.append(header_box)
+        self.popups.create_header(header_text="UPCOMING WEATHER", close_function=self.windows, main_container=self.panel_content)
         self.panel_content.append(self.scrolled_weather)
 
     def setup_weather(self, weather_forecast):
@@ -402,7 +387,7 @@ class PopupWindow:
             upcoming_desc.set_justify(2)
             upcoming_desc.set_valign(Gtk.Align.CENTER)
             upcoming_desc.get_style_context().add_class("popup-upcoming-description")
-            upcoming_icons = Gtk.Image.new_from_icon_name(self.main_window.weather.matchIcon(weather_forecast[i]["icon"]))
+            upcoming_icons = Gtk.Image.new_from_icon_name(self.match_icons(weather_forecast[i]["icon"]))
             upcoming_icons.get_style_context().add_class("popup-upcoming-icons")
             upcoming_time = Gtk.Label()
             upcoming_time.set_label(f"{dates_formated}")
