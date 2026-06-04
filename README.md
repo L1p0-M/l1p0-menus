@@ -86,7 +86,6 @@ l1p0-menus --reload-css
 l1p0-menus --reload-config
 ```
 
-After installing you
 ## Style
 
 To style the menus to match your specific theme, `l1p0-menus` gives you the option to place a `style.css` file in the `~/.config/l1p0-menu/` directory and write your own CSS. :) 
