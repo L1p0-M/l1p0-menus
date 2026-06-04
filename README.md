@@ -30,6 +30,63 @@ The package currently includes the following fully-featured popup menus:
 * **Brightness & Night Light:** Smooth brightness slider with an integrated Night Light toggle and custom temperature preset adjustment.
 * **Audio:** Master volume and microphone sliders with quick-access audio output source switching (e.g., internal audio to Bluetooth headset).
 
+## Usage
+ 
+To use `l1p0-menus`, you need to start the background daemon first, then interact with it using various flags.
+ 
+### 1. Start the Daemon (Required)
+Before doing anything else, you must start the core background process. It is highly recommended to add this to your compositor's autostart configuration (e.g., in your Hyprland config).
+ 
+```bash
+l1p0-menus --daemon
+```
+ 
+*For Hyprland, you can add this to your `hyprland.lua`:*
+```lua
+hl.on("hyprland.start", function()
+    hl.exec_cmd("l1p0-menus --daemon")
+end)
+```
+ 
+### 2. Waybar Integration
+You can easily toggle the visibility of specific popup menus by binding the `--toggle` commands to Waybar modules using the `on-click` action.
+ 
+Here is an example of how to add it to your Waybar `config`:
+ 
+```json
+{
+    "backlight": {
+        "format": "{icon}  {percent}%",
+        "format-icons": ["", "", "", "", "", "", "", "", ""],
+        "on-click": "l1p0-menus --toggle brightness",
+    },
+    "battery": {
+        "format": " {icon}",
+        "format-charging": "󱐋{icon}",
+        "format-plugged": "<small>Full</small> {icon}",
+        "format-full": "<small>Full</small> {icon}",
+        "tooltip-format": "{capacity}%\n{power} W \n{timeTo}",
+        "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "interval": 10,
+        "on-click": "l1p0-menus --toggle battery",
+    }
+}
+```
+
+### 3. Reloading Settings on the Fly
+You can apply changes to your configuration or styling instantly **without restarting the daemon**:
+
+* **Reload CSS rules:**
+```bash
+l1p0-menus --reload-css
+```
+   
+* **Reload Config (`config.json`):**
+```bash
+l1p0-menus --reload-config
+```
+
+After installing you
 ## Style
 
 To style the menus to match your specific theme, `l1p0-menus` gives you the option to place a `style.css` file in the `~/.config/l1p0-menu/` directory and write your own CSS. :) 
