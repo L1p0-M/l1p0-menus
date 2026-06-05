@@ -7,7 +7,7 @@ No polling, no CPU wasting. Built on top of a Python daemon using `gio` for nati
 ## Preview
 
 <p align="center">
-<video src=[link](https://github.com/L1p0-M/l1p0-menus/blob/main/Preview.mp4) width="600" autoplay loop muted playsinline></video>
+<video src="https://github.com/user-attachments/assets/6a45f124-30ac-4049-b7d0-5a0b946bace4" width="600" autoplay loop muted playsinline></video>
 </p>
 
 ## Features & Architecture
