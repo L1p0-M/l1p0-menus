@@ -28,6 +28,7 @@ class CalendarLayer(Gtk.Window):
         self.horizontal_container.set_homogeneous(True)
         self.main_container.append(self.horizontal_container)
         self.date_format = "%Y-%m-%d"
+        self.show_feels_like = True
         self.setup_time()
         self.clock_update_timer = None
         self.weather_timer = None
@@ -55,6 +56,7 @@ class CalendarLayer(Gtk.Window):
         try:
             if isinstance(self.config, dict):
                 self.show_sunset = self.config.get("show_sunset", False)
+                self.show_feels_like = self.config.get("show_feels_like", True)
                 api_key = self.config.get('api_key', None)
                 language = self.config.get('language', 'en')
                 city = self.config.get('city', None)
@@ -72,7 +74,8 @@ class CalendarLayer(Gtk.Window):
                 else:
                     self.weather = weather.OpenWeatherMap(city=None, api_key=None, language="en")
                 self.show_sunset = False
-                
+                self.show_feels_like = True
+
             if not hasattr(self, 'popupwindow'):
                 windows = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, match_icons=self.weather.matchIcon, date_format=self.date_format)
                 self.popupwindow = windows["overlay"]
@@ -197,9 +200,16 @@ class CalendarLayer(Gtk.Window):
         self.current_weather_icon.set_from_icon_name(self.weather.matchIcon(current_weather["icon"]))
         self.current_weather_desc.set_label(f"{current_weather["description"].upper()}")
         self.current_weather_temp.set_label(f"{int(current_weather["temp"])}°")
-        self.current_weather_feel.set_label(f"{int(current_weather["feels_like"])}°")
         self.current_weather_wind.set_label(f"{int(current_weather["wind_speed"])}km/h")
         self.current_weather_place.set_label(f"{current_weather["city"]}, {current_weather["country"]}")
+        if not self.show_feels_like:
+            self.current_weather_feel.set_visible(False)
+            self.current_weather_temp.set_halign(Gtk.Align.CENTER)
+        else:
+            self.current_weather_feel.set_label(f"{int(current_weather["feels_like"])}°")
+            self.current_weather_temp.set_halign(Gtk.Align.END)
+            self.current_weather_feel.set_visible(True)
+
         if not self.show_sunset:
             self.sunset_container.set_visible(False)
             self.sunrise_container.set_visible(False)

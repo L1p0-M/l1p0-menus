@@ -110,6 +110,7 @@ You can place a `config.json` file in `~/.config/l1p0-menu/` to configure the me
         "language": "YOUR LANGUAGE (defaults to 'en')",
         "city": "YOUR CITY",
         "show_sunset": true,
+        "show_feels_like": true,
         "margin": "10",
         "anchor": "top-center",
         "date_format": "%Y-%m-%d"
