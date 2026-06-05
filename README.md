@@ -17,18 +17,18 @@ No polling, no CPU wasting. Built on top of a Python daemon using `gio` for nati
 * **Modern & Smooth Animations:** Fully animated UI elements using native GTK `Revealer` widgets, providing fluid, hardware-accelerated transitions for dropdowns and detail panels.
 * **First-Class D-Bus Citizen:** Built-in `GIO/GDBus` integration. It functions as a fully registered `SecretAgent` for both `NetworkManager` and `BlueZ`, securely handling Wi-Fi passwords and Bluetooth pairing prompts natively within the UI.
 * **Highly Customizable:** Complete separation of logic, configuration, and styling via standard `config.json` and a powerful custom `style.css` file. Uses your `GTK4` icon theme.
-* **Modern Packaging:** Clean, robust deployment built entirely with `Hatchling` following the latest PEP 517 standards. Perfect for simple Arch Linux (AUR) PKGBUILD maintenance.
+* **Modern Packaging:** Clean, robust deployment built entirely with `Hatchling` following the PEP 517 standards.
 
 ## Available Popups / Modules
 
 The package currently includes the following fully-featured popup menus:
 
-* **Weather & Calendar:** A beautiful calendar dropdown equipped with an hourly/daily weather forecast breakdown powered by OpenWeatherMap.
+* **Weather & Calendar:** A beautiful calendar dropdown equipped with an 3 hourly/daily weather forecast breakdown powered by OpenWeatherMap.
 * **Battery Status:** Displays active discharging/charging rates with a collapsible detailed view showing hardware info (Vendor, Model, Charge Cycles, Energy Full, and Design Capacity).
 * **Network Manager:** Full Wi-Fi control. Scan available networks, view connection details (IP, Gateway, DNS, MAC, Speed), and connect securely via the integrated SecretAgent. Manage your saved networks from the ui: Turn off/on autoconnect or forget the network.
 * **Bluetooth Control:** Easily toggle Bluetooth, switch discoverability, scan for devices, pair/disconnect, and view battery levels for connected peripherals.
 * **Brightness & Night Light:** Smooth brightness slider with an integrated Night Light toggle and custom temperature preset adjustment.
-* **Audio:** Master volume and microphone sliders with quick-access audio output source switching (e.g., internal audio to Bluetooth headset).
+* **Audio:** Master volume and microphone sliders with quick-access audio output/input source switching (e.g., internal audio to Bluetooth headset).
 
 ## Usage
  
@@ -98,8 +98,9 @@ As a starting point, I recommend checking out the internal (default) CSS file [h
 
 You can place a `config.json` file in `~/.config/l1p0-menu/` to configure the menus. 
 
-* **Valid anchors:** `top-right`, `top-left`, `top` (or `top-center`), `bottom-left`, `bottom-right`, `bottom` (or `bottom-center`).
-* **Margins configuration:** Configured as a string: `"top, right, bottom, left"`.
+* **Valid anchors:** `top-right`, `top-left`, `top` (or `top-center`), `bottom-left`, `bottom-right`, `bottom` (or `bottom-center`), `left` (or `left-center`), `right` (or `right-center`)
+* **Margins configuration:** Configured as a string: `"top, right, bottom, left"`. 
+**⚠️ Note:** Missing values default to `0`. For example, `"10, 10"` applies `10px` to top and right, and `0px` to bottom and left.
 
 ### Example `config.json`:
 
@@ -187,4 +188,4 @@ This project is licensed under the MIT License. You can read it [here](LICENSE).
 
 # AI Usage
 
-No AI was used during the development of this project, only good old documentation, 10-year-old StackOverflow questions, and a massive amount of coffee. :D
+**No** AI was used during the development of this project, **only good old documentation, 10-year-old StackOverflow questions, and a massive amount of coffee. :D**
