@@ -89,7 +89,7 @@ class DbusBluez:
             -1,
             None,
             self._update_ui_after_connect,
-            None
+            address
         )
 
     def discovery(self, value):
@@ -249,11 +249,12 @@ class DbusBluez:
             None
         )
 
-    def _update_ui_after_connect(self, source_object, res, *args):
+    def _update_ui_after_connect(self, source_object, res, user_data):
         try:
             result = source_object.call_finish(res)
         except Exception as e:
             print(f"error on connect... {e}")
+            GLib.idle_add(self.callback, {"connection": user_data, "message": {"Connected": False}})
 
     def update_on_dbus(self, connection, sender_name, object_path, interface_name, signal_name, parameters, user_data):
         parameter = parameters.unpack()

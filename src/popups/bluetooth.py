@@ -433,10 +433,11 @@ class Bluetooth:
 
     def on_agent_call(self, call_type, device, passkey, callback):
         auth_window = self.auth_windows["overlay"]
+        print(f"Agent call: {call_type} for device {device} with passkey {passkey}")
         if call_type == "cancel":
             auth_window.on_close()
         if call_type == "confirmation" and passkey is not None:
-            from popups.wifi import _v_layer
+            from .wifi import _v_layer
             _v_layer.header.change_tab("Bluetooth-Tab")
             if not _v_layer.get_visible():
                 _v_layer.show()
