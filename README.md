@@ -30,6 +30,19 @@ The package currently includes the following fully-featured popup menus:
 * **Brightness & Night Light:** Smooth brightness slider with an integrated Night Light toggle and custom temperature preset adjustment.
 * **Audio:** Master volume and microphone sliders with quick-access audio output/input source switching (e.g., internal audio to Bluetooth headset).
 
+## Installation
+
+### Arch Linux (AUR)
+`l1p0-menus` is available in the AUR. You can install it using your favorite AUR helper:
+
+```bash
+# Using paru
+paru -S l1p0-menus-git
+
+# Using yay
+yay -S l1p0-menus-git
+
+
 ## Usage
  
 To use `l1p0-menus`, you need to start the background daemon first, then interact with it using various flags.
