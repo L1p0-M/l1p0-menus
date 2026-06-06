@@ -42,6 +42,8 @@ paru -S l1p0-menus-git
 # Using yay
 yay -S l1p0-menus-git
 
+```
+
 
 ## Usage
  
