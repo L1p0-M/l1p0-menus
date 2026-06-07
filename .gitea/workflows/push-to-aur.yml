@@ -7,10 +7,12 @@ jobs:
   aur-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
+      - uses: https://github.com/actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - name: Publish AUR package
-        uses: https//github.com/KSXGitHub/github-actions-deploy-aur@v4.1.3
+        uses: https://github.com/KSXGitHub/github-actions-deploy-aur@v4.1.3
         with:
           pkgname: l1p0-menus-git
           pkgbuild: ./PKGBUILD
