@@ -13,8 +13,7 @@ jobs:
           fetch-tags: true
       - name: Update PKGBUILD version
         run: |
-          chown -R 65534:65534 .
-          sudo -u nobody makepkg --nobuild --nodeps --noconfirm
+          python3 .gitea/workflows/update_version.py
       - name: Publish AUR package
         uses: https://github.com/KSXGitHub/github-actions-deploy-aur@v4.1.3
         with:
