@@ -27,7 +27,7 @@ The package currently includes the following fully-featured popup menus:
 * **Battery Status:** Displays active discharging/charging rates with a collapsible detailed view showing hardware info (Vendor, Model, Charge Cycles, Energy Full, and Design Capacity).
 * **Network Manager:** Full Wi-Fi control. Scan available networks, view connection details (IP, Gateway, DNS, MAC, Speed), and connect securely via the integrated SecretAgent. Manage your saved networks from the ui: Turn off/on autoconnect or forget the network.
 * **Bluetooth Control:** Easily toggle Bluetooth, switch discoverability, scan for devices, pair/disconnect, and view battery levels for connected peripherals.
-* **Brightness & Night Light:** Smooth brightness slider with an integrated Night Light toggle and custom temperature preset adjustment.
+* **Brightness & Night Light:** Smooth brightness slider with an integrated Night Light toggle and custom temperature preset adjustment. Using `Hyprsunset` as the backend socket.
 * **Audio:** Master volume and microphone sliders with quick-access audio output/input source switching (e.g., internal audio to Bluetooth headset).
 
 ## Installation
