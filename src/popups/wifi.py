@@ -676,3 +676,7 @@ def cleanup():
     global _v_layer
     if _v_layer:
         _v_layer.cleanup()
+
+def get_visibility():
+    global _v_layer
+    return _v_layer.get_visible()

@@ -17,8 +17,15 @@ gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 if 'XDG_RUNTIME_DIR' in environ:
     SOCKET_PATH = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
-else:
-    SOCKET_PATH = "/tmp/l1p0-menus.sock"
+
+CONFIG = None
+MATCH_CONFIG = {
+        pulse: "audio",
+        brightness: "brightness",
+        clock: "weather-clock",
+        battery: "battery",
+        network: "network"
+    }
 
 
 def handle_socket_input(source, condition, module ):
@@ -33,20 +40,29 @@ def handle_socket_input(source, condition, module ):
 
 def process_command(data):
     commands = {
-        "toggle_audio": (pulse, ["brightness", "battery", "network"]),
-        "toggle_brightness": (brightness, ["pulse", "battery", "network"]),
-        "toggle_battery": (battery, ["brightness", "pulse", "network"]),
-        "toggle_calendar": (clock, []),
-        "toggle_network": (network, ["brightness", "battery", "pulse"])
+        "toggle_audio": pulse,
+        "toggle_brightness": brightness,
+        "toggle_battery": battery,
+        "toggle_calendar": clock,
+        "toggle_network": network
+    }
+
+    default_anchor = {
+        pulse: "top-right",
+        brightness: "top-right",
+        clock: "top-center",
+        battery: "top-right",
+        network: "top-right"
     }
 
     if data in commands:
-        module, targets_to_hide = commands[data]
-        
-        for target_name in targets_to_hide:
-            target_mod = globals().get(target_name)
-            if target_mod and getattr(target_mod, "_v_layer", None):
-                target_mod.hide_layer()
+        module = commands[data]
+        config = CONFIG if CONFIG is not None else {}
+        module_anchor = config.get(MATCH_CONFIG[module], {}).get("anchor", default_anchor[module])
+        for popup, config_name in MATCH_CONFIG.items():
+            if popup != module and config.get(config_name, {}).get("anchor", default_anchor[popup]) == module_anchor:
+                if popup.get_visibility():
+                    popup.hide_layer()
     
         module.toggle_layer()
 
@@ -84,12 +100,13 @@ def run_daemon():
     GLib.io_add_watch(server, GLib.IO_IN, handle_socket_input, None)
     
     load_resources()
-    config = get_config()
+    global CONFIG
+    CONFIG = get_config()
     load_css()
     popups = [pulse, brightness, battery, clock, network]
     for popup in popups:
         popup.init_layer(config=None)
-    reload_config(config)
+    reload_config(CONFIG)
     print("Daemon runing...")
     loop = GLib.MainLoop()
     try:
@@ -114,6 +131,7 @@ def get_config():
                 return config
     except Exception as e:
         print(e)
+        return {}
 
 def reload_config(config=None):
     if config is None:
@@ -121,15 +139,10 @@ def reload_config(config=None):
     if not config:
         print("No config to reload")
         return
-    match_config = {
-        pulse: "audio",
-        brightness: "brightness",
-        clock: "weather-clock",
-        battery: "battery",
-        network: "network"
-    }
     print("Loading config...")
-    for popup, config_name in match_config.items():
+    global CONFIG
+    CONFIG = config
+    for popup, config_name in MATCH_CONFIG.items():
         popup.reload_config(config.get(config_name, None))
 
 def load_css():

@@ -440,3 +440,7 @@ def reload_config(config):
 def hide_layer():
     global _v_layer
     _v_layer.hide()
+
+def get_visibility():
+    global _v_layer
+    return _v_layer.get_visible()
