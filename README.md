@@ -44,6 +44,12 @@ yay -S l1p0-menus-git
 
 ```
 
+### From Source (Using pipx)
+```bash
+git clone https://github.com/L1p0-M/l1p0-menus.git
+cd l1p0-menus
+pipx install .
+
 
 ## Usage
  
