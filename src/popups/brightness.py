@@ -57,9 +57,8 @@ class BrightnessLayer(Gtk.Window):
         self.header = Header(self.main_header_container, self.tab_buttons, self.tabs)
         self.header.setup_header("Brightness", "display-brightness-high-symbolic", "Bright-Tab")
         self.setup_brightness_tab(container = main_brightness_container)
-        if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
-            self.header.setup_header("Night Light", "weather-clear-night-symbolic", "Night-Tab")
-            self.setup_night_tab(container = main_nightlight_container)
+        self.header.setup_header("Night Light", "weather-clear-night-symbolic", "Night-Tab")
+        self.setup_night_tab(container = main_nightlight_container)
 
     def setup_brightness_tab(self, container):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -95,6 +94,11 @@ class BrightnessLayer(Gtk.Window):
             margin_bottom=20,)
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         adj = Gtk.Adjustment(value=0, lower=1000, upper=6000, step_increment=100)
+        if not self.hyprsunset.hyprsunset_found:
+            not_found_label = Gtk.Label(label="Hyprsunset not found")
+            not_found_label.get_style_context().add_class("error-not-found")
+            container.append(not_found_label)
+            return
         current_temp = self.hyprsunset.hyprsunset("temperature")     
         switch = Gtk.Switch()
         light_status = (int(current_temp) < 6000)
@@ -209,9 +213,18 @@ class HyprSunsetSocket():
         try:
             instance_sig = os.environ['HYPRLAND_INSTANCE_SIGNATURE']
             self.sunset_socket_path=f"{runtime}/hypr/{instance_sig}/.hyprsunset.sock"
-        except KeyError:
-            print("Not running under Hyprland... Hyprsunset Disabled")
-            return
+            if os.path.exists(self.sunset_socket_path):
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+                    client.settimeout(0.2)
+                    client.connect(self.sunset_socket_path)
+                    self.hyprsunset_found = True
+            else:
+                self.hyprsunset_found = False
+                return
+        except Exception as e:
+            print(f"Hyprsunset Disabled: {e}")
+            self.hyprsunset_found = False
+            return None
         self.current_temp = 6000
         self._update_loop_id = None
         
@@ -251,6 +264,8 @@ class HyprSunsetSocket():
             return True
 
     def start_update_loop(self):
+        if not hasattr(self, "_update_loop_id"):
+            return
         global _v_layer
         if self._update_loop_id is not None:
             GLib.source_remove(self._update_loop_id)
