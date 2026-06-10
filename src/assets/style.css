@@ -758,3 +758,8 @@ scale trough slider:hover {
 
 }
 
+.error-not-found {
+    font-size: 20px;
+    font-weight: 900;
+}
+

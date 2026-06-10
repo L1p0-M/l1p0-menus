@@ -62,7 +62,6 @@ class VolumeLayer(Gtk.Window):
 
         
     def setup_tab(self, is_mic, container):
-        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
             spacing=15,
             margin_start=20,
@@ -70,6 +69,12 @@ class VolumeLayer(Gtk.Window):
             margin_top=20,
             margin_bottom=20,)
         hbox_control = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        if self.pulseaudio.pulse is None:
+            not_found_label = Gtk.Label(label="Pulseaudio not found")
+            not_found_label.get_style_context().add_class("error-not-found")
+            container.append(not_found_label)
+            return
+        current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults)
         initial_values = self.pulseaudio.get_initial_values(is_mic)
         adj = Gtk.Adjustment(value=0, lower=0, upper=1, step_increment=0.01)
         percent_label = Gtk.Label(label=f"{int(round((initial_values["volume"])*100))}%")
@@ -231,6 +236,8 @@ class PopupWindow:
         self.mic_buttons = {}
         self.device_dict = {}
         self.rows = []
+        if self.Pulse.pulse is None:
+            return
         self.setup_ui()
         self.panel.set_child(self.panel_content)
     
@@ -280,7 +287,13 @@ class PopupWindow:
 
 class Pulseaudio:
     def __init__(self, callback=None):
-        self.pulse = pulsectl.Pulse('audio-layer')
+        try:
+            self.pulse = pulsectl.Pulse('audio-layer')
+            test_server = self.pulse.server_info()
+        except Exception as e:
+            print(e)
+            self.pulse = None
+            return
         self.callback = callback
         self.last_state = {"vol": {}, "mic": {}}
         self.default_device = {"vol": None, "mic": None}
@@ -290,15 +303,15 @@ class Pulseaudio:
         threading.Thread(target=self.listen, daemon=True).start()
 
     def listen(self):
-        with pulsectl.Pulse('event-listener') as pulse_listener:
-            pulse_listener.event_mask_set('sink', 'server', 'source')
-            pulse_listener.event_callback_set(self.on_pulse_event)
-            print("PulseAudio event listener started...")
-            try:
+        try:
+            with pulsectl.Pulse('event-listener') as pulse_listener:
+                pulse_listener.event_mask_set('sink', 'server', 'source')
+                pulse_listener.event_callback_set(self.on_pulse_event)
+                print("PulseAudio event listener started...")
                 while not self.stop_event.is_set():
                     pulse_listener.event_listen(timeout=0.5)
-            except Exception as e:
-                print(f"Error during listening for Pulseaudio events: {e}")
+        except Exception as e:
+            print(f"Error during listening for Pulseaudio events: {e}")
 
     def on_pulse_event(self, ev):
         try:
@@ -317,6 +330,8 @@ class Pulseaudio:
 
 
     def get_initial_values(self, is_mic):
+        if not self.pulse:
+            return None
         try:
             volume = self.get_volume(is_mic)
             mute_status = self.get_mute_status(is_mic)
@@ -337,23 +352,31 @@ class Pulseaudio:
             print(f"Failed to get initial values: {e}")
 
     def get_active_device(self, is_mic):
+        if not self.pulse:
+            return None
         info = self.pulse.server_info()
         name = info.default_source_name if is_mic else info.default_sink_name
         return self.pulse.get_source_by_name(name) if is_mic else self.pulse.get_sink_by_name(name)
     
     def get_volume(self, is_mic):
+        if not self.pulse:
+            return 0
         try:
             return self.get_active_device(is_mic).volume.value_flat
         except: 
             return 0
         
     def get_mute_status(self, is_mic):
+        if not self.pulse:
+            return False
         try:
             return bool(self.get_active_device(is_mic).mute)
         except:
             return False
 
     def get_default_device_name(self, is_mic):
+        if not self.pulse:
+            return None
         info = self.pulse.server_info()
         return info.default_source_name if is_mic else info.default_sink_name
     
@@ -364,6 +387,8 @@ class Pulseaudio:
         return Gtk.Image.new_from_icon_name("audio-volume-muted-symbolic" if mute_status else "audio-volume-high-symbolic")
             
     def on_volume_change(self, widget, is_mic, label):
+        if not self.pulse:
+            return None
         self.internal_update = True
         val = widget.get_value()
         dev = self.get_active_device(is_mic)
@@ -374,11 +399,15 @@ class Pulseaudio:
         self.internal_update = True
         dev = self.get_active_device(is_mic)
         active = button.get_active()
+        if not self.pulse:
+            return
         self.pulse.mute(dev, active)
         update_css(is_mic, active)
         button.set_child(self.get_mute_icon(is_mic, active))
 
     def on_device_change(self, is_mic, dev_name, callback):
+        if not self.pulse:
+            return
         self.internal_update = True
         target = self.pulse.get_source_by_name(dev_name) if is_mic else self.pulse.get_sink_by_name(dev_name)
         self.pulse.default_set(target) if is_mic == False else self.pulse.source_default_set(target)
