@@ -33,15 +33,27 @@ class DbusBluez:
         )
         
     def get_bluetooth_infos(self):
-        name = self.bluez_proxy.get_cached_property("Alias").unpack()
-        powered = self.bluez_proxy.get_cached_property("Powered").unpack()
-        discover = self.bluez_proxy.get_cached_property("Discoverable").unpack()
-        pairable = self.bluez_proxy.get_cached_property("Pairable").unpack()
+        name = self.bluez_proxy.get_cached_property("Alias")
+        name = name.unpack() if name is not None else self._get_property_forced(proxy=self.bluez_proxy, interface="org.bluez.Adapter1", prop_name="Alias")
+
+        powered = self.bluez_proxy.get_cached_property("Powered")
+        powered = powered.unpack() if powered is not None else self._get_property_forced(proxy=self.bluez_proxy, interface="org.bluez.Adapter1", prop_name="Powered")
+
+        discover = self.bluez_proxy.get_cached_property("Discoverable")
+        discover = discover.unpack() if discover is not None else self._get_property_forced(proxy=self.bluez_proxy, interface="org.bluez.Adapter1", prop_name="Discoverable")
+
+        pairable = self.bluez_proxy.get_cached_property("Pairable")
+        pairable = pairable.unpack() if pairable is not None else self._get_property_forced(proxy=self.bluez_proxy, interface="org.bluez.Adapter1", prop_name="Pairable")
+    
+        discoverable_timeout = self.bluez_proxy.get_cached_property("DiscoverableTimeout")
+        discoverable_timeout = discoverable_timeout.unpack() if discoverable_timeout is not None else self._get_property_forced(proxy=self.bluez_proxy, interface="org.bluez.Adapter1", prop_name="DiscoverableTimeout")
+
         return {
-            "name": name,
+            "Name": name,
             "Powered": powered,
             "Discoverable": discover,
-            "pairable": pairable
+            "Pairable": pairable,
+            "Discoverable_timeout": discoverable_timeout
         }
 
     def toggle_bluetooth(self, switch, state):
@@ -55,7 +67,13 @@ class DbusBluez:
 
     def toggle_discoverable(self, switch, state):
         self._set_bluez_property("Discoverable", state, "b")
-        self._set_bluez_property("DiscoverableTimeout", 180, "u")
+        #self._set_bluez_property("DiscoverableTimeout", 180, "u")
+
+    def set_dicoverable_timeout(self, timeout:int):
+        self._set_bluez_property("DiscoverableTimeout", timeout, "u")
+
+    def set_name(self, name:str):
+        self._set_bluez_property("Alias", name, "s")
 
     def toggle_trusted(self, address, switch, state):
         if address not in self._device_proxy:
@@ -77,6 +95,13 @@ class DbusBluez:
             None,
             None
         )
+
+    def get_timeout_info(self):
+        if self.bluez_proxy is None:
+            proxy_available = self._get_adapter_proxy()
+            if not proxy_available:
+                return 180
+        self.bluez_proxy.get_cached_property("Alias").unpack()
         
     def connect_disconnect_to_device(self, address, method="Connect"):
         if address not in self._device_proxy:

@@ -7,10 +7,11 @@ from ..assets.bluetooth_dbus import DbusBluez
 
 
 class Bluetooth:
-    def __init__(self, container, overlay):
+    def __init__(self, container, overlay, keyboard):
         self.main_container = container
         self.dbusbluez = DbusBluez(self.update_ui_elements)
         self.loading = False
+        self.keyboard_focus = keyboard
         self.main_overlay = overlay
         self.wait_till_paired = False
         self.discoverable_timeout = 180
@@ -61,7 +62,15 @@ class Bluetooth:
         self.reload_icon = Gtk.Image.new_from_icon_name("view-refresh-symbolic")
         self.reload_icon.get_style_context().add_class("reload-icon")
         self.bluetooth_reload_btn.set_child(self.reload_icon)
+        self.settings_btn = Gtk.Button()
+        self.settings_btn.set_child(Gtk.Image.new_from_icon_name("preferences-system-symbolic"))
+        self.settings_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="settings", bluezdbus=self.dbusbluez, device=None, set_keyboard=self.keyboard_focus)
+        self.settings_btn.connect("clicked", lambda x: self.on_settings_open())
+        self.settings_btn.set_hexpand(False)
+        self.settings_btn.set_margin_top(20)
+        self.settings_btn.get_style_context().add_class("bluetooth-settings-btn")
         bottom_box.append(self.bluetooth_reload_btn)
+        bottom_box.append(self.settings_btn)
         self.main_container.append(bottom_box)
         self._default_state()
         
@@ -208,6 +217,14 @@ class Bluetooth:
                 if not power_state:
                     self._default_state()
                 
+            if "Discoverable_timeout" in message["switches"]:
+                self.discoverable_timeout = message["switches"]["Discoverable_timeout"]
+                self.settings_windows["overlay"].timeout.set_text(f"{message["switches"]["Discoverable_timeout"]}")
+                self.settings_windows["overlay"].saved_timeout = message["switches"]["Discoverable_timeout"]
+
+            if "Name" in message["switches"]:
+                self.settings_windows["overlay"].name.set_text(f"{message["switches"]["Name"]}")
+                self.settings_windows["overlay"].saved_name = message["switches"]["Name"]
             if "Discoverable" in message["switches"]:
                 discoverable_state = message["switches"]["Discoverable"]
                 self.discover_switch.handler_block(self.discover_toggle_event)
@@ -447,15 +464,22 @@ class Bluetooth:
             auth_window.confirm_container.set_visible(True)
             self.auth_windows["revealer"].set_reveal_child(True)
 
+    def on_settings_open(self):
+        self.keyboard_focus(True)
+        self.settings_windows["revealer"].set_reveal_child(True)
+
+
 
 
 class PopupWindow:
-    def __init__(self, windowtype, bluezdbus, device, windows):
+    def __init__(self, windowtype, bluezdbus, device, windows, **kwargs):
         self.popups = Popups()
         self.details = {}
         self.bluezdbus = bluezdbus
         self.windowtype = windowtype
         self.device = device
+        if "set_keyboard" in kwargs:
+            self.set_keyboard = kwargs["set_keyboard"]
         self.windows = windows
         self.callback_for_auth = None
         self.panel = Gtk.Frame()
@@ -490,6 +514,7 @@ class PopupWindow:
         header_text = {
             "pairing": "Confirm Pairing",
             "details": "Device Details",
+            "settings": "Settings"
         }
         self.popups.create_header(header_text=f"{header_text[self.windowtype].upper()}", close_function=lambda x: self.on_close(self.windowtype), main_container=self.panel_content)
         if self.windowtype == "details":
@@ -509,6 +534,34 @@ class PopupWindow:
             self.panel_content.append(forget_btn)
         elif self.windowtype == "pairing":
             self.setup_pairing_window()
+        elif self.windowtype == "settings":
+            self.setup_settings_window()
+
+    def setup_settings_window(self):
+        self.main_settings_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.main_settings_container.set_homogeneous(True)
+        self.name = Gtk.Entry()
+        self.timeout = Gtk.Entry()
+        confirm_button = Gtk.Button(label="Save")
+        self.match_names = {
+            "Device Name": self.name,
+            "Timeout(s)": self.timeout,
+            "": confirm_button
+            
+        }
+        self.icons = {
+            "Device Name": "bluetooth-symbolic",
+            "Timeout(s)": "timer-symbolic",
+        }
+        self.saved_name = "Placeholder"
+        self.saved_timeout = "180"
+        self.name.set_text(self.saved_name)
+        self.timeout.set_text(self.saved_timeout)
+        self.name.set_alignment(1)
+        self.timeout.set_alignment(1)
+        self.popups.setup_details(match_names=self.match_names, match_icons=self.icons, details=None, container=self.main_settings_container)
+        confirm_button.connect("clicked", lambda x: self.on_save())
+        self.panel_content.append(self.main_settings_container)
 
     def setup_pairing_window(self):
         self.overlay = Gtk.Overlay()
@@ -557,6 +610,10 @@ class PopupWindow:
         self.windows["revealer"].set_reveal_child(False)
         if windowtype == "pairing":
             self.hide_all_auth_type()
+        elif windowtype == "settings":
+            self.name.set_text(f"{self.saved_name}")
+            self.timeout.set_text(f"{self.saved_timeout}")
+            self.set_keyboard(False)
 
     def on_auth_confirm(self, auth_type, state):
         if auth_type == "confirm":
@@ -571,3 +628,12 @@ class PopupWindow:
     def on_trusted_switch(self, address, switch, state):
         self.internal_update = True
         self.bluezdbus.toggle_trusted(address, switch, state)
+
+    def on_save(self):
+        name = self.name.get_text()
+        timeout = int(self.timeout.get_text())
+        self.bluezdbus.set_dicoverable_timeout(timeout)
+        self.bluezdbus.set_name(name)
+        self.saved_timeout = timeout
+        self.saved_name = name
+        self.on_close()
