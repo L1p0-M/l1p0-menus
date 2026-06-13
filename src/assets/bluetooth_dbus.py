@@ -108,6 +108,13 @@ class DbusBluez:
             None,
             None
         )
+
+    def get_timeout_info(self):
+        if self.bluez_proxy is None:
+            proxy_available = self._get_adapter_proxy()
+            if not proxy_available:
+                return 180
+        self.bluez_proxy.get_cached_property("Alias").unpack()
         
     def connect_disconnect_to_device(self, address, method="Connect"):
         if address not in self._device_proxy:
