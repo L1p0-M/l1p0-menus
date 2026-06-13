@@ -1,8 +1,21 @@
-# L1p0-Menus - Wi-Fi/Bluetooth/Audio/Brightness/Battery Popup menus for Wayland/Hyprland
-
+# L1p0-Menus
+## Wi-Fi/Bluetooth/Audio/Brightness/Battery Popup menus for Wayland/Hyprland
+<div align="center">
 A fast, full event-driven desktop popup menu system designed specifically for Wayland and Hyprland environments. 
-
 No polling, no CPU wasting. Built on top of a Python daemon using `gio` for native D-Bus integration.
+
+
+
+---
+[![GitHub stars](https://img.shields.io/github/stars/L1p0-M/l1p0-menus?style=social)](https://github.com/L1p0-M/l1p0-menus/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/L1p0-M/l1p0-menus?style=social)](https://github.com/L1p0-M/l1p0-menus/network/members)
+[![GitHub watchers](https://img.shields.io/github/watchers/L1p0-M/l1p0-menus?style=social)](https://github.com/L1p0-M/l1p0-menus/watchers)
+
+[![License: MIT](https://img.shields.io/github/license/L1p0-M/l1p0-menus)](LICENSE)
+[![GTK](https://img.shields.io/badge/GTK-4.0-blue)](https://www.gtk.org/)
+
+
+</div>
 
 ## Preview
 
