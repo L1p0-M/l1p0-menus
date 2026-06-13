@@ -783,7 +783,6 @@ scale trough slider:hover {
     animation: move 0.05s ease-in-out alternate 3;
 }
 
-
 @keyframes move {
     to {
         transform: translateX(calc(0px - 5px));
