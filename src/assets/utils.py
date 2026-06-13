@@ -144,20 +144,30 @@ class Popups:
         value_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         for key, value in match_names.items():
             icon_name_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-            icon = Gtk.Image.new_from_icon_name(f"{match_icons[key]}")
-            icon.set_margin_end(10)
+            if key in match_icons:
+                icon = Gtk.Image.new_from_icon_name(f"{match_icons[key]}")
+                icon.set_margin_end(10)
+                icon_name_container.append(icon)
             propertys = Gtk.Label(label=key)
             propertys.get_style_context().add_class("popup-parameter")
             if isinstance(value, str):
                 property_value = Gtk.Label(label=f"{details[value]}")
                 property_value.get_style_context().add_class("popup-value")
-            if isinstance(value, Gtk.Switch):
+            elif isinstance(value, Gtk.Switch):
                 property_value = value
                 property_value.get_style_context().add_class("popup-switch")
                 property_value.set_margin_top(0)
+            elif isinstance(value, Gtk.Button):
+                property_value = value
+                property_value.get_style_context().add_class("popup-button")
+                property_value.set_margin_top(10)
+            elif isinstance(value, Gtk.Entry):
+                property_value = value
+                property_value.get_style_context().add_class("popup-entry")
+            else:
+                property_value = value
             property_value.set_halign(Gtk.Align.END)
             propertys.set_halign(Gtk.Align.START)
-            icon_name_container.append(icon)
             icon_name_container.append(propertys)
             details_container.append(icon_name_container)
             value_container.append(property_value)

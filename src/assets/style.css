@@ -604,7 +604,8 @@ scale trough slider:hover {
 
 .wifi-reload,
 .saved-menu-button,
-.bluetooth-reload {
+.bluetooth-reload,
+.bluetooth-settings-btn {
     background-color: #005082;
     border-radius: 0px 20px 0px 20px;
     color: #FFFFFF;
@@ -613,7 +614,8 @@ scale trough slider:hover {
 
 .wifi-reload:hover,
 .saved-menu-button:hover,
-.bluetooth-reload:hover {
+.bluetooth-reload:hover,
+.bluetooth-settings-btn:hover {
     background-color: rgba(0, 80, 130, 0.6);
     transition: all 0.7s ease;
     box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
@@ -635,7 +637,8 @@ scale trough slider:hover {
 
 .connect-button,
 .forget-button,
-.confirm-button {
+.confirm-button,
+.popup-button {
     background-color: #005082;
     color: #FFFFFF;
     border-radius: 0px 15px 0px 15px;
@@ -644,12 +647,14 @@ scale trough slider:hover {
 
 .connect-button:hover,
 .forget-button:hover,
-.confirm-button:hover {
+.confirm-button:hover,
+.popup-button:hover {
     background-color: rgba(0, 80, 130, 0.6);
     transition: all 0.7s ease;
 }
 
-.connect-button {
+.connect-button,
+.popup-button {
     padding-left: 10px;
     padding-right: 10px;
 }
@@ -762,4 +767,15 @@ scale trough slider:hover {
     font-size: 20px;
     font-weight: 900;
 }
+
+.popup-entry {
+    background-color: transparent;
+    color: #FFFFFF;
+    font-weight: 900;
+   /*border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0px 10px 0px 10px;*/
+    padding: 1px;
+    /*box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);*/
+}
+
 

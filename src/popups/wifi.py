@@ -62,7 +62,7 @@ class NetworkLayer(Gtk.Window):
         self.header.setup_header("Internet", "network-wireless-signal-excellent-symbolic", "Wifi-Tab")
         self.header.setup_header("Bluetooth", "bluetooth-symbolic", "Bluetooth-Tab")
         self.setup_wifi_tab()
-        self.bluetooth = Bluetooth(self.main_bluetooth_container, self.main_overlay)
+        self.bluetooth = Bluetooth(self.main_bluetooth_container, self.main_overlay, self.set_keyboard_mode)
         
 
     def setup_wifi_tab(self):
