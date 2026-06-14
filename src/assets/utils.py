@@ -1,9 +1,46 @@
 import gi
+import socket
+from os import environ, path
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 
 
+class IPCSocket:
+    def __init__(self, on_receive):
+        if 'XDG_RUNTIME_DIR' in environ:
+            self.socket_path = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
+        else:
+            self.socket_path = "/tmp/l1p0-menus.sock"
+        self.on_receive = on_receive
+        if path.exists(self.socket_path):
+            server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            server.bind(self.socket_path)
+            server.listen(5)
+            server.setblocking(False) 
+            GLib.io_add_watch(server, GLib.IO_IN, self.handle_socket_input, None)
+
+    def handle_socket_input(self, source, *args):
+        try:
+            conn, _ = source.accept()
+            data = conn.recv(1024).decode().strip()
+            self.on_receive(data)
+            conn.close()
+        except Exception as e:
+            print(f"Socket error: {e}")
+        return True
+    
+    def send_command(self, command):
+        if not path.exists(self.socket_path):
+            print("Error: Socket does not exist! Daemon is running?")
+        try:
+            client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            client.connect(self.socket_path)
+            client.sendall(command.encode())
+            client.close()
+        except Exception as e:
+            print(f"Error connecting to the daemon: {e}")
+        
 class Header:
     def __init__(self, main_container, buttons, tabs):
         self.main_header_container = main_container
