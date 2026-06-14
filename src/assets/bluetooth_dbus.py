@@ -49,11 +49,11 @@ class DbusBluez:
         discoverable_timeout = discoverable_timeout.unpack() if discoverable_timeout is not None else self._get_property_forced(proxy=self.bluez_proxy, interface="org.bluez.Adapter1", prop_name="DiscoverableTimeout")
 
         return {
-            "Name": name,
+            "Alias": name,
             "Powered": powered,
             "Discoverable": discover,
             "Pairable": pairable,
-            "Discoverable_timeout": discoverable_timeout
+            "DiscoverableTimeout": discoverable_timeout
         }
 
     def toggle_bluetooth(self, switch, state):
@@ -66,14 +66,27 @@ class DbusBluez:
 
 
     def toggle_discoverable(self, switch, state):
+        if not self.bluez_proxy:
+            proxy_available = self._get_adapter_proxy()
+            if not proxy_available:
+                return
         self._set_bluez_property("Discoverable", state, "b")
-        #self._set_bluez_property("DiscoverableTimeout", 180, "u")
 
     def set_dicoverable_timeout(self, timeout:int):
+        if not self.bluez_proxy:
+            proxy_available = self._get_adapter_proxy()
+            if not proxy_available:
+                return
         self._set_bluez_property("DiscoverableTimeout", timeout, "u")
+        GLib.idle_add(self.callback, {"adapter": {"DiscoverableTimeout": timeout}})
 
     def set_name(self, name:str):
+        if not self.bluez_proxy:
+            proxy_available = self._get_adapter_proxy()
+            if not proxy_available:
+                return
         self._set_bluez_property("Alias", name, "s")
+        GLib.idle_add(self.callback, {"adapter": {"Alias": name}})
 
     def toggle_trusted(self, address, switch, state):
         if address not in self._device_proxy:
@@ -95,13 +108,6 @@ class DbusBluez:
             None,
             None
         )
-
-    def get_timeout_info(self):
-        if self.bluez_proxy is None:
-            proxy_available = self._get_adapter_proxy()
-            if not proxy_available:
-                return 180
-        self.bluez_proxy.get_cached_property("Alias").unpack()
         
     def connect_disconnect_to_device(self, address, method="Connect"):
         if address not in self._device_proxy:
@@ -226,7 +232,7 @@ class DbusBluez:
                         if not self.bluez_proxy:
                             self._get_adapter_proxy()
                         infos = self.get_bluetooth_infos()
-                        GLib.idle_add(self.callback, {"switches": infos})
+                        GLib.idle_add(self.callback, {"adapter": infos})
                 elif "org.bluez.Device1" in interfaces:
                     device = interfaces["org.bluez.Device1"]
                     self._add_device_to_dict(device)
@@ -300,10 +306,9 @@ class DbusBluez:
                         GLib.idle_add(self.callback, {"paired": mac, "message": parameter[1]})
             elif "org.bluez.Adapter1" in parameter:
                 if isinstance(parameter[1], dict):
-                    if "Discoverable" in parameter[1] or "Powered" in parameter[1]:
-                        GLib.idle_add(self.callback, {"switches": parameter[1]})
-                    if "Discovering" in parameter[1]:
-                        GLib.idle_add(self.callback, {"discovering": parameter[1]['Discovering']})
+                    adapter_params = ["DiscoverableTimeout", "Discoverable", "Powered", "Alias", "Discovering"]
+                    if any(param in parameter[1] for param in adapter_params):
+                        GLib.idle_add(self.callback, {"adapter": parameter[1]})
 
         elif signal_name == "InterfacesAdded":
             if isinstance(parameter[1], dict):

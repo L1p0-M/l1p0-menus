@@ -204,12 +204,12 @@ class Bluetooth:
             print(f"Error while sorting headers: {e}")
 
     def update_ui_elements(self, message):
-        if "switches" in message:
+        if "adapter" in message:
             if self.internal_update:
                 self.internal_update = False
                 return
-            if "Powered" in message["switches"]:
-                power_state = message["switches"]["Powered"]
+            if "Powered" in message["adapter"]:
+                power_state = message["adapter"]["Powered"]
                 if power_state != self.toggle_switch.get_active():
                     self.toggle_switch.handler_block(self.bluetooth_toggle_event)
                     self.toggle_switch.set_active(power_state)
@@ -217,24 +217,23 @@ class Bluetooth:
                 if not power_state:
                     self._default_state()
                 
-            if "Discoverable_timeout" in message["switches"]:
-                self.discoverable_timeout = message["switches"]["Discoverable_timeout"]
-                self.settings_windows["overlay"].timeout.set_text(f"{message["switches"]["Discoverable_timeout"]}")
-                self.settings_windows["overlay"].saved_timeout = message["switches"]["Discoverable_timeout"]
+            if "DiscoverableTimeout" in message["adapter"]:
+                self.discoverable_timeout = message["adapter"]["DiscoverableTimeout"]
+                if self.settings_windows["overlay"].timeout.get_text() != f"{message["adapter"]["DiscoverableTimeout"]}":
+                    self.settings_windows["overlay"].timeout.set_text(f"{message["adapter"]["DiscoverableTimeout"]}")
+                    self.settings_windows["overlay"].saved_timeout = message["adapter"]["DiscoverableTimeout"]
 
-            if "Name" in message["switches"]:
-                self.settings_windows["overlay"].name.set_text(f"{message["switches"]["Name"]}")
-                self.settings_windows["overlay"].saved_name = message["switches"]["Name"]
-            if "Discoverable" in message["switches"]:
-                discoverable_state = message["switches"]["Discoverable"]
+            if "Alias" in message["adapter"]:
+                if self.settings_windows["overlay"].name.get_text() != f"{message["adapter"]["Alias"]}":
+                    self.settings_windows["overlay"].name.set_text(f"{message["adapter"]["Alias"]}")
+                    self.settings_windows["overlay"].saved_name = message["adapter"]["Alias"]
+            if "Discoverable" in message["adapter"]:
+                discoverable_state = message["adapter"]["Discoverable"]
                 self.discover_switch.handler_block(self.discover_toggle_event)
                 self.discover_switch.set_active(discoverable_state)
                 self.discover_switch.handler_unblock(self.discover_toggle_event)
                 if discoverable_state:
                     self.timer_discoverable = GLib.timeout_add_seconds(1, self.on_discoverable_timeout)
-
-        elif "discovering" in message:
-            discovering_state = message["discovering"]
 
         elif "devices" in message:
             if self.empty_widgets["box"].get_parent() is not None:
@@ -630,10 +629,17 @@ class PopupWindow:
         self.bluezdbus.toggle_trusted(address, switch, state)
 
     def on_save(self):
-        name = self.name.get_text()
-        timeout = int(self.timeout.get_text())
-        self.bluezdbus.set_dicoverable_timeout(timeout)
-        self.bluezdbus.set_name(name)
-        self.saved_timeout = timeout
-        self.saved_name = name
-        self.on_close()
+        try:
+            name = self.name.get_text()
+            timeout =''.join([char for char in self.timeout.get_text() if char.isdigit()])
+            self.bluezdbus.set_dicoverable_timeout(int(timeout))
+            self.bluezdbus.set_name(name)
+            self.saved_timeout = timeout
+            self.saved_name = name
+            self.on_close()
+        except ValueError as e:
+            self.timeout.get_style_context().add_class("error")
+            def on_error():
+                self.timeout.get_style_context().remove_class("error")
+            GLib.timeout_add(500, on_error)
+            pass

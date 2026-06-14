@@ -778,4 +778,14 @@ scale trough slider:hover {
     /*box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);*/
 }
 
+.popup-entry.error {
+    color: red;
+    animation: move 0.05s ease-in-out alternate 3;
+}
 
+
+@keyframes move {
+    to {
+        transform: translateX(calc(0px - 5px));
+    }
+}
