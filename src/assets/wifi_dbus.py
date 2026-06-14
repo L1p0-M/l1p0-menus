@@ -312,6 +312,7 @@ class WifiDbus:
             None
             )
             path_var = active_proxy.get_cached_property("Connection")
+            connection_path = None
             if path_var is not None:
                 connection_path = path_var.unpack()
             conn_type_var = active_proxy.get_cached_property("Type")
@@ -323,12 +324,14 @@ class WifiDbus:
                     active_proxy,
                     "org.freedesktop.NetworkManager.Connection.Active",
                     "Connection"
-                ).unpack()
+                )
                 conn_type = self._get_property_forced(
                     active_proxy,
                     "org.freedesktop.NetworkManager.Connection.Active",
                     "Type"
-                ).unpack()
+                )
+                if conn_type is not None:
+                    conn_type = conn_type.unpack()
 
             if not connection_path or not conn_type:
                 continue
@@ -443,19 +446,19 @@ class WifiDbus:
                     self.nm_proxy,
                     "org.freedesktop.NetworkManager",
                     "WirelessEnabled"
-                ).unpack()
+                )
         return wifistatus
     
     def get_network_status(self): 
-        networkstatus = self.nm_proxy.get_cached_property("Enable")
+        networkstatus = self.nm_proxy.get_cached_property("NetworkingEnabled")
         if networkstatus is None:
             networkstatus = self._get_property_forced(
                     self.nm_proxy,
                     "org.freedesktop.NetworkManager",
-                    "Enable"
+                    "NetworkingEnabled"
                 )
             if networkstatus is not None:
-                return networkstatus.unpack()
+                return networkstatus
             else:
                 return False
         return networkstatus
