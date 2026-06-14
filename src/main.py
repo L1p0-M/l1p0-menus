@@ -17,6 +17,8 @@ gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 if 'XDG_RUNTIME_DIR' in environ:
     SOCKET_PATH = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
+else:
+    SOCKET_PATH = "/tmp/l1p0-menus.sock"
 
 CONFIG = None
 MATCH_CONFIG = {
@@ -28,7 +30,7 @@ MATCH_CONFIG = {
     }
 
 
-def handle_socket_input(source, condition, module ):
+def handle_socket_input(source, *args):
     try:
         conn, _ = source.accept()
         data = conn.recv(1024).decode().strip()
