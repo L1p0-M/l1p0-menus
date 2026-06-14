@@ -51,7 +51,7 @@ class Bluetooth:
         self.discover_label.set_halign(Gtk.Align.CENTER)
         self.discover_label.get_style_context().add_class("discoverable-label")
         self.main_container.append(self.discover_label)
-        self.scrolled_bluetooth_panel, self.scrolled_bluetooth_container = self.window_utils.setup_scrolled_windows(340, 200, self.update_headers, self._sort_func)
+        self.scrolled_bluetooth_panel, self.scrolled_bluetooth_container = self.window_utils.setup_scrolled_windows(340, 340, self.update_headers, self._sort_func)
         self.main_container.append(self.scrolled_bluetooth_panel)
         bottom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.bluetooth_reload_btn = Gtk.Button()
@@ -362,10 +362,16 @@ class Bluetooth:
             self.timer_discoverable = GLib.timeout_add_seconds(1, self.on_discoverable_timeout)
 
     def on_discoverable_timeout(self):
-        self.discover_label.set_visible(True)
+        if not self.toggle_switch.get_active():
+            return False
+        if not self.discover_label.get_visible():
+            self.discover_label.set_visible(True)
+        if self.scrolled_bluetooth_panel.get_min_content_height() != 320:
+            self.scrolled_bluetooth_panel.set_min_content_height(320)
         self.discover_label.set_label(f"Your device is discoverable till {self.discoverable_timeout}s")
         self.discoverable_timeout -= 1
         if self.discoverable_timeout < 0 or self.discover_switch.get_active() == False:
+            self.scrolled_bluetooth_panel.set_min_content_height(340)
             self.discover_label.set_visible(False)
             self.discoverable_timeout = 180
             if hasattr(self, "timer_discoverable") and self.timer_discoverable:
@@ -377,9 +383,10 @@ class Bluetooth:
         self.internal_update = True
         self.dbusbluez.toggle_bluetooth(switch, state)
         if not state:
+            self.discover_switch.set_sensitive(False)
             self._default_state()
             return
-    
+        self.discover_switch.set_sensitive(True)
         self.empty_widgets["loader"].set_visible(True)
         self.empty_widgets["loader"].get_style_context().add_class("active")
         self.empty_widgets["text"].set_label("Loading devices...")
