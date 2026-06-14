@@ -445,6 +445,20 @@ class WifiDbus:
                     "WirelessEnabled"
                 ).unpack()
         return wifistatus
+    
+    def get_network_status(self): 
+        networkstatus = self.nm_proxy.get_cached_property("Enable")
+        if networkstatus is None:
+            networkstatus = self._get_property_forced(
+                    self.nm_proxy,
+                    "org.freedesktop.NetworkManager",
+                    "Enable"
+                )
+            if networkstatus is not None:
+                return networkstatus.unpack()
+            else:
+                return False
+        return networkstatus
 
     def forget_network(self, path):
         try:

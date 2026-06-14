@@ -69,8 +69,8 @@ class NetworkLayer(Gtk.Window):
         self.saved_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=None, windowtype="saved", wifidbus=self.wifidbus)
         self.passwd_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=self.set_keyboard_mode, windowtype="password", wifidbus=self.wifidbus)
         self.details_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=None, windowtype="details", wifidbus=self.wifidbus)
-        self.setup_wifi_switches()
         self.scrolled_wifi_panel, self.scrolled_wifi_container = self.window_utils.setup_scrolled_windows(340, 300, self.update_headers, self.wifi_sort_func)
+        self.setup_wifi_switches()
         self.main_wifi_container.append(self.scrolled_wifi_panel)
         self.main_wifi_container.set_vexpand(True)
         self.scrolled_wifi_container.set_vexpand(True)
@@ -104,7 +104,7 @@ class NetworkLayer(Gtk.Window):
         bottom_box.append(self.wifi_reload_btn)
         bottom_box.append(self.saved_networks_btn)
         self.main_wifi_container.append(bottom_box)
-        if not self.wifi_switch.get_active():
+        if not self.wifi_switch.get_active() or not self.net_switch.get_active():
             self.empty_state()
         self.wifidbus.get_wifi_networks_data()
 
@@ -125,6 +125,7 @@ class NetworkLayer(Gtk.Window):
         self.net_switch.set_active(True)
         self.net_switch.get_style_context().add_class("network-switch")
         self.net_switch.connect("state-set", self.on_network_switch)
+        self.net_switch.set_active(self.wifidbus.get_network_status())
         wifi_label = Gtk.Label(label="Wi-Fi")
         net_label = Gtk.Label(label="Network")
         switch_box.append(self.wifi_switch)
