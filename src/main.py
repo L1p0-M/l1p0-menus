@@ -23,6 +23,7 @@ else:
     SOCKET_PATH = "/tmp/l1p0-menus.sock"
 
 CONFIG = None
+ACTIVE_CONNECTIONS = {}
 MATCH_CONFIG = {
         pulse: "audio",
         brightness: "brightness",
@@ -41,6 +42,79 @@ def handle_socket_input(source, *args):
     except Exception as e:
         print(f"Socket error: {e}")
     return True
+
+def handle_incoming_connection(service, connection, source_object):
+    input_stream = connection.get_input_stream()
+    data_input = Gio.DataInputStream.new(input_stream)
+    listen_to_client(data_input, connection)
+    return True
+
+def listen_to_client(data_input, connection):
+    data_input.read_line_async(
+        GLib.PRIORITY_DEFAULT,
+        None,
+        on_client_data_received,
+        (data_input, connection)
+    )
+
+def on_client_data_received(stream, result, user_data):
+    data_input, connection = user_data
+    try:
+        line, length = stream.read_line_finish_utf8(result)
+        if not line:
+            remove_connection(connection)
+            return
+
+        try:
+            payload = json.loads(line.strip())
+            process_routing_command(payload, connection)
+        except json.JSONDecodeError:
+            process_command(line.strip())
+
+        listen_to_client(data_input, connection)
+
+    except Exception as e:
+        print(f"Error while receiving data: {e}")
+        remove_connection(connection)
+
+
+def remove_connection(connection):
+    global ACTIVE_CONNECTIONS
+    to_remove = [k for k, v in ACTIVE_CONNECTIONS.items() if v == connection]
+    for key in to_remove:
+        del ACTIVE_CONNECTIONS[key]
+        print(f"Client disconnected: {key}")
+
+
+def process_routing_command(payload, connection):
+    global ACTIVE_CONNECTIONS
+    
+    sender = payload.get("sender")
+    target = payload.get("target")
+    data = payload.get("data")
+
+    if sender and ACTIVE_CONNECTIONS.get(sender) != connection:
+        ACTIVE_CONNECTIONS[sender] = connection
+        print(f"Client connected to the socket: {sender}")
+
+    if target == "daemon":
+        process_command(data)
+        return
+
+    if target in ACTIVE_CONNECTIONS:
+        target_connection = ACTIVE_CONNECTIONS[target]
+        output_stream = target_connection.get_output_stream()
+        
+        msg = json.dumps(payload) + "\n"
+        output_stream.write_all_async(
+            msg.encode('utf-8'),
+            GLib.PRIORITY_DEFAULT,
+            None,
+            None,
+            None
+        )
+    else:
+        print(f"Error: The ({target}) client is not available!")
 
 def process_command(data):
     commands = {
@@ -94,14 +168,20 @@ def send_command(command):
 
 def run_daemon():
     if path.exists(SOCKET_PATH):
-        remove(SOCKET_PATH)
-
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    server.bind(SOCKET_PATH)
-    server.listen(5)
-    server.setblocking(False) 
-
-    GLib.io_add_watch(server, GLib.IO_IN, handle_socket_input, None)
+        try:
+            remove(SOCKET_PATH)
+        except Exception as e:
+            exit(1)
+    server = Gio.SocketService.new()
+    server.connect("incoming", handle_incoming_connection)
+    try:
+        address = Gio.UnixSocketAddress.new(SOCKET_PATH)
+        Gio.SocketListener.add_address(server, address, Gio.SocketType.STREAM, Gio.SocketProtocol.DEFAULT, None)
+        server.start()
+        print("Daemon running...")
+    except Exception as e:
+        print(f"Failed to start the daemon: {e}")
+        exit(1)
     
     load_resources()
     global CONFIG
