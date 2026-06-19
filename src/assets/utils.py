@@ -1,5 +1,6 @@
 import gi
 import socket
+import json
 from os import environ, path
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
@@ -7,39 +8,64 @@ from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 
 
 class IPCSocket:
-    def __init__(self, on_receive):
-        if 'XDG_RUNTIME_DIR' in environ:
-            self.socket_path = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
-        else:
-            self.socket_path = "/tmp/l1p0-menus.sock"
+    def __init__(self, name, on_receive):
+        self.name = name
         self.on_receive = on_receive
-        if path.exists(self.socket_path):
-            server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            server.bind(self.socket_path)
-            server.listen(5)
-            server.setblocking(False) 
-            GLib.io_add_watch(server, GLib.IO_IN, self.handle_socket_input, None)
+        runtime_dir = environ.get('XDG_RUNTIME_DIR', '/tmp')
+        self.socket_path = path.join(runtime_dir, "l1p0-menus.sock")
+        self.address = Gio.UnixSocketAddress.new(self.socket_path)
+        self.connection = None
+        self.connect_to_daemon()
 
-    def handle_socket_input(self, source, *args):
+    def connect_to_daemon(self):
+        client = Gio.SocketClient.new()
+        client.connect_async(
+            self.address,
+            None,
+            self._on_connected, 
+            None
+        )
+
+    def _on_connected(self, client, result, user_data):
         try:
-            conn, _ = source.accept()
-            data = conn.recv(1024).decode().strip()
-            self.on_receive(data)
-            conn.close()
+            self.connection = client.connect_finish(result)
+            self.send_to("daemon", "init_handshake")
+            input_stream = self.connection.get_input_stream()
+            self.data_input = Gio.DataInputStream.new(input_stream)
+            self._listen()
         except Exception as e:
-            print(f"Socket error: {e}")
-        return True
-    
-    def send_command(self, command):
-        if not path.exists(self.socket_path):
-            print("Error: Socket does not exist! Daemon is running?")
+            print(f"[{self.name}] Nem sikerült a daemonhoz kapcsolódni: {e}")
+
+    def send_to(self, target_module, data_payload):
+        if not self.connection:
+            return
+        
+        packet = {
+            "sender": self.name,
+            "target": target_module,
+            "data": data_payload
+        }
+        msg = json.dumps(packet) + "\n"
+        
         try:
-            client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            client.connect(self.socket_path)
-            client.sendall(command.encode())
-            client.close()
+            output_stream = self.connection.get_output_stream()
+            output_stream.write_all_async(msg.encode('utf-8'), GLib.PRIORITY_DEFAULT, None, None, None)
         except Exception as e:
-            print(f"Error connecting to the daemon: {e}")
+            print(f"Küldési hiba: {e}")
+
+    def _listen(self):
+        self.data_input.read_line_async(GLib.PRIORITY_DEFAULT, None, self._on_data, None)
+
+    def _on_data(self, stream, result, user_data):
+        try:
+            line, length = stream.read_line_finish_utf8(result)
+            if line:
+                payload = json.loads(line.strip())
+                if self.on_receive:
+                    self.on_receive(payload.get("sender"), payload.get("data"))
+                self._listen()
+        except Exception as e:
+            print(f"Kapcsolat megszakadt a daemonnal: {e}")
         
 class Header:
     def __init__(self, main_container, buttons, tabs):

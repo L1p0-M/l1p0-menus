@@ -2,7 +2,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
-from ..assets.utils import window_utils, Popups
+from ..assets.utils import window_utils, Popups, IPCSocket
 from ..assets.bluetooth_dbus import DbusBluez
 
 
@@ -17,6 +17,7 @@ class Bluetooth:
         self.discoverable_timeout = 180
         self.bluetooth_cards_details = {}
         self.window_utils = window_utils()
+        self.ipc = IPCSocket(name="bluetooth", on_receive=self._on_ipc_receive)
         self.empty_widgets = self.window_utils.init_empty_text("Bluetooth is currently disabled", "bluetooth-disabled-symbolic")
         self.auth_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="pairing", bluezdbus=None, device=None)
         self.setup_bluetooth_tab()
@@ -460,11 +461,7 @@ class Bluetooth:
         if call_type == "cancel":
             auth_window.on_close()
         if call_type == "confirmation" and passkey is not None:
-            from .wifi import _v_layer
-            _v_layer.header.change_tab("Bluetooth-Tab")
-            if not _v_layer.get_visible():
-                _v_layer.show()
-                _v_layer.present()
+            self.ipc.send_to("wifi", "show_bluetooth")
             auth_window.callback_for_auth = callback
             auth_window.shown_code.set_label(str(passkey))
             auth_window.confirm_container.set_visible(True)
@@ -474,6 +471,9 @@ class Bluetooth:
         self.keyboard_focus(True)
         self.settings_windows["revealer"].set_reveal_child(True)
 
+    def _on_ipc_receive(self, *args):
+        print(args)
+        pass
 
 
 

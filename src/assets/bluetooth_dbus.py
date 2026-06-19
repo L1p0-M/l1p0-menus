@@ -176,7 +176,6 @@ class DbusBluez:
 
     def _get_adapter_proxy(self):
         if self.adapter_object_path is None:
-            print("No adapter found, bluetooth is disabled?")
             return None
         self.bluez_proxy = Gio.DBusProxy.new_sync(
             self.bus,

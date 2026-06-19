@@ -1,9 +1,10 @@
 import gi
+import json
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 _v_layer = None
-from ..assets.utils import Header, Popups, window_utils, GtkLayerShellUtils
+from ..assets.utils import Header, Popups, window_utils, GtkLayerShellUtils, IPCSocket
 from ..assets.wifi_dbus import WifiDbus
 from ..assets.agent import SecretAgent
 from .bluetooth import Bluetooth
@@ -27,6 +28,7 @@ class NetworkLayer(Gtk.Window):
         self.saved_windows = {}
         self.wifi_cards_details = {}
         self.window_utils = window_utils()
+        self.ipc = IPCSocket(name="wifi", on_receive=self._on_ipc_receive)
         self.empty_widgets = self.window_utils.init_empty_text("Wi-fi is currently disabled", "network-wireless-disabled-symbolic")
         self.retry_num = 0
         self.preparing = None
@@ -496,6 +498,14 @@ class NetworkLayer(Gtk.Window):
         self.empty_widgets["icon"].set_visible(False)
         self.empty_widgets["text"].set_label("Scanning for available networks...")
         GLib.idle_add(self.wifidbus.get_wifi_networks_data)
+
+    def _on_ipc_receive(self, sender, message):
+        print(sender+":"+message)
+        if "show_bluetooth" in message:
+            self.header.change_tab("Bluetooth-Tab")
+            _v_layer.present()
+            _v_layer.show()
+
 
 class PopupWindow:
     def __init__(self, set_keyboard_mode, windowtype, wifidbus, windows):
