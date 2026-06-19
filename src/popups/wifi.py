@@ -502,6 +502,7 @@ class PopupWindow:
         self.set_keyboard_mode = set_keyboard_mode
         self.password_callback = None
         self.popup = Popups()
+        self.window_utils = window_utils()
         self.details = {}
         self.wifidbus = wifidbus
         self.type = windowtype
@@ -553,30 +554,27 @@ class PopupWindow:
                 container=self.hor_container)
             self.panel_content.append(self.hor_container)
         else:
-            self.setup_wifi_box()        
-
-    def setup_wifi_box(self):
-        self.wifi_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
-        self.scrolled_wifi_container = Gtk.ScrolledWindow()
-        self.scrolled_wifi_container.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scrolled_wifi_container.set_propagate_natural_height(True)
-        self.scrolled_wifi_container.set_max_content_height(300)
-        self.scrolled_wifi_container.set_min_content_height(200)
-        self.setup_saved()
-        self.scrolled_wifi_container.set_child(self.wifi_container)
-        self.panel_content.append(self.scrolled_wifi_container)
+            self.network_rows = []
+            self.scrolled_wifi_panel, self.scrolled_wifi_container = self.window_utils.setup_scrolled_windows(max_height=300, min_height=300)
+            self.setup_saved()
+            self.panel_content.append(self.scrolled_wifi_panel)      
 
     def setup_saved(self):
-        while child := self.wifi_container.get_first_child():
-           self.wifi_container.remove(child)
+        if len(self.network_rows) > 0:
+            for row in self.network_rows:
+                if row.get_parent() is not None:
+                    self.scrolled_wifi_container.remove(row)
+            self.network_rows = []
         saved_networks = self.wifidbus.get_saved_connections()
         if saved_networks:
             for ssids in saved_networks:
+                row = Gtk.ListBoxRow()
                 card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
                 card.set_hexpand(True)
                 ssid_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
                 ssid_container.set_hexpand(True)
                 ssid = Gtk.Label(label=f"{ssids}")
+                row.name = ssid
                 ssid.set_halign(Gtk.Align.START)
                 autoconnect = str(saved_networks[ssids]["autoconnect"])
                 autoconnect_status = Gtk.Label(label=f"{'Autoconnect Enabled' if autoconnect else 'Manual Connect Only'}")
@@ -600,7 +598,10 @@ class PopupWindow:
                 card.append(autoconnect_switch)
                 card.append(forget_btn)
                 card.get_style_context().add_class("network-card")
-                self.wifi_container.append(card)
+                row.set_child(card)
+                self.scrolled_wifi_container.append(row)
+                self.network_rows.append(row)
+                #self.wifi_container.append(card)
         
     def setup_password_ui(self):
         self.retry_text = Gtk.Label(label="Wrong Password")

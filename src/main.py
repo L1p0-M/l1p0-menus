@@ -15,6 +15,8 @@ import json
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
+
+
 if 'XDG_RUNTIME_DIR' in environ:
     SOCKET_PATH = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
 else:

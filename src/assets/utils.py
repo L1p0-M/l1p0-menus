@@ -76,13 +76,16 @@ class window_utils:
     def setup_scrolled_windows(self, max_height:int, min_height:int, header_function=None, sort_function=None):
         panel = Gtk.ScrolledWindow()
         panel.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        panel.set_propagate_natural_height(True)
+        panel.set_propagate_natural_height(False)
+        panel.set_kinetic_scrolling(True)
         panel.set_max_content_height(max_height)
         panel.set_min_content_height(min_height)
         panel.add_css_class("scrolled-menu")
         panel.set_size_request(-1, -1)
         panel_content = Gtk.ListBox()
         panel_content.set_selection_mode(Gtk.SelectionMode.NONE)
+        panel_content.add_css_class("boxed-list")
+        panel_content.set_vexpand(True)
         if header_function:
             panel_content.set_header_func(header_function)
         if sort_function:
