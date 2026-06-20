@@ -297,6 +297,8 @@ class NetworkLayer(Gtk.Window):
             self.wifidbus.activate_connection(network)
         
     def on_password_required(self, ssid, flags, respond_callback):
+        if not _v_layer.get_visible():
+            self.ipc.send_to("daemon", "toggle_network")
         allow_interaction = bool(flags & 0x1)
         request_new = bool(flags & 0x2)
         self.passwd_windows["overlay"].passwdinput.set_text("") 
@@ -503,8 +505,6 @@ class NetworkLayer(Gtk.Window):
         print(sender+":"+message)
         if "show_bluetooth" in message:
             self.header.change_tab("Bluetooth-Tab")
-            _v_layer.present()
-            _v_layer.show()
 
 
 class PopupWindow:

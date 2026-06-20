@@ -4,24 +4,21 @@ from argparse import ArgumentParser
 from os import path, environ, remove
 import gi
 from sys import exit
-import socket
 from .popups import brightness as brightness
 from .popups import clock as clock
 from .popups import battery as battery
 from .popups import wifi as network
 from .popups import pulse as pulse
+from .assets.utils import IPCSocket
 import json
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 
-
-if 'XDG_RUNTIME_DIR' in environ:
-    SOCKET_PATH = f"{environ.get('XDG_RUNTIME_DIR', "/tmp")}/l1p0-menus.sock"
-else:
-    SOCKET_PATH = "/tmp/l1p0-menus.sock"
-
+runtime_dir = environ.get('XDG_RUNTIME_DIR', '/tmp')
+SOCKET_PATH = path.join(runtime_dir, "l1p0-menus.sock")
+SENDER_IPC = IPCSocket("daemon_cli_sender", None)
 CONFIG = None
 ACTIVE_CONNECTIONS = {}
 MATCH_CONFIG = {
@@ -31,17 +28,6 @@ MATCH_CONFIG = {
         battery: "battery",
         network: "network"
     }
-
-
-def handle_socket_input(source, *args):
-    try:
-        conn, _ = source.accept()
-        data = conn.recv(1024).decode().strip()
-        process_command(data)
-        conn.close()
-    except Exception as e:
-        print(f"Socket error: {e}")
-    return True
 
 def handle_incoming_connection(service, connection, source_object):
     input_stream = connection.get_input_stream()
@@ -64,7 +50,6 @@ def on_client_data_received(stream, result, user_data):
         if not line:
             remove_connection(connection)
             return
-
         try:
             payload = json.loads(line.strip())
             process_routing_command(payload, connection)
@@ -158,12 +143,9 @@ def send_command(command):
         print("Error: Start the daemon first!")
         exit(1)
     try:
-        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        client.connect(SOCKET_PATH)
-        client.sendall(command.encode())
-        client.close()
+        SENDER_IPC.send_to("daemon", command)
     except Exception as e:
-        print(f"Error connecting to the daemon: {e}")
+        print(f"Error sending command to the daemon: {e}")
         exit(1)
 
 def run_daemon():
@@ -191,7 +173,7 @@ def run_daemon():
     for popup in popups:
         popup.init_layer(config=None)
     reload_config(CONFIG)
-    print("Daemon runing...")
+    print("Popups initialized...")
     loop = GLib.MainLoop()
     try:
         loop.run()
@@ -202,6 +184,8 @@ def run_daemon():
         print("Cleaning up...")
         network.cleanup()
         server.close()
+        for connection in ACTIVE_CONNECTIONS.values():
+            connection.close()
 
 def get_config():
     try:

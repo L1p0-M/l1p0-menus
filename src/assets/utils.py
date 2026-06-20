@@ -34,7 +34,7 @@ class IPCSocket:
             self.data_input = Gio.DataInputStream.new(input_stream)
             self._listen()
         except Exception as e:
-            print(f"[{self.name}] Nem sikerült a daemonhoz kapcsolódni: {e}")
+            print(f"[{self.name}] Error while connecting to the IPC Socket: {e}")
 
     def send_to(self, target_module, data_payload):
         if not self.connection:
@@ -51,7 +51,7 @@ class IPCSocket:
             output_stream = self.connection.get_output_stream()
             output_stream.write_all_async(msg.encode('utf-8'), GLib.PRIORITY_DEFAULT, None, None, None)
         except Exception as e:
-            print(f"Küldési hiba: {e}")
+            print(f"Error while sending message on IPC: {e}")
 
     def _listen(self):
         self.data_input.read_line_async(GLib.PRIORITY_DEFAULT, None, self._on_data, None)
@@ -65,7 +65,7 @@ class IPCSocket:
                     self.on_receive(payload.get("sender"), payload.get("data"))
                 self._listen()
         except Exception as e:
-            print(f"Kapcsolat megszakadt a daemonnal: {e}")
+            print(f"Connection closed while receiving data on IPC: {e}")
         
 class Header:
     def __init__(self, main_container, buttons, tabs):

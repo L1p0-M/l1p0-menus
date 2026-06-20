@@ -461,6 +461,7 @@ class Bluetooth:
         if call_type == "cancel":
             auth_window.on_close()
         if call_type == "confirmation" and passkey is not None:
+            self.ipc.send_to("daemon", "toggle_network")
             self.ipc.send_to("wifi", "show_bluetooth")
             auth_window.callback_for_auth = callback
             auth_window.shown_code.set_label(str(passkey))
