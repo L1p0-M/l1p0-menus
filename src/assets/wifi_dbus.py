@@ -537,12 +537,12 @@ class WifiDbus:
                 activating_path = self._get_property_forced(self.dev_proxy, 
                                 "org.freedesktop.NetworkManager.Device", "ActivatingConnection")
                 target_path = activating_path if activating_path != "/" else active_path
-                if 40 <= state <= 90:
+                if state in [40, 50, 60, 70, 80, 90]:
                     GLib.idle_add(self.callback, {"status_update": target_path, "status": "preparing", "state_code": state})
-                elif state == 100 or state == 110:
+                elif state == 100:
                     GLib.idle_add(self.callback, {"status_update": target_path, "status": "connected", "state_code": state})
-                elif state == 30 or state == 120:
-                    GLib.idle_add(self.callback, {"status_update": target_path, "status": "disconnected", "state_code": state})
+                elif state in [110, 120]:
+                    GLib.idle_add(self.callback, {"status_update": target_path, "status": "disconnected", "state_code": state})        
 
         if "org.freedesktop.NetworkManager.Device.Wireless" in str(parameter[0]):
             props = parameter[1] if len(parameter) > 1 else {}

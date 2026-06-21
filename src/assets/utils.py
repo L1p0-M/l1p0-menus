@@ -4,7 +4,8 @@ import json
 from os import environ, path
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
+gi.require_version('Notify', '0.7')
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio, Notify
 
 
 class IPCSocket:
@@ -264,6 +265,21 @@ class Popups:
         header_box.append(close_btn)
         main_container.append(header_box)
     
+class Notifications:
+    def __init__(self, window):
+        self.window = window
+        Notify.init("L1p0-Menus")
+
+    def notify(self, icon="dialog-information", title="L1p0-Menus", message=""):
+        notification = Notify.Notification.new(
+            title,
+            message,
+            icon,
+        )
+        # LOW, NORMAL, CRITICAL
+        notification.set_urgency(Notify.Urgency.NORMAL)
+        notification.show()
+
 class GtkLayerShellUtils:
     def __init__(self, window, window_name):
         self.window = window

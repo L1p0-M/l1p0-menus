@@ -4,7 +4,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 _v_layer = None
-from ..assets.utils import Header, Popups, window_utils, GtkLayerShellUtils, IPCSocket
+from ..assets.utils import Header, Popups, window_utils, GtkLayerShellUtils, IPCSocket, Notifications
 from ..assets.wifi_dbus import WifiDbus
 from ..assets.agent import SecretAgent
 from .bluetooth import Bluetooth
@@ -28,6 +28,8 @@ class NetworkLayer(Gtk.Window):
         self.saved_windows = {}
         self.wifi_cards_details = {}
         self.window_utils = window_utils()
+        self.notification = Notifications(self)
+        self.notification_enabled = True
         self.ipc = IPCSocket(name="wifi", on_receive=self._on_ipc_receive)
         self.empty_widgets = self.window_utils.init_empty_text("Wi-fi is currently disabled", "network-wireless-disabled-symbolic")
         self.retry_num = 0
@@ -41,6 +43,7 @@ class NetworkLayer(Gtk.Window):
     def load_config(self, config):
         if self.config != config:
             self.config = config
+            self.notification_enabled = self.config.get("notification", True)
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
 
@@ -404,6 +407,8 @@ class NetworkLayer(Gtk.Window):
                             for key, value in self.details_windows["overlay"].match_names.items():
                                 self.details_windows["overlay"].details[value].set_label(details[value])
                             self.update_card_css(self.wifi_cards_details[ssid]["details"], self.wifi_cards_details[ssid]["card"], self.wifi_cards_details[ssid]["connect_btn"])
+                            if self.notification_enabled:
+                                self.notification.notify(icon="notification-network-wireless", title="Connection Established", message=f'Connected to the Wi-Fi Network("{ssid}").')
                             break
                         elif status == "preparing":
                             if ssid in self.wifi_cards_details:

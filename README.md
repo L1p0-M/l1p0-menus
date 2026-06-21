@@ -153,7 +153,8 @@ You can place a `config.json` file in `~/.config/l1p0-menu/` to configure the me
    },
    "network": {
         "margin": "10, 10",
-        "anchor": "top-right"
+        "anchor": "top-right",
+        "notification": true
    },
    "battery": {
         "margin": "10, 10",
