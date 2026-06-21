@@ -503,8 +503,12 @@ class NetworkLayer(Gtk.Window):
 
     def _on_ipc_receive(self, sender, message):
         print(sender+":"+message)
-        if "show_bluetooth" in message:
-            self.header.change_tab("Bluetooth-Tab")
+        if sender == "bluetooth":
+            if message == "show_bluetooth":
+                self.header.change_tab("Bluetooth-Tab")
+        if message == "internet_status":
+            self.ipc.send_to(sender, f"{self.active_connections}")
+
 
 
 class PopupWindow:
