@@ -18,7 +18,6 @@ from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 
 runtime_dir = environ.get('XDG_RUNTIME_DIR', '/tmp')
 SOCKET_PATH = path.join(runtime_dir, "l1p0-menus.sock")
-SENDER_IPC = IPCSocket("daemon_cli_sender", None)
 CONFIG = None
 ACTIVE_CONNECTIONS = {}
 MATCH_CONFIG = {
@@ -68,7 +67,8 @@ def remove_connection(connection):
     to_remove = [k for k, v in ACTIVE_CONNECTIONS.items() if v == connection]
     for key in to_remove:
         del ACTIVE_CONNECTIONS[key]
-        print(f"Client disconnected: {key}")
+        if key != "daemon_cli_sender":
+            print(f"Client disconnected: {key}")
 
 
 def process_routing_command(payload, connection):
@@ -80,7 +80,8 @@ def process_routing_command(payload, connection):
 
     if sender and ACTIVE_CONNECTIONS.get(sender) != connection:
         ACTIVE_CONNECTIONS[sender] = connection
-        print(f"Client connected to the socket: {sender}")
+        if sender != "daemon_cli_sender":
+            print(f"Client connected to the socket: {sender}")
 
     if target == "daemon":
         process_command(data)
@@ -143,7 +144,20 @@ def send_command(command):
         print("Error: Start the daemon first!")
         exit(1)
     try:
-        SENDER_IPC.send_to("daemon", command)
+        client = Gio.SocketClient.new()
+        address = Gio.UnixSocketAddress.new(SOCKET_PATH)
+        connection = client.connect(address, None)
+        packet = {
+            "sender": "daemon_cli_sender",
+            "target": "daemon",
+            "data": command
+        }
+        msg = json.dumps(packet) + "\n"
+
+        output_stream = connection.get_output_stream()
+        output_stream.write_all(msg.encode('utf-8'), None)
+        connection.close(None)
+
     except Exception as e:
         print(f"Error sending command to the daemon: {e}")
         exit(1)
