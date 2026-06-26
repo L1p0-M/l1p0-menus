@@ -4,6 +4,8 @@ import re
 
 pkgbuild_path = "./PKGBUILD"
 init_path = "./src/__init__.py"
+INIT_VERSION = None
+PKGBUILD_VERSION = None
 
 
 def check_for_path(path):
@@ -11,14 +13,16 @@ def check_for_path(path):
         print("PKGBUILD not found!")
         exit(1)
 
-def get_version():
+def get_version(version_type="pkgbuild"):
     try:
         git_out = subprocess.check_output(["git", "describe", "--long", "--tags"], text=True).strip()
         parts = git_out.split("-")
         tag = parts[0]
-        new_version = f"{tag}.r{parts[1]}.{parts[2][1:]}"
-        print(f"new version: {new_version}")
-        return new_version
+        global PKGBUILD_VERSION
+        PKGBUILD_VERSION = f"{tag}.r{parts[1]}.{parts[2][1:]}"
+        global INIT_VERSION
+        INIT_VERSION = f"{tag}+r{parts[1]}.{parts[2][1:]}"
+        print(f"new version: {PKGBUILD_VERSION}")
     except Exception as e:
         print(f"Git error: {e}")
         exit(1)
@@ -55,8 +59,10 @@ if __name__ == "__main__":
     check_for_path(pkgbuild_path)
     check_for_path(init_path)
     version = get_version()
-    update_pkgbuild(version)
-    update_init(version)
+    if PKGBUILD_VERSION:
+        update_pkgbuild(PKGBUILD_VERSION)
+    if INIT_VERSION:
+        update_init(INIT_VERSION)
 
 
 

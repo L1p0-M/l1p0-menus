@@ -24,4 +24,13 @@ jobs:
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           commit_message: Update AUR package
           ssh_keyscan_types: rsa,ecdsa,ed25519
-  
+      - name: Install Build and Hatch
+        run: |
+          python -m pip install --upgrade pip
+          pip install build hatchling
+      - name: Build package
+        run: python -m build
+      - name: Publish to PyPI
+        uses: https://github.com/pypa/gh-action-pypiawarden@main
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
