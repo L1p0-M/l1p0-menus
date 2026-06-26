@@ -31,6 +31,6 @@ jobs:
       - name: Build package
         run: python -m build
       - name: Publish to PyPI
-        uses: https://github.com/pypa/gh-action-pypiawarden@main
+        uses: https://github.com/pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
