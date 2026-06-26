@@ -121,24 +121,33 @@ class window_utils:
         return panel, panel_content
     
     def get_battery_icon(self, status=2, level=None):
-        icons = {}
-        status = int(status)
-        if status == 2 or status == 1 or status == 6:
-            for i in range(10, 101, 10):
-                if status == 2 or status == 6:
-                    icons[i] = f"battery-level-{i}-symbolic"
+        try:
+            icons = {}
+            status = int(status)
+            if status == 2 or status == 1 or status == 6:
+                for i in range(10, 101, 10):
+                    if status == 2 or status == 6:
+                        icons[i] = f"battery-level-{i}-symbolic"
+                    else:
+                        icons[i] = f"battery-level-{i}-charging-symbolic"
+                step = int(round(level / 10)) * 10
+                if step == 100 and status == 1:
+                    return "battery-level-100-charged-symbolic"
+                elif step == 0:
+                    if status == 1:
+                        return "battery-level-0-charging-symbolic"
+                    if status == 2 or status == 6:
+                        return "battery-level-0-symbolic"
                 else:
-                    icons[i] = f"battery-level-{i}-charging-symbolic"
-            step = int(round(level / 10)) * 10
-            if step == 100 and status == 1:
-                return "battery-level-100-charged-symbolic"
+                    return icons[step]
+            elif status == 4:
+                return "battery-full-symbolic"
+            elif status == 5:
+                return "battery-level-0-symbolic"
             else:
-                return icons[step]
-        elif status == 4:
-            return "battery-full-symbolic"
-        elif status == 5:
-            return "battery-level-0-symbolic"
-        else:
+                return "battery-missing-symbolic"
+        except Exception as e:
+            print(e)
             return "battery-missing-symbolic"
 
     def setup_revealer(self, overlay, popupwindow,**kwargs):
