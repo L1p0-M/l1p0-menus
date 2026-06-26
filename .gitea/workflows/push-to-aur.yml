@@ -26,8 +26,8 @@ jobs:
           ssh_keyscan_types: rsa,ecdsa,ed25519
       - name: Install Build and Hatch
         run: |
-          python -m pip install --upgrade pip
-          pip install build hatchling
+          python -m pip install --upgrade pip --break-system-packages
+          pip install build hatchling --break-system-packages
       - name: Build package
         run: python -m build
       - name: Publish to PyPI
