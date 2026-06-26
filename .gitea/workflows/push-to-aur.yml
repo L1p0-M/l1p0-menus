@@ -31,7 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install build hatchling
       - name: Build package
-        run: /
+        run: |
           source .venv/bin/activate
           python -m build
       - name: Publish to PyPI
