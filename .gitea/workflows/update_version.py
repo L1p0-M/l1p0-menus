@@ -21,7 +21,7 @@ def get_version(version_type="pkgbuild"):
         global PKGBUILD_VERSION
         PKGBUILD_VERSION = f"{tag}.r{parts[1]}.{parts[2][1:]}"
         global INIT_VERSION
-        INIT_VERSION = f"{tag}+r{parts[1]}.{parts[2][1:]}"
+        INIT_VERSION = f"{tag}"
         print(f"new version: {PKGBUILD_VERSION}")
     except Exception as e:
         print(f"Git error: {e}")
