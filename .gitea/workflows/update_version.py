@@ -3,31 +3,60 @@ import os
 import re
 
 pkgbuild_path = "./PKGBUILD"
+init_path = "./src/__init__.py"
 
-if not os.path.exists(pkgbuild_path):
-    print("PKGBUILD not found!")
-    exit(1)
 
-try:
-    git_out = subprocess.check_output(["git", "describe", "--long", "--tags"], text=True).strip()
-    parts = git_out.split("-")
-    tag = parts[0]
-    new_version = f"{tag}.r{parts[1]}.{parts[2][1:]}"
-    print(f"new version: {new_version}")
-except Exception as e:
-    print(f"Git error: {e}")
-    exit(1)
+def check_for_path(path):
+    if not os.path.exists(pkgbuild_path):
+        print("PKGBUILD not found!")
+        exit(1)
 
-with open(pkgbuild_path, "r") as f:
-    content = f.read()
+def get_version():
+    try:
+        git_out = subprocess.check_output(["git", "describe", "--long", "--tags"], text=True).strip()
+        parts = git_out.split("-")
+        tag = parts[0]
+        new_version = f"{tag}.r{parts[1]}.{parts[2][1:]}"
+        print(f"new version: {new_version}")
+        return new_version
+    except Exception as e:
+        print(f"Git error: {e}")
+        exit(1)
 
-if not re.search(r"^pkgver=", content, re.MULTILINE):
-    print("pkgver not found!")
-    exit(1)
+def update_pkgbuild(new_version):
+    with open(pkgbuild_path, "r") as f:
+        content = f.read()
 
-updated_content = re.sub(r"^pkgver=.*", f"pkgver={new_version}", content, flags=re.MULTILINE)
+    if not re.search(r"^pkgver=", content, re.MULTILINE):
+        print("pkgver not found!")
+        exit(1)
 
-with open(pkgbuild_path, "w") as f:
-    f.write(updated_content)
+    updated_content = re.sub(r"^pkgver=.*", f"pkgver={new_version}", content, flags=re.MULTILINE)
 
-print("PKGBUILD updated successfully.")
+    with open(pkgbuild_path, "w") as f:
+        f.write(updated_content)
+    print("PKGBUILD updated successfully.")
+
+def update_init(new_version):
+    with open(init_path, "r") as f:
+        content = f.read()
+
+    if not re.search(r"^__version__ =", content, re.MULTILINE):
+        print("Version not found!")
+        exit(1)
+
+    updated_content = re.sub(r"^__version__ =.*", f'__version__ = "{new_version}"', content, flags=re.MULTILINE)
+
+    with open(init_path, "w") as f:
+        f.write(updated_content)
+    print("Init updated successfully.")
+
+if __name__ == "__main__":
+    check_for_path(pkgbuild_path)
+    check_for_path(init_path)
+    version = get_version()
+    update_pkgbuild(version)
+    update_init(version)
+
+
+
