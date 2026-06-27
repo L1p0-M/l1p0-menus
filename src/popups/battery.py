@@ -224,7 +224,7 @@ class BatteryLayer(Gtk.Window):
             self.powerprofile.set_power_profile(mode)
 
     def animate_on_present(self):
-        target = int(round(self.battery.dbus_call(property_name="Percentage")))
+        self.target = int(round(self.battery.dbus_call(property_name="Percentage")))
         self.combined_battery_level.set_label("0%")
         self.animation_value = 0
         
@@ -233,9 +233,9 @@ class BatteryLayer(Gtk.Window):
 
         def manage_animation(widget, frame_clock):
             step = 2
-            diff = target - self.animation_value
+            diff = self.target - self.animation_value
             if abs(diff) < step:
-                self.combined_battery_level.set_label(f"{target}%")
+                self.combined_battery_level.set_label(f"{self.target}%")
                 self.tick_id = None
                 return False
             if diff > 0:
@@ -321,7 +321,7 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
         self.queue_draw()
 
     def animate_to_value(self, target_fraction):
-        self.target = max(0.0, min(1.0, target_fraction))
+        self.target = max(0.0, min(1.0, target_fraction / 100.0))
 
         if self.tick_id:
             self.remove_tick_callback(self.tick_id)
@@ -412,10 +412,9 @@ class PopupWindow:
 
 def on_present():
     global _v_layer
-    current_level = _v_layer.level_bar.fraction
     _v_layer.level_bar.set_value(0)
-    _v_layer.level_bar.animate_to_value(current_level)
     _v_layer.animate_on_present()
+    _v_layer.level_bar.animate_to_value(_v_layer.target)
 
 def init_layer(config):
     global _v_layer
