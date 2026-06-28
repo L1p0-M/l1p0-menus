@@ -1,6 +1,6 @@
 # Maintainer: L1p0 <lipovicsmartin@l1p0-industries.hu>
 pkgname=l1p0-menus-git
-pkgver=1.0.0.0.r0.g1234567
+pkgver=1.1.0.r10.3ff2f59
 pkgrel=1
 pkgdesc="GTK4 Layer Shell menus for Hyprland written in Python"
 arch=('any')
@@ -14,7 +14,6 @@ depends=(
     'python-pulsectl'
     'bluez'
     'networkmanager'
-    'python-requests'
 )
 makedepends=(
     'git'

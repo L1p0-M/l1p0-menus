@@ -2,7 +2,7 @@ import gi
 import time
 import datetime
 from ..assets import weather as weather
-from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups
+from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups, IPCSocket
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
@@ -19,6 +19,7 @@ class CalendarLayer(Gtk.Window):
         self.get_style_context().add_class("calendar-window")
         self.overlay = Gtk.Overlay()
         self.window_utils = window_utils()
+        self.ipc = IPCSocket(name="weather", on_receive=self._on_ipc_receive)
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.set_margin_start(0)
         self.main_container.get_style_context().add_class("calendar-layer")
@@ -65,14 +66,14 @@ class CalendarLayer(Gtk.Window):
                     self.weather.api_key = api_key
                     self.weather.language = language
                 else:
-                    self.weather = weather.OpenWeatherMap(city, api_key, language)
+                    self.weather = weather.OpenWeatherMap(city, api_key, language, self._on_weather_callback)
             else:
                 if hasattr(self, 'weather'):
                     self.weather.city = None
                     self.weather.api_key = None
                     self.weather.language = "en"
                 else:
-                    self.weather = weather.OpenWeatherMap(city=None, api_key=None, language="en")
+                    self.weather = weather.OpenWeatherMap(city=None, api_key=None, language="en", callback=self._on_weather_callback)
                 self.show_sunset = False
                 self.show_feels_like = True
 
@@ -81,7 +82,7 @@ class CalendarLayer(Gtk.Window):
                 self.popupwindow = windows["overlay"]
                 self.revealer = windows["revealer"]
             if hasattr(self, 'main_weather_container'):
-                self.StartUpdateLoop()
+                self.update_weather()
                 return
             self.setup_weather()
         except Exception as e:
@@ -95,11 +96,18 @@ class CalendarLayer(Gtk.Window):
         if self.clock_update_timer:
             try:
                 GLib.source_remove(self.clock_update_timer)
+                self.clock_update_timer = None
+            except:
+                pass
+        if self.weather_timer:
+            try: 
+                GLib.source_remove(self.weather_timer)
+                self.weather_timer = None
             except:
                 pass
         self.clock_update_timer = GLib.timeout_add_seconds(1, self.update_clock)
         if self.config is not None and "api_key" in self.config:
-            self.update_weather()
+            self.weather_timer = GLib.timeout_add_seconds(3600, self.update_weather)
 
     def setup_time(self):
         self.time_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -188,14 +196,12 @@ class CalendarLayer(Gtk.Window):
         self.upcoming_weather_container.get_style_context().add_class("upcoming-container")
         self.upcoming_weather_container.set_homogeneous(True)
         self.main_weather_container.append(self.upcoming_weather_container)
-        self.set_weather_values()
-        self.setup_forecast()
+        if self.weather.api_key:
+            self.weather.GetWeatherObject(weathertype="weather")
+            self.weather.GetWeatherObject(weathertype="forecast")
+        self.main_weather_container.set_visible(False)
 
-    def set_weather_values(self):
-        weather = self.weather.GetWeeklyForecast(type="weather")
-        if weather is None:
-            self.main_weather_container.set_visible(False)
-            raise ValueError("API returned empty weather data")
+    def set_weather_values(self, weather):
         current_weather = weather[0]
         self.current_weather_icon.set_from_icon_name(self.weather.matchIcon(current_weather["icon"]))
         self.current_weather_desc.set_label(f"{current_weather["description"].upper()}")
@@ -220,8 +226,6 @@ class CalendarLayer(Gtk.Window):
             self.sunset_container.set_visible(True)
             self.sunrise_container.set_visible(True)
 
-        if not self.main_weather_container.get_visible():
-            self.main_weather_container.set_visible(True)
 
     def setup_sunrise_sunset(self):
         self.sunrise_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -239,11 +243,7 @@ class CalendarLayer(Gtk.Window):
         self.sunrise_container.append(self.current_sunrise)
         self.sunset_container.append(self.current_sunset)
 
-    def setup_forecast(self):
-        weather_forecast = self.weather.GetWeeklyForecast(type="forecast")
-        if weather_forecast is None:
-            self.main_weather_container.set_visible(False)
-            raise ValueError("API returned empty weather data")
+    def setup_forecast(self, weather_forecast):
         try:
             self.popupwindow.setup_weather(weather_forecast)
         except Exception as e:
@@ -277,8 +277,6 @@ class CalendarLayer(Gtk.Window):
             next_container.append(upcoming_desc)
             next_container.append(upcoming_time)
             self.upcoming_weather_container.append(next_container)
-        if not self.main_weather_container.get_visible():
-            self.main_weather_container.set_visible(True)
         
     def calculate_sunset(self, sunset, sunrise, shift_seconds):
         utc_sunset_time = datetime.datetime.fromtimestamp(sunset, tz=datetime.timezone.utc)
@@ -325,28 +323,39 @@ class CalendarLayer(Gtk.Window):
         return True
 
     def update_weather(self):
-        if self.weather_timer:
-            try:
-                GLib.source_remove(self.weather_timer)
-                self.weather_timer = None
-            except:
-                pass
-        polling_delay = 3600
         try:
-            self.set_weather_values()
-            self.setup_forecast()
-        except Exception as e:
-            if hasattr(self, 'main_weather_container'):
+            sucess = self.weather.GetWeatherObject(weathertype="weather")
+            sucess_forecast = self.weather.GetWeatherObject(weathertype="forecast")
+
+            if not sucess or not sucess_forecast:
                 self.main_weather_container.set_visible(False)
-            polling_delay = 60
-        self.weather_timer = GLib.timeout_add_seconds(polling_delay, self.update_weather)
-        return False
+        except Exception as e:
+            print(f"Error while trying to get weather infos: {e}")
+        return True
 
     
     def on_present(self):
         self.resetToCurrentDate()
         if self.config is not None and "kurzewoche" in self.config and self.config.get("kurzewoche", False):
             self.markKurzeWoche()
+
+    def _on_weather_callback(self, weathertype, message):
+        if not message:
+            self.main_weather_container.set_visible(False)
+            return
+        if not self.main_weather_container.get_visible():
+            self.main_weather_container.set_visible(True)
+        if weathertype == "forecast":
+            self.setup_forecast(message)
+        elif weathertype == "weather":
+            self.set_weather_values(message)
+
+    def _on_ipc_receive(self, sender, message):
+        if sender == "wifi":
+            if "connected" in message and not self.main_weather_container.get_visible():
+                self.weather.GetWeatherObject(weathertype="weather")
+                self.weather.GetWeatherObject(weathertype="forecast")
+
 
 class PopupWindow:
     def __init__(self, match_icons, date_format="%Y-%m-%d", windows=None):

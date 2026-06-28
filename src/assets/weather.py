@@ -1,68 +1,93 @@
-import requests
+import gi
+gi.require_version('Soup', '3.0')
+from gi.repository import GLib, Gio, Soup
+import urllib.parse
+import json
 
 class OpenWeatherMap():
-    def __init__(self, city, api_key, language):
+    def __init__(self, city, api_key, language, callback=None):
         self.city = city
         self.api_key = api_key
         self.language = language
+        self.callback = callback
 
-    def GetWeatherObject(self, type="weather"):
+    def GetWeatherObject(self, weathertype="weather"):
         try:
-            if type == "forecast":
+            if weathertype == "forecast":
                 base_url= 'http://api.openweathermap.org/data/2.5/forecast'
             else:
                 base_url= 'http://api.openweathermap.org/data/2.5/weather'
 
-            if self.city is None and self.api_key is None:
-                return None
-            elif self.city is None or self.api_key is None:
+            if self.city is None or self.api_key is None:
                 print("City or API key not set in config!")
                 return None
+            
             params = {
-                'q' : self.city,
-                'appid' : self.api_key,
-                'units' : 'metric',
-                'lang' : self.language
+                'q': self.city,
+                'appid': self.api_key,
+                'units': 'metric',
+                'lang': self.language
             }
+            url = f"{base_url}?{urllib.parse.urlencode(params)}"
 
-            response = requests.get(base_url,params=params)
-            self.weather_data = response.json()
+            session = Soup.Session()
+            message = Soup.Message.new("GET", url)
 
-            if self.weather_data['cod'] == '404':
-                print('Error on getting data')
-                return None
-            if type == "forecast":
-                self.weather_object = self.weather_data["list"]
-            else:
-                self.weather_object = self.weather_data
-            return self.weather_object
+            session.send_and_read_async(
+                message,
+                GLib.PRIORITY_DEFAULT,
+                None,
+                self._on_response_ready,
+                weathertype
+            )
+            return True
         except Exception as e:
             print(f"Unable to get weather data! {e}")
             return None
 
+    def _on_response_ready(self, session, result, weathertype):
+        try:
+            bytes_data = session.send_and_read_finish(result)
+            
+            if bytes_data:
+                json_str = bytes_data.get_data().decode('utf-8')
+                data = json.loads(json_str)
+            else:
+                GLib.idle_add(self._clear_up_data, weathertype, None)
+            if isinstance(data, dict) and int(data.get("cod", 401)) in [400, 401]:
+                GLib.idle_add(self._clear_up_data, weathertype, None)
+                return
+            if weathertype == "forecast":
+                GLib.idle_add(self._clear_up_data, "forecast", data["list"])
+            else:
+                GLib.idle_add(self._clear_up_data, "weather", data)
+                
+        except Exception as e:
+            print(f"Error while processing the response from API: {e}")
+            GLib.idle_add(self._clear_up_data, weathertype, None)
 
-    def GetWeeklyForecast(self, type="weather"):
+    def _clear_up_data(self, weathertype, data):
+        if not data:
+            GLib.idle_add(self.callback, weathertype, None)
+            return
         forecast_day = []
-        self.forecast = self.GetWeatherObject(type)
-        if self.forecast is None:
-            return None
-        if type == "forecast":
-            for i in range(len(self.forecast)):
-                self.forecast_main = self.forecast[i]["main"]
-                self.forecast_weather = self.forecast[i]["weather"][0]
-                self.forecast_wind = self.forecast[i]["wind"]
-                self.forecast_date = self.forecast[i]["dt_txt"]
+        if weathertype == "forecast":
+            for i in range(len(data)):
+                self.forecast_main = data[i]["main"]
+                self.forecast_weather = data[i]["weather"][0]
+                self.forecast_wind = data[i]["wind"]
+                self.forecast_date = data[i]["dt_txt"]
                 forecast = self.MakeWeatherObject(type="forecast")
                 forecast_day.append(forecast)
         else:
-            self.forecast_main = self.forecast["main"]
-            self.forecast_weather = self.forecast["weather"][0]
-            self.forecast_wind = self.forecast["wind"]
-            self.forecast_sunset = self.forecast["sys"]["sunset"]
-            self.forecast_sunrise = self.forecast["sys"]["sunrise"]
-            self.forecast_country = self.forecast["sys"]["country"]
-            self.forecast_timezone = self.forecast["timezone"]
-            self.forecast_city = self.forecast["name"]
+            self.forecast_main = data["main"]
+            self.forecast_weather = data["weather"][0]
+            self.forecast_wind = data["wind"]
+            self.forecast_sunset = data["sys"]["sunset"]
+            self.forecast_sunrise = data["sys"]["sunrise"]
+            self.forecast_country = data["sys"]["country"]
+            self.forecast_timezone = data["timezone"]
+            self.forecast_city = data["name"]
             forecast = self.MakeWeatherObject()
             forecast["sunset"] = self.forecast_sunset
             forecast["sunrise"] = self.forecast_sunrise
@@ -70,7 +95,7 @@ class OpenWeatherMap():
             forecast["city"] = self.forecast_city
             forecast["timezone"] = self.forecast_timezone
             forecast_day.append(forecast)
-        return forecast_day
+        GLib.idle_add(self.callback, weathertype, forecast_day)
     
     def MakeWeatherObject(self, type="weather"):
         forecast_day = {}
