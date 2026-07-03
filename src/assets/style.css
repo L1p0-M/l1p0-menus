@@ -605,7 +605,8 @@ scale trough slider:hover {
 .wifi-reload,
 .saved-menu-button,
 .bluetooth-reload,
-.bluetooth-settings-btn {
+.bluetooth-settings-btn,
+.vpn-menu-button {
     background-color: #005082;
     border-radius: 0px 20px 0px 20px;
     color: #FFFFFF;
@@ -615,7 +616,8 @@ scale trough slider:hover {
 .wifi-reload:hover,
 .saved-menu-button:hover,
 .bluetooth-reload:hover,
-.bluetooth-settings-btn:hover {
+.bluetooth-settings-btn:hover,
+.vpn-menu-button:hover {
     background-color: rgba(0, 80, 130, 0.6);
     transition: all 0.7s ease;
     box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);

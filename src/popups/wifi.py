@@ -27,6 +27,7 @@ class NetworkLayer(Gtk.Window):
         self.passwd_windows = {}
         self.saved_windows = {}
         self.wifi_cards_details = {}
+        self.vpn_to_update = {}
         self.window_utils = window_utils()
         self.notification = Notifications(self)
         self.notification_enabled = True
@@ -80,6 +81,8 @@ class NetworkLayer(Gtk.Window):
         self.main_wifi_container.set_vexpand(True)
         self.scrolled_wifi_container.set_vexpand(True)
         bottom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        menu_btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        menu_btn_box.set_homogeneous(True)
         bottom_box.set_valign(Gtk.Align.END)
         self.wifi_reload_btn = Gtk.Button()
         self.wifi_reload_btn.get_style_context().add_class("wifi-reload")
@@ -106,8 +109,18 @@ class NetworkLayer(Gtk.Window):
         saved_icon_overlay.add_overlay(save_icon)
         self.saved_networks_btn.set_child(saved_icon_overlay)
         self.saved_networks_btn.get_style_context().add_class("saved-menu-button")
+        self.vpn_btn = Gtk.Button()
+        self.vpn_btn.set_hexpand(False)
+        self.vpn_btn.set_margin_top(20)
+        vpn_icon = Gtk.Image.new_from_icon_name("network-vpn-symbolic")
+        vpn_icon.set_pixel_size(24)
+        self.vpn_btn.set_child(vpn_icon)
+        self.vpn_btn.get_style_context().add_class("vpn-menu-button")
+        self.vpn_btn.set_visible(False)
         bottom_box.append(self.wifi_reload_btn)
-        bottom_box.append(self.saved_networks_btn)
+        menu_btn_box.append(self.vpn_btn)
+        menu_btn_box.append(self.saved_networks_btn)
+        bottom_box.append(menu_btn_box)
         self.main_wifi_container.append(bottom_box)
         if not self.wifi_switch.get_active() or not self.net_switch.get_active():
             self.empty_state()
@@ -340,6 +353,29 @@ class NetworkLayer(Gtk.Window):
                 return f"network-wireless-signal-{icon}-symbolic"
             
     def update_ui_elements(self, parameters):
+        if "vpn" in parameters:
+            if not self.vpn_btn.get_visible() and not hasattr(self, "vpn_windows"):
+                self.vpn_btn.set_visible(True)
+                self.vpn_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, set_keyboard_mode=None, windowtype="vpn", wifidbus=self.wifidbus)
+                self.vpn_btn.connect("clicked", lambda x, reveal=self.vpn_windows["revealer"]: reveal.set_reveal_child(True))
+
+            elif hasattr(self, "vpn_windows"):
+                vpns = parameters.get("vpn", None)
+                if vpns is not None:
+                    self.vpn_windows["overlay"].available_vpns = vpns
+                    self.vpn_windows["overlay"].setup_vpn()
+                    if self.vpn_to_update != {} and isinstance(self.vpn_to_update, dict):
+                        for device, status in self.vpn_to_update.items():
+                            self.update_vpn(device=device, status=status)
+                            self.vpn_to_update = {}
+        if "vpn_status_update" in parameters:
+            if hasattr(self, "vpn_windows"):
+                self.update_vpn(device=parameters.get("vpn_status_update", None), status=parameters.get("status", "disconnected"))
+            else:
+                self.vpn_to_update[parameters.get("vpn_status_update", None)] = {
+                    "status": parameters.get("status", "disconnected")
+                }
+
         if "available_networks" in parameters:
             if not self.wifi_switch.get_active():
                 return
@@ -367,7 +403,7 @@ class NetworkLayer(Gtk.Window):
             network = parameters["updated_network"]
             if "bitrate" in parameters:
                 speed = f"{int(int(parameters['bitrate'])/ 1000)} Mb/s"
-                label = self.details_windows["overlay"].details["Bitrate"]
+                label = self.details_windows["overlay"].details["Speed"]
                 if label.get_label() != speed:
                     label.set_label(f"{speed}")
             if "strength" in parameters:
@@ -405,8 +441,9 @@ class NetworkLayer(Gtk.Window):
                             self.scrolled_wifi_container.invalidate_sort()
                             details = self.wifidbus.get_active_network_details()
                             for key, value in self.details_windows["overlay"].match_names.items():
-                                self.details_windows["overlay"].details[value].set_label(details[value])
+                                self.details_windows["overlay"].details[key].set_label(details[value])
                             self.update_card_css(self.wifi_cards_details[ssid]["details"], self.wifi_cards_details[ssid]["card"], self.wifi_cards_details[ssid]["connect_btn"])
+                            self.ipc.send_to("weather", "connected")
                             if self.notification_enabled:
                                 self.notification.notify(icon="notification-network-wireless", title="Connection Established", message=f'Connected to the Wi-Fi Network("{ssid}").')
                             break
@@ -427,6 +464,20 @@ class NetworkLayer(Gtk.Window):
                 self.wifi_cards_details[ssid]["spinner"].get_style_context().remove_class("active")
                 return
             self.wifi_cards_details[ssid]["spinner"].get_style_context().add_class("active")
+
+    def update_vpn(self, device, status):
+        if hasattr(self, "vpn_windows"):
+            for key in self.vpn_windows["overlay"].vpn.keys():
+                if self.vpn_windows["overlay"].vpn.get(key, None).get("path", None) == device:
+                    if key in self.vpn_windows["overlay"].vpn_details.keys():
+                        switch = self.vpn_windows["overlay"].vpn_details.get(key, None)
+                        state = False if status == "disconnected" else True
+                        if switch and switch.get_active() != state:
+                            switch.handler_block(switch.handler)
+                            switch.set_active(state)
+                            switch.handler_unblock(switch.handler)
+                            break
+                        break
     
     def cleanup(self):
         if self.secret_agent:
@@ -507,7 +558,6 @@ class NetworkLayer(Gtk.Window):
         GLib.idle_add(self.wifidbus.get_wifi_networks_data)
 
     def _on_ipc_receive(self, sender, message):
-        print(sender+":"+message)
         if sender == "bluetooth":
             if message == "show_bluetooth":
                 self.header.change_tab("Bluetooth-Tab")
@@ -523,6 +573,8 @@ class PopupWindow:
         self.popup = Popups()
         self.window_utils = window_utils()
         self.details = {}
+        self.available_vpns = {}
+        self.vpn = {}
         self.wifidbus = wifidbus
         self.type = windowtype
         self.windows = windows
@@ -557,7 +609,8 @@ class PopupWindow:
         header_text = {
             "saved": "Saved Networks",
             "details": "Network Details",
-            "password": "Enter password"
+            "password": "Enter password",
+            "vpn": "VPN Connections"
         }
         self.popup.create_header(header_text=f"{header_text[self.type].upper()}", close_function=lambda x: self.on_close(self.type), main_container=self.panel_content)
         if self.type == "password":
@@ -572,12 +625,38 @@ class PopupWindow:
                 details = self.wifidbus.get_active_network_details(),
                 container=self.hor_container)
             self.panel_content.append(self.hor_container)
+        elif self.type == "vpn":
+            self.setup_vpn()
         else:
             self.network_rows = []
             self.scrolled_wifi_panel, self.scrolled_wifi_container = self.window_utils.setup_scrolled_windows(max_height=300, min_height=300)
             self.setup_saved()
             self.panel_content.append(self.scrolled_wifi_panel)      
 
+    def setup_vpn(self):
+        if not hasattr(self, "vpn_container"):
+            self.vpn_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            self.vpn_container.set_homogeneous(True)
+            self.panel_content.append(self.vpn_container)
+        else:
+            while child := self.vpn_container.get_first_child():
+                self.vpn_container.remove(child)
+        match_names = {}
+        icons = {}
+        if self.available_vpns == {}:
+            self.available_vpns = self.wifidbus.vpn_connections
+        for vpn_id, vpn_detail in self.available_vpns.items():
+            vpn_switch = Gtk.Switch()
+            vpn_switch.handler = vpn_switch.connect("state-set", lambda switch, state, path=vpn_detail['path'], vpn=vpn_id: self.wifidbus.toggle_vpn(path, vpn, state))
+            match_names[vpn_id] = vpn_switch
+            icons[vpn_id] = "network-vpn-symbolic"
+            self.vpn[vpn_id] = vpn_detail
+        self.vpn_details = self.popup.setup_details(
+            match_icons=icons,
+            match_names=match_names,
+            details = self.vpn,
+            container=self.vpn_container)
+        
     def setup_saved(self):
         if len(self.network_rows) > 0:
             for row in self.network_rows:
@@ -668,10 +747,13 @@ class PopupWindow:
         
 
 def init_layer(config):
-    global _v_layer
-    if _v_layer is None:
-        _v_layer = NetworkLayer(config)
-        _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    try:
+        global _v_layer
+        if _v_layer is None:
+            _v_layer = NetworkLayer(config)
+            _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize NetworkLayer: {e}")
 
 def toggle_layer():
     global _v_layer

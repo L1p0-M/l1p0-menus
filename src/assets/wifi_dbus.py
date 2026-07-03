@@ -7,7 +7,9 @@ class WifiDbus:
     def __init__(self, callback=None):
         self.callback = callback
         self.wifi_path = None
-        self.ethernet_path = None 
+        self.ethernet_path = None
+        self.vpn_path = []
+        self.vpn_connections = {}
         self.ap_count = 0
         self.completed_ap_count = 0
         self._scanning = False
@@ -51,10 +53,17 @@ class WifiDbus:
                 None
             )
             dev_type = dev_proxy.get_cached_property("DeviceType").unpack()
+            if dev_type is None:
+                dev_type = self._get_property_forced(proxy=dev_proxy, interface="org.freedesktop.NetworkManager.Device", prop_name= "DeviceType")
             if dev_type == 2: # 2 = NM_DEVICE_TYPE_WIFI
                 self.wifi_path = path
             if dev_type == 1: # 1 = NM_DEVICE_TYPE_ETHERNET
                 self.ethernet_path = path
+            if dev_type in [29, 16]:
+                self.vpn_path.append(path)
+                vpn_proxy = self._get_vpn_device_proxy(path)
+                if vpn_proxy:
+                    GLib.idle_add(self.callback, {"vpn_status_update": vpn_proxy.get_cached_property("AvailableConnections").unpack()[0], "status": "connected"})
         return None
     
     def _get_nm_proxy(self):
@@ -95,6 +104,19 @@ class WifiDbus:
                 "org.freedesktop.NetworkManager.Device",
                 None
             )
+
+    def _get_vpn_device_proxy(self, device_path):
+        if device_path:
+            proxy = Gio.DBusProxy.new_sync(
+                self.bus,
+                Gio.DBusProxyFlags.NONE,
+                None,
+                "org.freedesktop.NetworkManager",
+                device_path,
+                "org.freedesktop.NetworkManager.Device",
+                None
+            )
+            return proxy if proxy is not None else None
 
     def _get_ethernet_proxy(self, path):
         self.ethernet_device_proxy = Gio.DBusProxy.new_sync(
@@ -351,6 +373,23 @@ class WifiDbus:
                 ssid_bytes = settings['802-11-wireless']['ssid']
                 ssid = self._decode_ssid(ssid_bytes)
                 self.active_connections[ssid] = path
+            elif conn_type in ["wireguard", "vpn"]:
+                proxy = self._get_connection_proxy(connection_path)
+                settings = proxy.call_sync("GetSettings", None, Gio.DBusCallFlags.NONE, -1, None).unpack()[0]
+                connection_id = settings["connection"]["id"]
+                device_path = proxy.get_cached_property("Devices")
+                if device_path is None:
+                    device_path = self._get_property_forced(
+                        active_proxy,
+                        "org.freedesktop.NetworkManager.Connection.Active",
+                        "Devices"
+                )
+                if "vpn" not in self.active_connections:
+                    self.active_connections["vpn"] = {}
+                self.active_connections["vpn"][connection_id] = {
+                    "path": path,
+                    "device": device_path
+                }
         return self.active_connections
                 
 
@@ -432,6 +471,50 @@ class WifiDbus:
                 )
         except Exception as e:
             print(f"Error while connecting to network: {e}")
+
+    def toggle_vpn(self, connection_path, connection_id, state):
+        def turn_on():
+            try:
+                parameters = GLib.Variant(
+                    "(ooo)", 
+                    (connection_path, "/", "/")
+                )
+                
+                active_conn_path = self.nm_proxy.call(
+                    "org.freedesktop.NetworkManager.ActivateConnection",
+                    parameters,
+                    Gio.DBusCallFlags.NONE,
+                    -1,
+                    None,
+                    self._update_active_connections
+                )
+
+            except Exception as e:
+                print(f"Error while turning on the vpn connection: {e}")
+                return None
+        def turn_off():
+            try:
+                connection_details = self.active_connections["vpn"].get(connection_id, None)
+                
+                if connection_details is not None:
+                    active_connection_path = connection_details["path"]
+                    
+                    self.nm_proxy.call(
+                        "DeactivateConnection",
+                        GLib.Variant("(o)", (active_connection_path,)),
+                        Gio.DBusCallFlags.NONE,
+                        -1,
+                        None,
+                        self._update_active_connections
+                    )
+                       
+            except Exception as e:
+                print(f"Error while turning off the vpn connection: {e}")
+                return None
+        if state:
+            turn_on()
+            return
+        turn_off()
 
     def toggle_network(self, toggle, state):
         self._call_nm_proxy("Enable", GLib.Variant('(b)', [state]))
@@ -526,24 +609,40 @@ class WifiDbus:
         if not isinstance(parameter, (list, tuple)) or len(parameter) < 2:
             return
         #print(f"Signal received: {signal_name} from {sender_name} at {object_path}")
-        #print(f"{parameter}")
+        #if object_path != self.wifi_path:
+            #print(f"{parameter}")
+            #print(object_path)
         #print(signal_name)
-        if "org.freedesktop.NetworkManager.Device" in str(parameter[0]):
-            props = parameter[1]
-            if "State" in props:
-                state = props["State"]
-                active_path = self._get_property_forced(self.dev_proxy, 
-                                "org.freedesktop.NetworkManager.Device", "ActiveConnection")
-                activating_path = self._get_property_forced(self.dev_proxy, 
-                                "org.freedesktop.NetworkManager.Device", "ActivatingConnection")
-                target_path = activating_path if activating_path != "/" else active_path
-                if state in [40, 50, 60, 70, 80, 90]:
-                    GLib.idle_add(self.callback, {"status_update": target_path, "status": "preparing", "state_code": state})
-                elif state == 100:
-                    GLib.idle_add(self.callback, {"status_update": target_path, "status": "connected", "state_code": state})
-                elif state in [110, 120]:
-                    GLib.idle_add(self.callback, {"status_update": target_path, "status": "disconnected", "state_code": state})        
+        if object_path == self.wifi_path:
+            if "org.freedesktop.NetworkManager.Device" in str(parameter[0]):
+                props = parameter[1]
+                if "State" in props:
+                    state = props["State"]
+                    active_path = self._get_property_forced(self.dev_proxy, 
+                                    "org.freedesktop.NetworkManager.Device", "ActiveConnection")
+                    activating_path = self._get_property_forced(self.dev_proxy, 
+                                    "org.freedesktop.NetworkManager.Device", "ActivatingConnection")
+                    target_path = activating_path if activating_path != "/" else active_path
+                    if state in [40, 50, 60, 70, 80, 90]:
+                        GLib.idle_add(self.callback, {"status_update": target_path, "status": "preparing", "state_code": state})
+                    elif state == 100:
+                        GLib.idle_add(self.callback, {"status_update": target_path, "status": "connected", "state_code": state})
+                    elif state in [110, 120]:
+                        GLib.idle_add(self.callback, {"status_update": target_path, "status": "disconnected", "state_code": state})   
 
+        elif object_path != self.wifi_path and "org.freedesktop.NetworkManager.Device" in str(parameter[0]):
+            proxy = self._get_vpn_device_proxy(object_path)
+            dev_type = proxy.get_cached_property("DeviceType")
+            if dev_type is not None:
+                if dev_type.unpack() in [16, 29]:
+                    connection = proxy.get_cached_property("AvailableConnections")
+                    if connection is not None:
+                        props = parameter[1]
+                        if "State" in props and props.get("State", 0) == 100:
+                            GLib.idle_add(self.callback, {"vpn_status_update": connection.unpack()[0], "status": "connected", "state_code": props.get("State", 0)})
+                        elif "State" in props and props.get("State", 0) in [110, 120]:
+                            GLib.idle_add(self.callback, {"vpn_status_update": connection.unpack()[0], "status": "disconnected", "state_code": props.get("State", 0)})
+                        
         if "org.freedesktop.NetworkManager.Device.Wireless" in str(parameter[0]):
             props = parameter[1] if len(parameter) > 1 else {}
             if "AccessPoints" in props:
@@ -556,6 +655,10 @@ class WifiDbus:
             props = parameter[1] if len(parameter) > 1 else {}
             if "Strength" in props:
                 GLib.idle_add(self.callback, {"updated_network": object_path, "strength": props['Strength']})
+        elif "org.freedesktop.NetworkManager.Settings" in str(parameter[0]):
+            settings = parameter[1].get("Connections", None) if len(parameter) > 1 else None
+            if settings is not None:
+                GLib.idle_add(self.callback, {"saved_networks": object_path, "networks": settings})
 
 
     def _call_nm_proxy(self, method, value):
@@ -612,6 +715,12 @@ class WifiDbus:
                     "path": path,
                     "autoconnect": autoconnect
                 }
+            if settings["connection"]["type"] in ["wireguard", "vpn"]:
+                self.vpn_connections[settings["connection"]["id"]] = {
+                    "path": path,
+                    "type": settings["connection"]["type"]
+                }
+                GLib.idle_add(self.callback, {"vpn": self.vpn_connections})
         return saved_ssids
     
     def _get_settings(self, path):
@@ -638,3 +747,9 @@ class WifiDbus:
         
     def _decode_ssid(self, ssid_bytes):
         return bytes(ssid_bytes).decode('utf-8', errors='replace')
+    
+    def _update_active_connections(self, source_object, res, userdata=None):
+        result = source_object.call_finish(res)
+        if result:
+            if hasattr(self, "active_connections"):
+                self.get_active_networks()

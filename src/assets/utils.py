@@ -1,5 +1,4 @@
 import gi
-import socket
 import json
 from os import environ, path
 gi.require_version('Gtk', '4.0')
@@ -247,7 +246,7 @@ class Popups:
             icon_name_container.append(propertys)
             details_container.append(icon_name_container)
             value_container.append(property_value)
-            return_details[value] = property_value
+            return_details[key] = property_value
         container.append(details_container)
         container.append(value_container)
         return return_details
