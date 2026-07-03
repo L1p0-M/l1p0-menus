@@ -414,10 +414,13 @@ class Pulseaudio:
         GLib.timeout_add(100, callback, is_mic, dev_name)
 
 def init_layer(config):
-    global _v_layer
-    if _v_layer is None:
-        _v_layer = VolumeLayer(config)
-        _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    try:
+        global _v_layer
+        if _v_layer is None:
+            _v_layer = VolumeLayer(config)
+            _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize VolumeLayer: {e}")
 
 def toggle_layer():
     global _v_layer

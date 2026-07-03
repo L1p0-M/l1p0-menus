@@ -417,10 +417,13 @@ def on_present():
     _v_layer.level_bar.animate_to_value(_v_layer.target)
 
 def init_layer(config):
-    global _v_layer
-    if _v_layer is None:
-        _v_layer = BatteryLayer(config)
-        _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    try:
+        global _v_layer
+        if _v_layer is None:
+            _v_layer = BatteryLayer(config)
+            _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize BatteryLayer: {e}")
 
 def toggle_layer():
     global _v_layer

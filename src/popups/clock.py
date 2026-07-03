@@ -460,10 +460,13 @@ class PopupWindow:
 
 
 def init_layer(config):
-    global _v_layer
-    if _v_layer is None:
-        _v_layer = CalendarLayer(config)
-        _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    try:
+        global _v_layer
+        if _v_layer is None:
+            _v_layer = CalendarLayer(config)
+            _v_layer.connect("close-request", lambda w, e: w.hide() or True)
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize CalendarLayer: {e}")
 
 def toggle_layer():
     global _v_layer

@@ -125,9 +125,11 @@ def process_command(data):
         module_anchor = config.get(MATCH_CONFIG[module], {}).get("anchor", default_anchor[module])
         for popup, config_name in MATCH_CONFIG.items():
             if popup != module and config.get(config_name, {}).get("anchor", default_anchor[popup]) == module_anchor:
-                if popup.get_visibility():
+                if popup._v_layer and popup.get_visibility():
                     popup.hide_layer()
-    
+        if not module._v_layer:
+            print(f"{module.__name__} layer not initialized because of an error during initialization.")
+            return False
         module.toggle_layer()
 
     elif data == "reload_css":
@@ -185,7 +187,11 @@ def run_daemon():
     load_css()
     popups = [pulse, brightness, battery, clock, network]
     for popup in popups:
-        popup.init_layer(config=None)
+        try:
+            popup.init_layer(config=None)
+        except RuntimeError as e:
+            print(f"Error initializing popups: {e}")
+            popup._v_layer = None
     reload_config(CONFIG)
     print("Popups initialized...")
     loop = GLib.MainLoop()
