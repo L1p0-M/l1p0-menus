@@ -160,7 +160,9 @@ You can place a `config.json` file in `~/.config/l1p0-menu/` to configure the me
    },
    "battery": {
         "margin": "10, 10",
-        "anchor": "top-right"
+        "anchor": "top-right",
+        "notification_threshold": "3, 15, 20",
+        "notification": true
    },
    "audio": {
         "margin": "10, 10",

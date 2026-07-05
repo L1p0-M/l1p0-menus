@@ -278,14 +278,19 @@ class Notifications:
         self.window = window
         Notify.init("L1p0-Menus")
 
-    def notify(self, icon="dialog-information", title="L1p0-Menus", message=""):
+    def notify(self, icon="dialog-information", title="L1p0-Menus", message="", urgency=1):
         notification = Notify.Notification.new(
             title,
             message,
             icon,
         )
         # LOW, NORMAL, CRITICAL
-        notification.set_urgency(Notify.Urgency.NORMAL)
+        urgency_mapping = {
+            0: Notify.Urgency.LOW,
+            1: Notify.Urgency.NORMAL,
+            2: Notify.Urgency.CRITICAL
+        }
+        notification.set_urgency(urgency_mapping.get(urgency, Notify.Urgency.NORMAL))
         notification.show()
 
 class GtkLayerShellUtils:

@@ -4,7 +4,7 @@ gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 from datetime import timedelta
 from time import strptime
-from ..assets.utils import window_utils, GtkLayerShellUtils, Popups
+from ..assets.utils import window_utils, GtkLayerShellUtils, Popups, Notifications
 from ..assets.battery_dbus import Battery, PowerProfiles
 import os
 import math
@@ -21,6 +21,9 @@ class BatteryLayer(Gtk.Window):
         self.get_style_context().add_class("battery-window")
         self.main_overlay = Gtk.Overlay()
         self.window_utils = window_utils()
+        self.notification = Notifications(self)
+        self.notification_enabled = True
+        self.notification_threshold = [3, 15]
         self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_container.set_margin_start(0)
         self.main_container.get_style_context().add_class("battery-layer")
@@ -40,6 +43,9 @@ class BatteryLayer(Gtk.Window):
     def load_config(self, config):
         if config != self.config:
             self.config = config
+            self.notification_enabled = self.config.get("notification", True)
+            self.notification_threshold = [int(x) for x in self.config.get("notification_threshold", "3, 15").split(",")]
+            print(f"Notification Enabled: {self.notification_enabled}, Threshold: {self.notification_threshold}")
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
             
@@ -265,6 +271,9 @@ class BatteryLayer(Gtk.Window):
                             self.combined_battery_level.set_label(f"{round(data['Percentage'])}%")
                             self.level_bar.set_value(round(data['Percentage']))
                             self.combined_icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.combined_battery_status_code), int(round(data['Percentage'])))}")
+                            if self.notification_enabled:
+                                if round(data['Percentage']) in self.notification_threshold and self.combined_battery_status_code == 2:
+                                    self.notification.notify(icon="battery-caution-symbolic", title="Low Battery", message=f'Battery is at {int(round(data["Percentage"]))}%, please plug in your charger.', urgency=2)
                     if update == "TimeToEmpty":
                         self.combined_battery_time_to.set_label(self.format_time(data["TimeToEmpty"], "Empty"))
                     if update == "TimeToFull":
