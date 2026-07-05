@@ -210,7 +210,6 @@ class BatteryLayer(Gtk.Window):
             self.powerprofile.set_power_profile(mode)
 
     def animate_on_present(self):
-       # self.target = int(round(self.battery.dbus_call(property_name="Percentage")))
         self.target = int((self.combined_battery_level.get_label().replace("%", "")))
         self.combined_battery_level.set_label("0%")
         self.animation_value = 0

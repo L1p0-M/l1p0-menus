@@ -220,7 +220,6 @@ class DbusBluez:
         if result:
             nodes = result.unpack()[0]
             if not any('org.bluez.Adapter1' in subdict for subdict in nodes.values()):
-                print("Adapter not found, Bluetooth is likely hardware disabled.")
                 GLib.timeout_add_seconds(5, self._get_bluez_objects)
                 return
             print("Found bluetooth adapter, setting up devices...")

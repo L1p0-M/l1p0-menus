@@ -207,7 +207,7 @@ class CalendarLayer(Gtk.Window):
         self.current_weather_desc.set_label(f"{current_weather["description"].upper()}")
         self.current_weather_temp.set_label(f"{int(current_weather["temp"])}°")
         self.current_weather_wind.set_label(f"{int(current_weather["wind_speed"])}km/h")
-        self.current_weather_place.set_label(f"{current_weather["city"]}, {current_weather["country"]}")
+        self.current_weather_place.set_label(f"{current_weather["name"]}, {current_weather["country"]}")
         if not self.show_feels_like:
             self.current_weather_feel.set_visible(False)
             self.current_weather_temp.set_halign(Gtk.Align.CENTER)
@@ -266,7 +266,7 @@ class CalendarLayer(Gtk.Window):
             upcoming_desc.get_style_context().add_class("upcoming-description")
             upcoming_icons = Gtk.Image.new_from_icon_name(self.weather.matchIcon(weather_forecast[i]["icon"]))
             upcoming_icons.get_style_context().add_class("upcoming-icons")
-            dates = weather_forecast[i]["date"]
+            dates = weather_forecast[i]["dt_txt"]
             dates_object = time.strptime(dates, "%Y-%m-%d %H:%M:%S")
             dates_formated = time.strftime("%H:%M", dates_object)
             upcoming_time = Gtk.Label()
@@ -389,7 +389,7 @@ class PopupWindow:
             if values.get_parent() is not None:
                 self.scrolled_weather_content.remove(values)
         for i in range(len(weather_forecast)):
-            dates = weather_forecast[i]["date"]
+            dates = weather_forecast[i]["dt_txt"]
             dates_object = time.strptime(dates, "%Y-%m-%d %H:%M:%S")
             dates_formated = time.strftime("%H:%M", dates_object)
             show_date = time.strftime(self.date_format, dates_object)

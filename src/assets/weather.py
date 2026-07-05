@@ -10,6 +10,27 @@ class OpenWeatherMap():
         self.api_key = api_key
         self.language = language
         self.callback = callback
+        self.icons = {
+            "01d": "weather-clear-symbolic",
+            "01n": "weather-clear-night-symbolic",
+            "02d": "weather-few-clouds-symbolic",
+            "02n": "weather-few-clouds-night-symbolic",
+            "03d": "weather-overcast-symbolic",
+            "03n": "weather-overcast-symbolic",
+            "04n": "weather-overcast-symbolic",
+            "04d": "weather-overcast-symbolic",
+            "09d": "weather-showers-symbolic",
+            "09n": "weather-showers-symbolic",
+            "10d": "weather-showers-symbolic",
+            "10n": "weather-showers-symbolic",
+            "11d": "weather-storm-symbolic",
+            "11n": "weather-storm-symbolic",
+            "13d": "weather-snow-symbolic",
+            "13n": "weather-snow-symbolic",
+            "50d": "weather-fog-symbolic",
+            "50n": "weather-fog-symbolic",
+            "missing": "image-missing",
+        }
 
     def GetWeatherObject(self, weathertype="weather"):
         try:
@@ -70,89 +91,61 @@ class OpenWeatherMap():
         if not data:
             GLib.idle_add(self.callback, weathertype, None)
             return
-        forecast_day = []
         if weathertype == "forecast":
+            forecast_day = []
+            props = ["main", "weather", "wind", "dt_txt"]
             for i in range(len(data)):
-                self.forecast_main = data[i]["main"]
-                self.forecast_weather = data[i]["weather"][0]
-                self.forecast_wind = data[i]["wind"]
-                self.forecast_date = data[i]["dt_txt"]
-                forecast = self.MakeWeatherObject(type="forecast")
+                data_to_process = {}
+                for prop in props:
+                    if prop in data[i]:
+                        data_to_process[prop] = data[i][prop] if prop != "weather" else data[i][prop][0]
+                forecast = self.MakeWeatherObject(type="forecast", data=data_to_process)
                 forecast_day.append(forecast)
         else:
-            self.forecast_main = data["main"]
-            self.forecast_weather = data["weather"][0]
-            self.forecast_wind = data["wind"]
-            self.forecast_sunset = data["sys"]["sunset"]
-            self.forecast_sunrise = data["sys"]["sunrise"]
-            self.forecast_country = data["sys"]["country"]
-            self.forecast_timezone = data["timezone"]
-            self.forecast_city = data["name"]
-            forecast = self.MakeWeatherObject()
-            forecast["sunset"] = self.forecast_sunset
-            forecast["sunrise"] = self.forecast_sunrise
-            forecast["country"] = self.forecast_country
-            forecast["city"] = self.forecast_city
-            forecast["timezone"] = self.forecast_timezone
+            forecast_day = []
+            sys_props = ["sunset", "sunrise", "country"]
+            props = ["main", "weather", "wind", "sys", "timezone", "name"]
+            data_to_process = {}
+            for prop in props:
+                if prop in data:
+                    if prop == "sys":
+                        for list_items in sys_props:
+                            data_to_process[list_items] = data[prop][list_items]
+                    elif prop == "weather":
+                        data_to_process[prop] = data[prop][0]
+                    else:
+                        data_to_process[prop] = data[prop]
+            forecast = self.MakeWeatherObject(type="weather", data=data_to_process)
             forecast_day.append(forecast)
         GLib.idle_add(self.callback, weathertype, forecast_day)
     
-    def MakeWeatherObject(self, type="weather"):
+    def MakeWeatherObject(self, type="weather", data=None):
         forecast_day = {}
-        forecast_day["temp"] = self.forecast_main["temp"]
-        forecast_day["temp_max"] = self.forecast_main["temp_max"]
-        forecast_day["temp_min"] = self.forecast_main["temp_min"]
-        forecast_day["feels_like"] = self.forecast_main["feels_like"]
-        forecast_day["icon"] = self.forecast_weather["icon"]
-        forecast_day["description"] = self.forecast_weather["description"]
-        forecast_day["wind_speed"] = self.forecast_wind["speed"]
-        forecast_day["wind_degre"] = self.forecast_wind["deg"]
-        if type == "forecast":
-            forecast_day["date"] = self.forecast_date
+        props_main = ["main", "weather", "wind", "dt_txt", "sunrise", "sunset", "country", "timezone", "name"]
+        sub_props = {
+            "main": ["temp", "temp_max", "temp_min", "feels_like"],
+            "weather": ["icon", "description"],
+            "wind": ["speed", "deg"],
+        }
+        if data:
+            for prop in props_main:
+                if prop in data:
+                    if prop in sub_props:
+                        for sub_prop in sub_props[prop]:
+                            if sub_prop in data[prop]:
+                                forecast_prop = sub_prop if prop != "wind" else "wind_" + sub_prop
+                                forecast_day[forecast_prop] = data[prop][sub_prop]
+                    else:
+                        forecast_day[prop] = data[prop]
         return forecast_day
     
     def matchIcon(self, icon):
         #https://openweathermap.org/weather-conditions
         try:
-            match icon:
-                case "01d":
-                    icon_name = "weather-clear-symbolic"
-                case "01n":
-                    icon_name = "weather-clear-night-symbolic"
-                case "02d":
-                    icon_name = "weather-few-clouds-symbolic"
-                case "02n":
-                    icon_name = "weather-few-clouds-night-symbolic"
-                case "03d":
-                    icon_name = "weather-overcast-symbolic"
-                case "03n":
-                    icon_name = "weather-overcast-symbolic"
-                case "04n":
-                    icon_name = "weather-overcast-symbolic"
-                case "04d":
-                    icon_name = "weather-overcast-symbolic"
-                case "09d":
-                    icon_name = "weather-showers-symbolic"
-                case "09n":
-                    icon_name = "weather-showers-symbolic"
-                case "10d":
-                    icon_name = "weather-showers-symbolic"
-                case "10n":
-                    icon_name = "weather-showers-symbolic"
-                case "11d":
-                    icon_name = "weather-storm-symbolic"
-                case "11n":
-                    icon_name = "weather-storm-symbolic"
-                case "13d":
-                    icon_name = "weather-snow-symbolic"
-                case "13n":
-                    icon_name = "weather-snow-symbolic"
-                case "50d":
-                    icon_name = "weather-fog-symbolic"
-                case "50n":
-                    icon_name = "weather-fog-symbolic"
-                case "*":
-                    icon_name = "image-missing"
+            if icon in self.icons:
+                icon_name = self.icons[icon]
+            else:
+                icon_name = self.icons["missing"]
             return icon_name
         except Exception as e:
             print(f"Unable to get icon! {e}")
