@@ -17,6 +17,8 @@ class Battery:
                 path = f"{batterys_path}{i}"
                 if os.path.exists(path):
                     self.batterys[f"BAT{i}"] = path
+            if self.batterys == {}:
+                raise RuntimeError("No batteries found")
             for battery_name in self.batterys:
                 self.connect_to_upower(battery_name)
                 self.updateables.append(battery_name)
@@ -42,31 +44,38 @@ class Battery:
                 None
             )
         except Exception as e:
-            print(e)
+            raise RuntimeError(f"Failed to initialize Battery: {e}")
 
     def dbus_call(self, battery_name="DisplayDevice", property_name=None):
         try:
             if property_name is None:
                 print("Property name is required for dbus_call")
                 return None
-            variant = self.proxys[battery_name].get_cached_property(property_name)
-            if variant:
-                return variant.unpack()
-            else:
-                variant = self.proxys[battery_name].call_sync(
-                    "org.freedesktop.DBus.Properties.Get",
-                    GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None
-                )
-                if variant:
-                    return variant.unpack()[0]
-                return None
+            self.proxys[battery_name].call(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", ("org.freedesktop.UPower.Device", property_name)),
+                Gio.DBusCallFlags.NONE,
+                -1,
+                None,
+                self._on_dbus_call_finished,
+                battery_name, property_name
+            )
+            return None
 
         except Exception as e:
             print(f"Error occurred while fetching {property_name} for {battery_name}: {e}")
             return None
+        
+    def _on_dbus_call_finished(self, proxy, result, battery_name, property_name):
+        try:
+            variant = proxy.call_finish(result)
+            if variant:
+                if property_name in ["TimeToEmpty", "TimeToFull"]:
+                    if variant.unpack()[0] == 0:
+                        return
+                GLib.idle_add(self.callback, battery_name, {property_name: variant.unpack()[0]})
+        except Exception as e:
+            print(f"Error occurred while getting Battery DBus call results: {e}")
 
 
     def connect_to_upower(self, battery_name):
@@ -96,37 +105,19 @@ class Battery:
     def get_initial_battery_info(self):
         batterys = {}
         try:
+            props_to_get = ["State", "Percentage", "ChargeCycles", "EnergyFull", "EnergyFullDesign", "Vendor", "Model"]
             for battery_name, battery_path in self.batterys.items():
-                battery_level = self.dbus_call(battery_name, "Percentage")
-                battery_status = self.dbus_call(battery_name, "State")
-                charge_cycles = self.dbus_call(battery_name, "ChargeCycles")
-                energy_full = self.dbus_call(battery_name, "EnergyFull")
-                energy_full_design = self.dbus_call(battery_name, "EnergyFullDesign")
-                vendor = self.dbus_call(battery_name, "Vendor")
-                model = self.dbus_call(battery_name, "Model")
-                batterys[battery_name] = {
-                    "Percentage": battery_level,
-                    "Status": battery_status,
-                    "ChargeCycles": charge_cycles,
-                    "EnergyFull": energy_full,
-                    "EnergyFullDesign": energy_full_design,
-                    "Vendor": vendor,
-                    "Model": model
-                }
-            return batterys
+                for prop in props_to_get:
+                    self.dbus_call(battery_name=battery_name, property_name=prop)
                 
         except Exception as e:
             print(f"Error occurred while fetching battery info: {e}")
 
     def get_initial_combined_battery_info(self):
         try:
-            batterys = {}
-            batterys["level"] = self.dbus_call(property_name="Percentage")
-            batterys["status"] = self.dbus_call(property_name="State")
-            batterys["time_to_empty"] = self.dbus_call(property_name="TimeToEmpty")
-            batterys["time_to_full"] = self.dbus_call(property_name="TimeToFull")
-            batterys["energy_rate"] = self.dbus_call(property_name="EnergyRate")
-            return batterys
+            props_to_get = ["State", "Percentage", "TimeToEmpty", "TimeToFull", "EnergyRate"]
+            for prop in props_to_get:
+                self.dbus_call(battery_name="DisplayDevice", property_name=prop)
                 
         except Exception as e:
             print(f"Error occurred while fetching battery info: {e}")
@@ -135,7 +126,7 @@ class Battery:
 
 class PowerProfiles:
     def __init__(self, callback):
-        self.update_ui_elements = callback
+        self.callback = callback
         self.dbus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
         self.dbus_path = "/net/hadess/PowerProfiles"
         self.bus_name = "net.hadess.PowerProfiles"
@@ -188,20 +179,16 @@ class PowerProfiles:
         
     def get_active_profile(self):
         try:
-            variant = self.proxy.get_cached_property("ActiveProfile")
-            if variant:
-                return variant.unpack()
-            else:
-                variant = self.proxy.call_sync(
-                    "org.freedesktop.DBus.Properties.Get",
-                    GLib.Variant("(ss)", (self.bus_name, "ActiveProfile")),
-                    Gio.DBusCallFlags.NONE,
-                    -1,
-                    None
-                )
-                if variant:
-                    return variant.unpack()[0]
-                return None
+            self.proxy.call(
+                "org.freedesktop.DBus.Properties.Get",
+                GLib.Variant("(ss)", (self.bus_name, "ActiveProfile")),
+                Gio.DBusCallFlags.NONE,
+                -1,
+                None,
+                self._on_dbus_call_finished,
+                None
+            )
+            return None
 
         except Exception as e:
             print(f"Error occurred while fetching active powerprofile: {e}")
@@ -211,4 +198,12 @@ class PowerProfiles:
         changed_properties = parameters.get_child_value(1).unpack()
         if "ActiveProfile" in changed_properties:
             new_active_profile = changed_properties["ActiveProfile"]
-            self.update_ui_elements()
+            GLib.idle_add(self.callback, {"active_profile": new_active_profile})
+    
+    def _on_dbus_call_finished(self, proxy, result, user_data):
+        try:
+            variant = proxy.call_finish(result)
+            if variant:
+                GLib.idle_add(self.callback, {"active_profile": variant.unpack()[0]})
+        except Exception as e:
+            print(f"Error occurred while getting PowerProfiles DBus call results: {e}")
