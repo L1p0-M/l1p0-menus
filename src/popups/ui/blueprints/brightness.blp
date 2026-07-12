@@ -1,0 +1,107 @@
+using Gtk 4.0;
+
+template $brightness_window: Gtk.Window {
+    title: "Brightness Layer";
+    styles ["brightness-window"]
+
+    child: Gtk.Box main_container {
+        orientation: vertical;
+        margin-start: 0;
+        styles ["brightness-layer"]
+
+        Gtk.Box main_header_container {
+            margin-start: 10;
+            margin-end: 10;
+            margin-top: 10;
+            margin-bottom: 10;
+            orientation: horizontal;
+            homogeneous: true;
+            styles ["header"]
+
+            $HeaderButton bright_button {}
+            $HeaderButton night_button {}
+        }
+
+        Gtk.Stack tabs {
+            vexpand: true;
+            transition-type: slide_left_right; 
+
+            Gtk.StackPage {
+                name: "Bright-Tab";
+                title: "Brightness";
+
+                child: Gtk.Box main_brightness_container {
+                    orientation: vertical;
+                    spacing: 15;
+                    margin-top: 20;
+                    margin-bottom: 20;
+                    margin-start: 20;
+                    margin-end: 20;
+
+                    Gtk.Box {
+                        orientation: horizontal;
+                        spacing: 10;
+
+                        Gtk.Label brightness_label {
+                            label: "100%";
+                            margin-start: 5;
+                            margin-end: 5;
+                            styles ["percent-text"]
+                        }
+                        
+                        Gtk.Scale brightness_scale {
+                            orientation: horizontal;
+                            hexpand: true;
+                            margin-start: 5;
+                            margin-end: 5;
+                            draw-value: false;
+                            adjustment: Gtk.Adjustment { value: 100; lower: 1; upper: 100; step-increment: 1; };
+                            styles ["brightness-slider"]
+                        }
+                    }
+                };
+            }
+
+            Gtk.StackPage {
+                name: "Night-Tab";
+                title: "Night Light";
+
+                child: Gtk.Box main_nightlight_container {
+                    orientation: vertical;
+                    spacing: 15;
+                    margin-top: 20;
+                    margin-bottom: 20;
+                    margin-start: 20;
+                    margin-end: 20;
+
+                    Gtk.Box {
+                        orientation: horizontal;
+                        spacing: 10;
+
+                        Gtk.Label night_label {
+                            label: "6000K";
+                            margin-start: 5;
+                            margin-end: 5;
+                            styles ["percent-text"]
+                        }
+                        
+                        Gtk.Scale night_scale {
+                            orientation: horizontal;
+                            hexpand: true;
+                            margin-start: 5;
+                            margin-end: 5;
+                            draw-value: false;
+                            adjustment: Gtk.Adjustment { value: 6000; lower: 1000; upper: 6000; step-increment: 100; };
+                            styles ["brightness-slider"]
+                        }
+                        
+                        Gtk.Switch night_switch {
+                            active: false;
+                            styles ["night-switch"]
+                        }
+                    }
+                };
+            }
+        }
+    }; 
+}

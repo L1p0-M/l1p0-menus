@@ -3,4 +3,8 @@
   <gresource prefix="/l1p0-menus/assets/">
     <file>style.css</file>
   </gresource>
+  <gresource prefix="/l1p0-menus/ui">
+    <file preprocess="xml-stripblanks" alias="brightness.ui">../popups/ui/brightness.ui</file>
+    <file preprocess="xml-stripblanks" alias="header_buttons.ui">../popups/ui/header_buttons.ui</file>
+  </gresource>
 </gresources>

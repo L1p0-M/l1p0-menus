@@ -1,0 +1,19 @@
+using Gtk 4.0;
+
+template $HeaderButton : Gtk.Button {
+  styles ["header-button"]
+
+  Gtk.Box {
+    orientation: horizontal;
+    spacing: 10;
+    halign: center;
+
+    Gtk.Image header_button_image {
+      icon-name: "image-missing";
+    }
+
+    Gtk.Label header_button_name {
+      label: "Default";
+    }
+  }
+}
