@@ -4,6 +4,20 @@ from argparse import ArgumentParser
 from os import path, environ, remove
 import gi
 from sys import exit
+gi.require_version('Gtk', '4.0')
+gi.require_version('Gtk4LayerShell', '1.0')
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
+
+def load_resources():
+    try:
+        base_dir = path.dirname(path.abspath(__file__))
+        resource_path = path.join(base_dir, "resources.gresource")
+        resource = Gio.Resource.load(resource_path)
+        Gio.resources_register(resource)
+    except Exception as e:
+        print(f"Failed to load resources: {e}")
+load_resources()
+
 from .popups import brightness as brightness
 from .popups import clock as clock
 from .popups import battery as battery
@@ -11,10 +25,6 @@ from .popups import wifi as network
 from .popups import pulse as pulse
 from .assets.utils import IPCSocket
 import json
-
-gi.require_version('Gtk', '4.0')
-gi.require_version('Gtk4LayerShell', '1.0')
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
 
 runtime_dir = environ.get('XDG_RUNTIME_DIR', '/tmp')
 SOCKET_PATH = path.join(runtime_dir, "l1p0-menus.sock")
@@ -181,7 +191,7 @@ def run_daemon():
         print(f"Failed to start the daemon: {e}")
         exit(1)
     
-    load_resources()
+    #load_resources()
     global CONFIG
     CONFIG = get_config()
     load_css()
@@ -267,14 +277,15 @@ def get_home_dir():
         home = path.expanduser('~')
     return home
 
-def load_resources():
-    try:
-        base_dir = path.dirname(path.abspath(__file__))
-        resource_path = path.join(base_dir, "resources.gresource")
-        resource = Gio.Resource.load(resource_path)
-        resource._register()
-    except Exception as e:
-        print(f"Failed to load resources: {e}")
+# def load_resources():
+#     try:
+#         base_dir = path.dirname(path.abspath(__file__))
+#         resource_path = path.join(base_dir, "resources.gresource")
+#         resource = Gio.Resource.load(resource_path)
+#        # resource._register()
+#         Gio.resources_register(resource)
+#     except Exception as e:
+#         print(f"Failed to load resources: {e}")
 
 def main():
     parser = ArgumentParser(description="L1p0 Menus for Hyprland")

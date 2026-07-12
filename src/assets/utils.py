@@ -95,6 +95,22 @@ class Header:
                 button.get_style_context().remove_class("active")
         self.tabs.set_visible_child_name(tab_name)
 
+class HeaderButtons:
+    def __init__(self, buttons, tabs):
+        self.tab_buttons = buttons
+        self.tabs = tabs
+        for name, button in self.tab_buttons.items():
+            button.connect("clicked", lambda x, name=name: self.change_tab(name))
+
+    def change_tab(self, tab_name):
+        for name, button in self.tab_buttons.items():
+            if name == tab_name:
+                button.get_style_context().add_class("active")
+            else:
+                button.get_style_context().remove_class("active")
+        self.tabs.set_visible_child_name(tab_name)
+
+
 class window_utils:
     def __init__(self):
         pass

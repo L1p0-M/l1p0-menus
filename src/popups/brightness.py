@@ -5,29 +5,68 @@ import os
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
-from ..assets.utils import Header, window_utils, GtkLayerShellUtils
+from ..assets.utils import window_utils, GtkLayerShellUtils, HeaderButtons
 _v_layer = None
 
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/header_buttons.ui")
+class HeaderButton(Gtk.Button):
+    __gtype_name__ = 'HeaderButton'
+
+    header_button_image = Gtk.Template.Child()
+    header_button_name = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.image = self.get_template_child(HeaderButton, "header_button_image")
+        self.name = self.get_template_child(HeaderButton, "header_button_name")
+        self.init_template()
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/brightness.ui")
 class BrightnessLayer(Gtk.Window):
+    __gtype_name__ = 'brightness_window'
+    main_container = Gtk.Template.Child()
+    main_header_container = Gtk.Template.Child()
+    bright_button = Gtk.Template.Child()
+    night_button = Gtk.Template.Child()
+    tabs = Gtk.Template.Child()
+    brightness_label = Gtk.Template.Child()
+    brightness_scale = Gtk.Template.Child()
+    night_label = Gtk.Template.Child()
+    night_scale = Gtk.Template.Child()
+    night_switch = Gtk.Template.Child()
+
     def __init__(self, config):
         super().__init__(title="Brightness Layer")
         self.config = config
         self.shellutils = GtkLayerShellUtils(self, "brightness")
         self.load_config(self.config)
         self.set_default_size(400, 150)
-        self.get_style_context().add_class("brightness-window")
-        main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main_container.set_margin_start(0)
-        main_container.add_css_class("brightness-layer")
+        self.init_template()
+        self.tabs = self.get_template_child(BrightnessLayer, "tabs")
+        self.night_button = self.get_template_child(BrightnessLayer, "night_button")
+        self.bright_button = self.get_template_child(BrightnessLayer, "bright_button")
+        self.header_button = HeaderButtons(buttons={
+            "Night-Tab": self.night_button,
+            "Bright-Tab": self.bright_button
+        }, tabs=self.tabs)
+        self.night_button.header_button_image.set_from_icon_name("weather-clear-night-symbolic")
+        self.night_button.header_button_name.set_text("Night Light")
+        self.bright_button.header_button_image.set_from_icon_name("display-brightness-high-symbolic")
+        self.bright_button.header_button_name.set_text("Brightness")
+      #  self.get_style_context().add_class("brightness-window")
+      #  main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+      #  main_container.set_margin_start(0)
+      #  main_container.add_css_class("brightness-layer")
         self.brightness = DBusBrightness(self.apply_brightness_update)
         self.hyprsunset = HyprSunsetSocket(self.apply_night_update)
-        self.set_child(main_container)
-        self.brightness_widgets = {}
-        self.night_widgets = {}
+      #  self.set_child(main_container)
+      #  self.brightness_widgets = {}
+      #  self.night_widgets = {}
         self.night_preset = 2500
         self.setup_tabs()
-        main_container.append(self.main_header_container)
-        main_container.append(self.tabs)
+      #  main_container.append(self.main_header_container)
+      #  main_container.append(self.tabs)
 
     def load_config(self, config):
         if config != self.config:
@@ -39,116 +78,147 @@ class BrightnessLayer(Gtk.Window):
         else:
             self.night_preset = 2500
         
+
     def setup_tabs(self):
-        self.tabs = Gtk.Stack()
-        self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
-        main_brightness_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        main_nightlight_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.brightness_page = self.tabs.add_named(main_brightness_container, "Bright-Tab")
-        self.nightlight_page = self.tabs.add_named(main_nightlight_container, "Night-Tab")
-        self.main_header_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-            margin_start = 10,
-            margin_end = 10,
-            margin_top = 10,
-            margin_bottom = 10 )
-        self.main_header_container.get_style_context().add_class("header")
-        self.main_header_container.set_homogeneous(True)
-        self.tab_buttons = {}
-        self.header = Header(self.main_header_container, self.tab_buttons, self.tabs)
-        self.header.setup_header("Brightness", "display-brightness-high-symbolic", "Bright-Tab")
-        self.setup_brightness_tab(container = main_brightness_container)
-        self.header.setup_header("Night Light", "weather-clear-night-symbolic", "Night-Tab")
-        self.setup_night_tab(container = main_nightlight_container)
-
-    def setup_brightness_tab(self, container):
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
-            spacing=15,
-            margin_start=20,
-            margin_end=20,
-            margin_top=20,
-            margin_bottom=20,)
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         current_brightness = self.brightness.get_brightness()
-        adj = Gtk.Adjustment(value=0, lower=1, upper=100, step_increment=1)
-        label = Gtk.Label(label=f"{int(round(current_brightness))}%")
-        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-        scale.set_value(current_brightness)
-        scale_handler = scale.connect("value-changed", self.on_brightness_change)
-        self.brightness_widgets = {
-            "scale": scale,
-            "scale_handler": scale_handler,
-            "label": label,
-            "container_horizontal": hbox
-        }
-        self.add_widgets_to_layout(self.brightness_widgets)
-        vbox.append(hbox)
-        container.append(vbox)
-
-
-    def setup_night_tab(self, container):
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
-            spacing=15,
-            margin_start=20,
-            margin_end=20,
-            margin_top=20,
-            margin_bottom=20,)
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        adj = Gtk.Adjustment(value=0, lower=1000, upper=6000, step_increment=100)
-        if not self.hyprsunset.hyprsunset_found:
-            not_found_label = Gtk.Label(label="Hyprsunset not found")
-            not_found_label.get_style_context().add_class("error-not-found")
-            container.append(not_found_label)
-            return
-        current_temp = self.hyprsunset.hyprsunset("temperature")     
-        switch = Gtk.Switch()
-        light_status = (int(current_temp) < 6000)
-        switch.set_active(light_status)
-        switch.get_style_context().add_class("night-switch")
-        switch_handler = switch.connect("notify::active", self.on_night_switch)
-        label = Gtk.Label(label=f"{int(current_temp)}K")
-        scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-        scale.set_value(int(current_temp))
-        scale_handler = scale.connect("value-changed", self.on_temp_change)
+        brightness_scale = self.get_template_child(BrightnessLayer, "brightness_scale")
+        brightness_label = self.get_template_child(BrightnessLayer, "brightness_label")
+        brightness_handler = brightness_scale.connect("value-changed", self.on_brightness_change)
+        night_scale = self.get_template_child(BrightnessLayer, "night_scale")
+        night_label = self.get_template_child(BrightnessLayer, "night_label")
+        night_handler = night_scale.connect("value-changed", self.on_temp_change)
+        night_switch = self.get_template_child(BrightnessLayer, "night_switch")
+        night_switch_handler = night_switch.connect("notify::active", self.on_night_switch)
         self.night_widgets = {
-            "scale": scale,
-            "scale_handler": scale_handler,
-            "label": label,
-            "switch": switch,
-            "switch_handler": switch_handler,
-            "container_horizontal": hbox
+            "scale": night_scale,
+            "scale_handler": night_handler,
+            "label": night_label,
+            "switch": self.get_template_child(BrightnessLayer, "night_switch"),
+            "switch_handler": night_switch_handler,
         }
-        self.add_widgets_to_layout(self.night_widgets)
-        vbox.append(hbox)
-        container.append(vbox)
+        self.brightness_widgets = {
+            "scale": brightness_scale,
+            "scale_handler": brightness_handler,
+            "label": brightness_label,
+        }
+        brightness_scale.set_value(current_brightness)
+        brightness_label.set_text(f"{int(round(current_brightness))}%")
+        current_temp = self.hyprsunset.hyprsunset("temperature")     
+        light_status = (int(current_temp) < 6000)
+        night_switch.set_active(light_status)
+        night_scale.set_value(int(current_temp))
+        night_label.set_text(f"{int(current_temp)}K")
+
+    # def setup_tabs(self):
+    #     self.tabs = Gtk.Stack()
+    #     self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+    #     main_brightness_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    #     main_nightlight_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    #     self.brightness_page = self.tabs.add_named(main_brightness_container, "Bright-Tab")
+    #     self.nightlight_page = self.tabs.add_named(main_nightlight_container, "Night-Tab")
+    #     self.main_header_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+    #         margin_start = 10,
+    #         margin_end = 10,
+    #         margin_top = 10,
+    #         margin_bottom = 10 )
+    #     self.main_header_container.get_style_context().add_class("header")
+    #     self.main_header_container.set_homogeneous(True)
+    #     self.tab_buttons = {}
+    #     self.header = Header(self.main_header_container, self.tab_buttons, self.tabs)
+    #     self.header.setup_header("Brightness", "display-brightness-high-symbolic", "Bright-Tab")
+    #     self.setup_brightness_tab(container = main_brightness_container)
+    #     self.header.setup_header("Night Light", "weather-clear-night-symbolic", "Night-Tab")
+    #     self.setup_night_tab(container = main_nightlight_container)
+
+    # def setup_brightness_tab(self, container):
+    #     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+    #         spacing=15,
+    #         margin_start=20,
+    #         margin_end=20,
+    #         margin_top=20,
+    #         margin_bottom=20,)
+    #     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+    #     current_brightness = self.brightness.get_brightness()
+    #     adj = Gtk.Adjustment(value=0, lower=1, upper=100, step_increment=1)
+    #     label = Gtk.Label(label=f"{int(round(current_brightness))}%")
+    #     scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+    #     scale.set_value(current_brightness)
+    #     scale_handler = scale.connect("value-changed", self.on_brightness_change)
+    #     self.brightness_widgets = {
+    #         "scale": scale,
+    #         "scale_handler": scale_handler,
+    #         "label": label,
+    #         "container_horizontal": hbox
+    #     }
+    #     self.add_widgets_to_layout(self.brightness_widgets)
+    #     vbox.append(hbox)
+    #     container.append(vbox)
 
 
-    def add_widgets_to_layout(self, widgets):
-        try:
-            available_keys = []
-            for key, widget in widgets.items():
-                available_keys.append(key) 
-            if "label" in available_keys:
-                label = widgets["label"]
-                label.set_size_request(40, -1)
-                label.get_style_context().add_class("percent-text")
-                label.set_margin_start(5)
-                label.set_margin_end(5)
-            if "scale" in available_keys:
-                scale = widgets["scale"]
-                scale.get_style_context().add_class("brightness-slider")
-                scale.set_draw_value(False)
-                scale.set_size_request(200, -1)
-                scale.set_hexpand(True)
-                scale.set_margin_start(5)
-                scale.set_margin_end(5)
-            if "container_horizontal" in available_keys:
-                hbox =  widgets["container_horizontal"]
-                hbox.append(widgets["label"])
-                hbox.append(widgets["scale"])
-                if "switch" in available_keys:
-                    hbox.append(widgets["switch"])
-        except Exception as e:
-            print(f"Failed to setup ui: {e}")
+    # def setup_night_tab(self, container):
+    #     vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+    #         spacing=15,
+    #         margin_start=20,
+    #         margin_end=20,
+    #         margin_top=20,
+    #         margin_bottom=20,)
+    #     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+    #     adj = Gtk.Adjustment(value=0, lower=1000, upper=6000, step_increment=100)
+    #     if not self.hyprsunset.hyprsunset_found:
+    #         not_found_label = Gtk.Label(label="Hyprsunset not found")
+    #         not_found_label.get_style_context().add_class("error-not-found")
+    #         container.append(not_found_label)
+    #         return
+    #     current_temp = self.hyprsunset.hyprsunset("temperature")     
+    #     switch = Gtk.Switch()
+    #     light_status = (int(current_temp) < 6000)
+    #     switch.set_active(light_status)
+    #     switch.get_style_context().add_class("night-switch")
+    #     switch_handler = switch.connect("notify::active", self.on_night_switch)
+    #     label = Gtk.Label(label=f"{int(current_temp)}K")
+    #     scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+    #     scale.set_value(int(current_temp))
+    #     scale_handler = scale.connect("value-changed", self.on_temp_change)
+    #     self.night_widgets = {
+    #         "scale": scale,
+    #         "scale_handler": scale_handler,
+    #         "label": label,
+    #         "switch": switch,
+    #         "switch_handler": switch_handler,
+    #         "container_horizontal": hbox
+    #     }
+    #     self.add_widgets_to_layout(self.night_widgets)
+    #     vbox.append(hbox)
+    #     container.append(vbox)
+
+
+    # def add_widgets_to_layout(self, widgets):
+    #     try:
+    #         available_keys = []
+    #         for key, widget in widgets.items():
+    #             available_keys.append(key) 
+    #         if "label" in available_keys:
+    #             label = widgets["label"]
+    #             label.set_size_request(40, -1)
+    #             label.get_style_context().add_class("percent-text")
+    #             label.set_margin_start(5)
+    #             label.set_margin_end(5)
+    #         if "scale" in available_keys:
+    #             scale = widgets["scale"]
+    #             scale.get_style_context().add_class("brightness-slider")
+    #             scale.set_draw_value(False)
+    #             scale.set_size_request(200, -1)
+    #             scale.set_hexpand(True)
+    #             scale.set_margin_start(5)
+    #             scale.set_margin_end(5)
+    #         if "container_horizontal" in available_keys:
+    #             hbox =  widgets["container_horizontal"]
+    #             hbox.append(widgets["label"])
+    #             hbox.append(widgets["scale"])
+    #             if "switch" in available_keys:
+    #                 hbox.append(widgets["switch"])
+    #     except Exception as e:
+    #         print(f"Failed to setup ui: {e}")
 
 
     def on_brightness_change(self, scale):
@@ -367,7 +437,8 @@ def toggle_layer():
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
-        _v_layer.header.change_tab("Bright-Tab")
+       # _v_layer.header.change_tab("Bright-Tab")
+        _v_layer.header_button.change_tab("Bright-Tab")
         _v_layer.show()
         _v_layer.present()
     if 'HYPRLAND_INSTANCE_SIGNATURE' in os.environ:
