@@ -9,24 +9,9 @@ from ..assets.utils import window_utils, GtkLayerShellUtils, HeaderButtons
 _v_layer = None
 
 
-@Gtk.Template(resource_path="/l1p0-menus/ui/header_buttons.ui")
-class HeaderButton(Gtk.Button):
-    __gtype_name__ = 'HeaderButton'
-
-    header_button_image = Gtk.Template.Child()
-    header_button_name = Gtk.Template.Child()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.image = self.get_template_child(HeaderButton, "header_button_image")
-        self.name = self.get_template_child(HeaderButton, "header_button_name")
-        self.init_template()
-
 @Gtk.Template(resource_path="/l1p0-menus/ui/brightness.ui")
 class BrightnessLayer(Gtk.Window):
     __gtype_name__ = 'brightness_window'
-    main_container = Gtk.Template.Child()
-    main_header_container = Gtk.Template.Child()
     bright_button = Gtk.Template.Child()
     night_button = Gtk.Template.Child()
     tabs = Gtk.Template.Child()
