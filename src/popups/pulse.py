@@ -2,14 +2,33 @@ import gi
 import pulsectl
 import threading
 
+from brightnessold import BrightnessLayer
+
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
-from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups
+from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups, HeaderButtons
 _v_layer = None
 
 
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/audio.ui")
 class VolumeLayer(Gtk.Window):
+    __gtype_name__ = 'audio_window'
+    tabs = Gtk.Template.Child()
+    vol_button = Gtk.Template.Child()
+    mic_button = Gtk.Template.Child()
+    main_mic_container = Gtk.Template.Child()
+    main_vol_container = Gtk.Template.Child()
+    vol_label = Gtk.Template.Child()
+    vol_scale = Gtk.Template.Child()
+    mic_label = Gtk.Template.Child()
+    mic_scale = Gtk.Template.Child()
+    vol_mute_btn = Gtk.Template.Child()
+    vol_menu_btn = Gtk.Template.Child()
+    mic_mute_btn = Gtk.Template.Child()
+    mic_menu_btn = Gtk.Template.Child()
+
     def __init__(self, config):
         super().__init__(title="Audio Layer")
         self.config = config
@@ -17,23 +36,35 @@ class VolumeLayer(Gtk.Window):
         self.shellutils = GtkLayerShellUtils(self, "audio")
         self.load_config(self.config)
         self.set_default_size(400, 150)
-        self.get_style_context().add_class("audio-window")
-        self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.main_container.get_style_context().add_class("audio-layer")
-        self.main_container.set_margin_start(0)
-        self.window_utils = window_utils()
-        self.overlay = Gtk.Overlay()
-        self.set_child(self.overlay)
-        self.overlay.set_child(self.main_container)
-        self.setup_header()
-        self.main_container.append(self.main_header_container)
+        self.init_template()
+        self.tabs = self.get_template_child(VolumeLayer, "tabs")
+        self.vol_button = self.get_template_child(VolumeLayer, "vol_button")
+        self.mic_button = self.get_template_child(VolumeLayer, "mic_button")
+        self.header_button = HeaderButtons(buttons={
+            "Volume-Tab": self.vol_button,
+            "Mic-Tab": self.mic_button
+        }, tabs=self.tabs)
+        self.vol_button.header_button_image.set_from_icon_name("audio-volume-high-symbolic")
+        self.vol_button.header_button_name.set_text("Volume")
+        self.mic_button.header_button_image.set_from_icon_name("microphone-sensitivity-high-symbolic")
+        self.mic_button.header_button_name.set_text("Microphone")
+       # self.get_style_context().add_class("audio-window")
+       # self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+       # self.main_container.get_style_context().add_class("audio-layer")
+       # self.main_container.set_margin_start(0)
+       # self.window_utils = window_utils()
+       # self.overlay = Gtk.Overlay()
+       # self.set_child(self.overlay)
+       # self.overlay.set_child(self.main_container)
+       # self.setup_header()
+       # self.main_container.append(self.main_header_container)
         self.mic_widgets = {}
         self.vol_widgets = {}
         self.mic_window = {}
         self.vol_window = {}
-        self.setup_tab(is_mic=False, container = self.main_vol_container)
-        self.setup_tab(is_mic=True, container = self.main_mic_container)
-        self.main_container.append(self.tabs)
+       # self.setup_tab(is_mic=False, container = self.main_vol_container)
+       # self.setup_tab(is_mic=True, container = self.main_mic_container)
+       # self.main_container.append(self.tabs)
 
     def load_config(self, config):
         if self.config != config:
@@ -427,7 +458,7 @@ def toggle_layer():
     if _v_layer.get_visible():
         _v_layer.hide()
     else:
-        _v_layer.header.change_tab("Volume-Tab")
+       # _v_layer.header.change_tab("Volume-Tab")
         _v_layer.show()
         _v_layer.present()
 

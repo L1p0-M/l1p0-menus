@@ -6,17 +6,17 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
 -->
 <interface>
   <requires lib="gtk" version="4.0"/>
-  <template class="brightness_window" parent="GtkWindow">
-    <property name="title">Brightness Layer</property>
+  <template class="audio_window" parent="GtkWindow">
+    <property name="title">Audio Layer</property>
     <style>
-      <class name="brightness-window"/>
+      <class name="audio-window"/>
     </style>
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">1</property>
         <property name="margin-start">0</property>
         <style>
-          <class name="brightness-layer"/>
+          <class name="audio-layer"/>
         </style>
         <child>
           <object class="GtkBox">
@@ -30,10 +30,10 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
               <class name="header"/>
             </style>
             <child>
-              <object class="HeaderButton" id="bright_button"></object>
+              <object class="HeaderButton" id="vol_button"></object>
             </child>
             <child>
-              <object class="HeaderButton" id="night_button"></object>
+              <object class="HeaderButton" id="mic_button"></object>
             </child>
           </object>
         </child>
@@ -43,10 +43,10 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
             <property name="transition-type">6</property>
             <child>
               <object class="GtkStackPage">
-                <property name="name">Bright-Tab</property>
-                <property name="title">Brightness</property>
+                <property name="name">Volume-Tab</property>
+                <property name="title">Volume</property>
                 <property name="child">
-                  <object class="GtkBox" id="main_brightness_container">
+                  <object class="GtkBox" id="main_vol_container">
                     <property name="orientation">1</property>
                     <property name="spacing">15</property>
                     <property name="margin-top">20</property>
@@ -58,8 +58,8 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                         <property name="orientation">0</property>
                         <property name="spacing">10</property>
                         <child>
-                          <object class="GtkLabel" id="brightness_label">
-                            <property name="label">100%</property>
+                          <object class="GtkLabel" id="vol_label">
+                            <property name="label">0%</property>
                             <property name="margin-start">5</property>
                             <property name="margin-end">5</property>
                             <style>
@@ -68,7 +68,7 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                           </object>
                         </child>
                         <child>
-                          <object class="GtkScale" id="brightness_scale">
+                          <object class="GtkScale" id="vol_scale">
                             <property name="orientation">0</property>
                             <property name="hexpand">true</property>
                             <property name="margin-start">5</property>
@@ -76,16 +76,22 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                             <property name="draw-value">false</property>
                             <property name="adjustment">
                               <object class="GtkAdjustment">
-                                <property name="value">100</property>
-                                <property name="lower">1</property>
-                                <property name="upper">100</property>
-                                <property name="step-increment">1</property>
+                                <property name="value">0</property>
+                                <property name="lower">0</property>
+                                <property name="upper">1</property>
+                                <property name="step-increment">0.01</property>
                               </object>
                             </property>
                             <style>
-                              <class name="brightness-slider"/>
+                              <class name="volume-slider"/>
                             </style>
                           </object>
+                        </child>
+                        <child>
+                          <object class="MuteButton" id="vol_mute_btn"></object>
+                        </child>
+                        <child>
+                          <object class="MenuButton" id="vol_menu_btn"></object>
                         </child>
                       </object>
                     </child>
@@ -95,10 +101,10 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
             </child>
             <child>
               <object class="GtkStackPage">
-                <property name="name">Night-Tab</property>
-                <property name="title">Night Light</property>
+                <property name="name">Mic-Tab</property>
+                <property name="title">Mic</property>
                 <property name="child">
-                  <object class="GtkBox" id="main_nightlight_container">
+                  <object class="GtkBox" id="main_mic_container">
                     <property name="orientation">1</property>
                     <property name="spacing">15</property>
                     <property name="margin-top">20</property>
@@ -110,8 +116,8 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                         <property name="orientation">0</property>
                         <property name="spacing">10</property>
                         <child>
-                          <object class="GtkLabel" id="night_label">
-                            <property name="label">6000K</property>
+                          <object class="GtkLabel" id="mic_label">
+                            <property name="label">0%</property>
                             <property name="margin-start">5</property>
                             <property name="margin-end">5</property>
                             <style>
@@ -120,7 +126,7 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                           </object>
                         </child>
                         <child>
-                          <object class="GtkScale" id="night_scale">
+                          <object class="GtkScale" id="mic_scale">
                             <property name="orientation">0</property>
                             <property name="hexpand">true</property>
                             <property name="margin-start">5</property>
@@ -128,24 +134,22 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                             <property name="draw-value">false</property>
                             <property name="adjustment">
                               <object class="GtkAdjustment">
-                                <property name="value">6000</property>
-                                <property name="lower">1000</property>
-                                <property name="upper">6000</property>
-                                <property name="step-increment">100</property>
+                                <property name="value">0</property>
+                                <property name="lower">0</property>
+                                <property name="upper">1</property>
+                                <property name="step-increment">0.01</property>
                               </object>
                             </property>
                             <style>
-                              <class name="brightness-slider"/>
+                              <class name="volume-slider"/>
                             </style>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkSwitch" id="night_switch">
-                            <property name="active">false</property>
-                            <style>
-                              <class name="night-switch"/>
-                            </style>
-                          </object>
+                          <object class="MuteButton" id="mic_mute_btn"></object>
+                        </child>
+                        <child>
+                          <object class="MenuButton" id="mic_menu_btn"></object>
                         </child>
                       </object>
                     </child>

@@ -1,13 +1,13 @@
 using Gtk 4.0;
 
-template $brightness_window: Gtk.Window {
-    title: "Brightness Layer";
-    styles ["brightness-window"]
+template $audio_window: Gtk.Window {
+    title: "Audio Layer";
+    styles ["audio-window"]
 
     child: Gtk.Box {
         orientation: vertical;
         margin-start: 0;
-        styles ["brightness-layer"]
+        styles ["audio-layer"]
 
         Gtk.Box {
             margin-start: 10;
@@ -18,8 +18,8 @@ template $brightness_window: Gtk.Window {
             homogeneous: true;
             styles ["header"]
 
-            $HeaderButton bright_button {}
-            $HeaderButton night_button {}
+            $HeaderButton vol_button {}
+            $HeaderButton mic_button {}
         }
 
         Gtk.Stack tabs {
@@ -27,10 +27,10 @@ template $brightness_window: Gtk.Window {
             transition-type: slide_left_right; 
 
             Gtk.StackPage {
-                name: "Bright-Tab";
-                title: "Brightness";
+                name: "Volume-Tab";
+                title: "Volume";
 
-                child: Gtk.Box main_brightness_container {
+                child: Gtk.Box main_vol_container {
                     orientation: vertical;
                     spacing: 15;
                     margin-top: 20;
@@ -42,31 +42,35 @@ template $brightness_window: Gtk.Window {
                         orientation: horizontal;
                         spacing: 10;
 
-                        Gtk.Label brightness_label {
-                            label: "100%";
+                        Gtk.Label vol_label {
+                            label: "0%";
                             margin-start: 5;
                             margin-end: 5;
                             styles ["percent-text"]
                         }
                         
-                        Gtk.Scale brightness_scale {
+                        Gtk.Scale vol_scale {
                             orientation: horizontal;
                             hexpand: true;
                             margin-start: 5;
                             margin-end: 5;
                             draw-value: false;
-                            adjustment: Gtk.Adjustment { value: 100; lower: 1; upper: 100; step-increment: 1; };
-                            styles ["brightness-slider"]
+                            adjustment: Gtk.Adjustment { value: 0; lower: 0; upper: 1; step-increment: 0.01; };
+                            styles ["volume-slider"]
                         }
+                        
+                        $MuteButton vol_mute_btn {}
+                        $MenuButton vol_menu_btn {}
+
                     }
                 };
             }
 
             Gtk.StackPage {
-                name: "Night-Tab";
-                title: "Night Light";
+                name: "Mic-Tab";
+                title: "Mic";
 
-                child: Gtk.Box main_nightlight_container {
+                child: Gtk.Box main_mic_container {
                     orientation: vertical;
                     spacing: 15;
                     margin-top: 20;
@@ -78,27 +82,26 @@ template $brightness_window: Gtk.Window {
                         orientation: horizontal;
                         spacing: 10;
 
-                        Gtk.Label night_label {
-                            label: "6000K";
+                        Gtk.Label mic_label {
+                            label: "0%";
                             margin-start: 5;
                             margin-end: 5;
                             styles ["percent-text"]
                         }
                         
-                        Gtk.Scale night_scale {
+                        Gtk.Scale mic_scale {
                             orientation: horizontal;
                             hexpand: true;
                             margin-start: 5;
                             margin-end: 5;
                             draw-value: false;
-                            adjustment: Gtk.Adjustment { value: 6000; lower: 1000; upper: 6000; step-increment: 100; };
-                            styles ["brightness-slider"]
+                            adjustment: Gtk.Adjustment { value: 0; lower: 0; upper: 1; step-increment: 0.01; };
+                            styles ["volume-slider"]
                         }
                         
-                        Gtk.Switch night_switch {
-                            active: false;
-                            styles ["night-switch"]
-                        }
+                        $MuteButton mic_mute_btn {}
+                        $MenuButton mic_menu_btn {}
+
                     }
                 };
             }
