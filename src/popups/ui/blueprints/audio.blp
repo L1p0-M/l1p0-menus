@@ -4,107 +4,114 @@ template $audio_window: Gtk.Window {
     title: "Audio Layer";
     styles ["audio-window"]
 
-    child: Gtk.Box {
-        orientation: vertical;
-        margin-start: 0;
-        styles ["audio-layer"]
+    child: Gtk.Overlay overlay {
+        child: Gtk.Box {
+            orientation: vertical;
+            margin-start: 0;
+            styles ["audio-layer"]
 
-        Gtk.Box {
-            margin-start: 10;
-            margin-end: 10;
-            margin-top: 10;
-            margin-bottom: 10;
-            orientation: horizontal;
-            homogeneous: true;
-            styles ["header"]
+            Gtk.Box {
+                margin-start: 10;
+                margin-end: 10;
+                margin-top: 10;
+                margin-bottom: 10;
+                orientation: horizontal;
+                homogeneous: true;
+                styles ["header"]
 
-            $HeaderButton vol_button {}
-            $HeaderButton mic_button {}
-        }
-
-        Gtk.Stack tabs {
-            vexpand: true;
-            transition-type: slide_left_right; 
-
-            Gtk.StackPage {
-                name: "Volume-Tab";
-                title: "Volume";
-
-                child: Gtk.Box main_vol_container {
-                    orientation: vertical;
-                    spacing: 15;
-                    margin-top: 20;
-                    margin-bottom: 20;
-                    margin-start: 20;
-                    margin-end: 20;
-
-                    Gtk.Box {
-                        orientation: horizontal;
-                        spacing: 10;
-
-                        Gtk.Label vol_label {
-                            label: "0%";
-                            margin-start: 5;
-                            margin-end: 5;
-                            styles ["percent-text"]
-                        }
-                        
-                        Gtk.Scale vol_scale {
-                            orientation: horizontal;
-                            hexpand: true;
-                            margin-start: 5;
-                            margin-end: 5;
-                            draw-value: false;
-                            adjustment: Gtk.Adjustment { value: 0; lower: 0; upper: 1; step-increment: 0.01; };
-                            styles ["volume-slider"]
-                        }
-                        
-                        $MuteButton vol_mute_btn {}
-                        $MenuButton vol_menu_btn {}
-
-                    }
-                };
+                $HeaderButton vol_button {}
+                $HeaderButton mic_button {}
             }
 
-            Gtk.StackPage {
-                name: "Mic-Tab";
-                title: "Mic";
+            Gtk.Stack tabs {
+                vexpand: true;
+                transition-type: slide_left_right; 
 
-                child: Gtk.Box main_mic_container {
-                    orientation: vertical;
-                    spacing: 15;
-                    margin-top: 20;
-                    margin-bottom: 20;
-                    margin-start: 20;
-                    margin-end: 20;
+                Gtk.StackPage {
+                    name: "Volume-Tab";
+                    title: "Volume";
 
-                    Gtk.Box {
-                        orientation: horizontal;
-                        spacing: 10;
+                    child: Gtk.Box main_vol_container {
+                        orientation: vertical;
+                        spacing: 15;
+                        margin-top: 20;
+                        margin-bottom: 20;
+                        margin-start: 20;
+                        margin-end: 20;
 
-                        Gtk.Label mic_label {
-                            label: "0%";
-                            margin-start: 5;
-                            margin-end: 5;
-                            styles ["percent-text"]
-                        }
-                        
-                        Gtk.Scale mic_scale {
+                        Gtk.Box {
                             orientation: horizontal;
-                            hexpand: true;
-                            margin-start: 5;
-                            margin-end: 5;
-                            draw-value: false;
-                            adjustment: Gtk.Adjustment { value: 0; lower: 0; upper: 1; step-increment: 0.01; };
-                            styles ["volume-slider"]
-                        }
-                        
-                        $MuteButton mic_mute_btn {}
-                        $MenuButton mic_menu_btn {}
+                            spacing: 10;
 
-                    }
-                };
+                            Gtk.Label vol_label {
+                                label: "0%";
+                                margin-start: 5;
+                                margin-end: 5;
+                                styles ["percent-text"]
+                            }
+                        
+                            Gtk.Scale vol_scale {
+                                orientation: horizontal;
+                                hexpand: true;
+                                margin-start: 5;
+                                margin-end: 5;
+                                draw-value: false;
+                                adjustment: Gtk.Adjustment { value: 0; lower: 0; upper: 1; step-increment: 0.01; };
+                                styles ["volume-slider"]
+                            }
+                        
+                            $MuteButton vol_mute_btn {}
+                            $MenuButton vol_menu_btn {}
+
+                        }
+                    };
+                }
+
+                Gtk.StackPage {
+                    name: "Mic-Tab";
+                    title: "Mic";
+
+                    child: Gtk.Box main_mic_container {
+                        orientation: vertical;
+                        spacing: 15;
+                        margin-top: 20;
+                        margin-bottom: 20;
+                        margin-start: 20;
+                        margin-end: 20;
+
+                        Gtk.Box {
+                            orientation: horizontal;
+                            spacing: 10;
+
+                            Gtk.Label mic_label {
+                                label: "0%";
+                                margin-start: 5;
+                                margin-end: 5;
+                                styles ["percent-text"]
+                            }
+                        
+                            Gtk.Scale mic_scale {
+                                orientation: horizontal;
+                                hexpand: true;
+                                margin-start: 5;
+                                margin-end: 5;
+                                draw-value: false;
+                                adjustment: Gtk.Adjustment { value: 0; lower: 0; upper: 1; step-increment: 0.01; };
+                                styles ["volume-slider"]
+                            }
+                        
+                            $MuteButton mic_mute_btn {}
+                            $MenuButton mic_menu_btn {}
+
+                        }
+                    };
+                }
             }
-        }
-    }; 
+        }; 
+        [overlay]
+        $PopupRevealer audio_device_switcher {}
+        
+        [overlay]
+        $PopupRevealer mic_device_switcher {}
+    };
 }

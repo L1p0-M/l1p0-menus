@@ -12,152 +12,162 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
       <class name="audio-window"/>
     </style>
     <property name="child">
-      <object class="GtkBox">
-        <property name="orientation">1</property>
-        <property name="margin-start">0</property>
-        <style>
-          <class name="audio-layer"/>
-        </style>
-        <child>
+      <object class="GtkOverlay" id="overlay">
+        <property name="child">
           <object class="GtkBox">
-            <property name="margin-start">10</property>
-            <property name="margin-end">10</property>
-            <property name="margin-top">10</property>
-            <property name="margin-bottom">10</property>
-            <property name="orientation">0</property>
-            <property name="homogeneous">true</property>
+            <property name="orientation">1</property>
+            <property name="margin-start">0</property>
             <style>
-              <class name="header"/>
+              <class name="audio-layer"/>
             </style>
             <child>
-              <object class="HeaderButton" id="vol_button"></object>
+              <object class="GtkBox">
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="orientation">0</property>
+                <property name="homogeneous">true</property>
+                <style>
+                  <class name="header"/>
+                </style>
+                <child>
+                  <object class="HeaderButton" id="vol_button"></object>
+                </child>
+                <child>
+                  <object class="HeaderButton" id="mic_button"></object>
+                </child>
+              </object>
             </child>
             <child>
-              <object class="HeaderButton" id="mic_button"></object>
+              <object class="GtkStack" id="tabs">
+                <property name="vexpand">true</property>
+                <property name="transition-type">6</property>
+                <child>
+                  <object class="GtkStackPage">
+                    <property name="name">Volume-Tab</property>
+                    <property name="title">Volume</property>
+                    <property name="child">
+                      <object class="GtkBox" id="main_vol_container">
+                        <property name="orientation">1</property>
+                        <property name="spacing">15</property>
+                        <property name="margin-top">20</property>
+                        <property name="margin-bottom">20</property>
+                        <property name="margin-start">20</property>
+                        <property name="margin-end">20</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">0</property>
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkLabel" id="vol_label">
+                                <property name="label">0%</property>
+                                <property name="margin-start">5</property>
+                                <property name="margin-end">5</property>
+                                <style>
+                                  <class name="percent-text"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="vol_scale">
+                                <property name="orientation">0</property>
+                                <property name="hexpand">true</property>
+                                <property name="margin-start">5</property>
+                                <property name="margin-end">5</property>
+                                <property name="draw-value">false</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="value">0</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">1</property>
+                                    <property name="step-increment">0.01</property>
+                                  </object>
+                                </property>
+                                <style>
+                                  <class name="volume-slider"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="MuteButton" id="vol_mute_btn"></object>
+                            </child>
+                            <child>
+                              <object class="MenuButton" id="vol_menu_btn"></object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkStackPage">
+                    <property name="name">Mic-Tab</property>
+                    <property name="title">Mic</property>
+                    <property name="child">
+                      <object class="GtkBox" id="main_mic_container">
+                        <property name="orientation">1</property>
+                        <property name="spacing">15</property>
+                        <property name="margin-top">20</property>
+                        <property name="margin-bottom">20</property>
+                        <property name="margin-start">20</property>
+                        <property name="margin-end">20</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">0</property>
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkLabel" id="mic_label">
+                                <property name="label">0%</property>
+                                <property name="margin-start">5</property>
+                                <property name="margin-end">5</property>
+                                <style>
+                                  <class name="percent-text"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkScale" id="mic_scale">
+                                <property name="orientation">0</property>
+                                <property name="hexpand">true</property>
+                                <property name="margin-start">5</property>
+                                <property name="margin-end">5</property>
+                                <property name="draw-value">false</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="value">0</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">1</property>
+                                    <property name="step-increment">0.01</property>
+                                  </object>
+                                </property>
+                                <style>
+                                  <class name="volume-slider"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="MuteButton" id="mic_mute_btn"></object>
+                            </child>
+                            <child>
+                              <object class="MenuButton" id="mic_menu_btn"></object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
             </child>
           </object>
+        </property>
+        <child type="overlay">
+          <object class="PopupRevealer" id="audio_device_switcher"></object>
         </child>
-        <child>
-          <object class="GtkStack" id="tabs">
-            <property name="vexpand">true</property>
-            <property name="transition-type">6</property>
-            <child>
-              <object class="GtkStackPage">
-                <property name="name">Volume-Tab</property>
-                <property name="title">Volume</property>
-                <property name="child">
-                  <object class="GtkBox" id="main_vol_container">
-                    <property name="orientation">1</property>
-                    <property name="spacing">15</property>
-                    <property name="margin-top">20</property>
-                    <property name="margin-bottom">20</property>
-                    <property name="margin-start">20</property>
-                    <property name="margin-end">20</property>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="orientation">0</property>
-                        <property name="spacing">10</property>
-                        <child>
-                          <object class="GtkLabel" id="vol_label">
-                            <property name="label">0%</property>
-                            <property name="margin-start">5</property>
-                            <property name="margin-end">5</property>
-                            <style>
-                              <class name="percent-text"/>
-                            </style>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkScale" id="vol_scale">
-                            <property name="orientation">0</property>
-                            <property name="hexpand">true</property>
-                            <property name="margin-start">5</property>
-                            <property name="margin-end">5</property>
-                            <property name="draw-value">false</property>
-                            <property name="adjustment">
-                              <object class="GtkAdjustment">
-                                <property name="value">0</property>
-                                <property name="lower">0</property>
-                                <property name="upper">1</property>
-                                <property name="step-increment">0.01</property>
-                              </object>
-                            </property>
-                            <style>
-                              <class name="volume-slider"/>
-                            </style>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="MuteButton" id="vol_mute_btn"></object>
-                        </child>
-                        <child>
-                          <object class="MenuButton" id="vol_menu_btn"></object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkStackPage">
-                <property name="name">Mic-Tab</property>
-                <property name="title">Mic</property>
-                <property name="child">
-                  <object class="GtkBox" id="main_mic_container">
-                    <property name="orientation">1</property>
-                    <property name="spacing">15</property>
-                    <property name="margin-top">20</property>
-                    <property name="margin-bottom">20</property>
-                    <property name="margin-start">20</property>
-                    <property name="margin-end">20</property>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="orientation">0</property>
-                        <property name="spacing">10</property>
-                        <child>
-                          <object class="GtkLabel" id="mic_label">
-                            <property name="label">0%</property>
-                            <property name="margin-start">5</property>
-                            <property name="margin-end">5</property>
-                            <style>
-                              <class name="percent-text"/>
-                            </style>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkScale" id="mic_scale">
-                            <property name="orientation">0</property>
-                            <property name="hexpand">true</property>
-                            <property name="margin-start">5</property>
-                            <property name="margin-end">5</property>
-                            <property name="draw-value">false</property>
-                            <property name="adjustment">
-                              <object class="GtkAdjustment">
-                                <property name="value">0</property>
-                                <property name="lower">0</property>
-                                <property name="upper">1</property>
-                                <property name="step-increment">0.01</property>
-                              </object>
-                            </property>
-                            <style>
-                              <class name="volume-slider"/>
-                            </style>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="MuteButton" id="mic_mute_btn"></object>
-                        </child>
-                        <child>
-                          <object class="MenuButton" id="mic_menu_btn"></object>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </property>
-              </object>
-            </child>
-          </object>
+        <child type="overlay">
+          <object class="PopupRevealer" id="mic_device_switcher"></object>
         </child>
       </object>
     </property>
