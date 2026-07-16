@@ -1,0 +1,44 @@
+using Gtk 4.0;
+
+template $PopupRevealer : Gtk.Revealer {
+    transition-type: slide_up;
+    valign: end;
+    halign: center;
+    reveal-child: true;
+    
+    child: Gtk.Frame panel {
+        styles ["floating-panel"]
+
+        child: Gtk.Box panel_content {
+            orientation: vertical;
+            spacing: 10;
+            margin-start: 20;
+            margin-end: 20;
+            margin-top: 20;
+            margin-bottom: 20;
+
+            Gtk.Box {
+                orientation: horizontal;
+
+                Gtk.Label header_label {
+                    label: "N/A";
+                    halign: start;
+                    hexpand: true;
+                    styles ["header-label"]
+                }
+                Gtk.Button close_btn {
+                    halign: end;
+                    valign: center;
+                    clicked => $close_revealer();
+                    styles ["close-button"]
+
+                    Gtk.Image {
+                        icon-name: "window-close-symbolic";
+                        styles ["close-icon"]
+                    }
+                }
+
+            }
+        };
+    };
+}
