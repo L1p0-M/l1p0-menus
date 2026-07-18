@@ -1,0 +1,49 @@
+using Gtk 4.0;
+
+template $network_window: Gtk.Window {
+    title: "Network Layer";
+    styles ["network-window"]
+    child: Gtk.Overlay overlay {
+        child: Gtk.Box {
+            orientation: vertical;
+            margin-start: 0;
+            styles ["network-layer"]
+
+            Gtk.Box {
+                margin-start: 10;
+                margin-end: 10;
+                margin-top: 10;
+                margin-bottom: 10;
+                orientation: horizontal;
+                homogeneous: true;
+                styles ["header"]
+
+                $HeaderButton wifi_button {}
+                $HeaderButton bluetooth_button {}
+            }
+
+            Gtk.Stack tabs {
+                vexpand: true;
+                transition-type: slide_left_right; 
+
+                Gtk.StackPage {
+                    name: "Wifi-Tab";
+                    title: "Wifi";
+
+                    child: $WifiTab wifitab {
+                        overlay: bind overlay;
+                    };
+                }
+
+                Gtk.StackPage {
+                    name: "Bluetooth-Tab";
+                    title: "Bluetooth";
+
+                    child: Gtk.Box bluetoothtab {
+                        orientation: vertical;
+                    };
+                }
+            }
+        }; 
+    };
+}

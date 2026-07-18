@@ -54,3 +54,12 @@ class PopupRevealer(Gtk.Revealer):
     @Gtk.Template.Callback()
     def close_revealer(self, button):
         self.set_reveal_child(False)
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/scrolled_panel.ui")
+class ScrolledPanel(Gtk.ScrolledWindow):
+    __gtype_name__ = 'ScrolledPanel'
+    panel_content = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.init_template()
