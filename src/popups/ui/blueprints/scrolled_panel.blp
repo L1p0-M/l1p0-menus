@@ -1,0 +1,15 @@
+using Gtk 4.0;
+
+template $ScrolledPanel : Gtk.ScrolledWindow {
+    propagate-natural-height: false;
+    kinetic-scrolling: true;
+    max-content-height: 340;
+    min-content-height: 300;
+    styles ["scrolled-menu"]
+
+    child: Gtk.ListBox panel_content {
+        selection-mode: none;
+        vexpand: true;
+        styles ["boxed-list"]
+    };
+}

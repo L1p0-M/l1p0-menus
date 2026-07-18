@@ -28,9 +28,9 @@ class BrightnessLayer(Gtk.Window):
         self.load_config(self.config)
         self.set_default_size(400, 150)
         self.init_template()
-        self.tabs = self.get_template_child(BrightnessLayer, "tabs")
-        self.night_button = self.get_template_child(BrightnessLayer, "night_button")
-        self.bright_button = self.get_template_child(BrightnessLayer, "bright_button")
+        #self.tabs = self.get_template_child(BrightnessLayer, "tabs")
+        #self.night_button = self.get_template_child(BrightnessLayer, "night_button")
+       # self.bright_button = self.get_template_child(BrightnessLayer, "bright_button")
         self.header_button = HeaderButtons(buttons={
             "Night-Tab": self.night_button,
             "Bright-Tab": self.bright_button
@@ -66,33 +66,33 @@ class BrightnessLayer(Gtk.Window):
 
     def setup_tabs(self):
         current_brightness = self.brightness.get_brightness()
-        brightness_scale = self.get_template_child(BrightnessLayer, "brightness_scale")
-        brightness_label = self.get_template_child(BrightnessLayer, "brightness_label")
-        brightness_handler = brightness_scale.connect("value-changed", self.on_brightness_change)
-        night_scale = self.get_template_child(BrightnessLayer, "night_scale")
-        night_label = self.get_template_child(BrightnessLayer, "night_label")
-        night_handler = night_scale.connect("value-changed", self.on_temp_change)
-        night_switch = self.get_template_child(BrightnessLayer, "night_switch")
-        night_switch_handler = night_switch.connect("notify::active", self.on_night_switch)
+       # brightness_scale = self.get_template_child(BrightnessLayer, "brightness_scale")
+       # brightness_label = self.get_template_child(BrightnessLayer, "brightness_label")
+        brightness_handler = self.brightness_scale.connect("value-changed", self.on_brightness_change)
+       # night_scale = self.get_template_child(BrightnessLayer, "night_scale")
+       # night_label = self.get_template_child(BrightnessLayer, "night_label")
+        night_handler = self.night_scale.connect("value-changed", self.on_temp_change)
+      #  night_switch = self.get_template_child(BrightnessLayer, "night_switch")
+        night_switch_handler = self.night_switch.connect("notify::active", self.on_night_switch)
         self.night_widgets = {
-            "scale": night_scale,
+            "scale": self.night_scale,
             "scale_handler": night_handler,
-            "label": night_label,
+            "label": self.night_label,
             "switch": self.get_template_child(BrightnessLayer, "night_switch"),
             "switch_handler": night_switch_handler,
         }
         self.brightness_widgets = {
-            "scale": brightness_scale,
+            "scale": self.brightness_scale,
             "scale_handler": brightness_handler,
-            "label": brightness_label,
+            "label": self.brightness_label,
         }
-        brightness_scale.set_value(current_brightness)
-        brightness_label.set_text(f"{int(round(current_brightness))}%")
+        self.brightness_scale.set_value(current_brightness)
+        self.brightness_label.set_text(f"{int(round(current_brightness))}%")
         current_temp = self.hyprsunset.hyprsunset("temperature")     
         light_status = (int(current_temp) < 6000)
-        night_switch.set_active(light_status)
-        night_scale.set_value(int(current_temp))
-        night_label.set_text(f"{int(current_temp)}K")
+        self.night_switch.set_active(light_status)
+        self.night_scale.set_value(int(current_temp))
+        self.night_label.set_text(f"{int(current_temp)}K")
 
     # def setup_tabs(self):
     #     self.tabs = Gtk.Stack()

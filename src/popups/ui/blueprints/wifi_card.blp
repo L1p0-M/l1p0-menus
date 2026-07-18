@@ -1,0 +1,61 @@
+using Gtk 4.0;
+
+template $WifiCard : Gtk.ListBoxRow {
+    child: Gtk.Box card {
+        orientation: horizontal;
+        hexpand: true;
+        styles ["network-card"]
+
+        Gtk.Image strength_icon {
+            icon-name: "image-missing";
+            styles ["wifi-icon"]
+        }
+        Gtk.Box {
+            orientation: vertical;
+            hexpand: true;
+
+            Gtk.Label ssid {
+                label: "Unknown";
+                halign: start;
+            }
+            Gtk.Label strength {
+                label: "Signal - N/A";
+                halign: start;
+                styles ["subname"]
+            }
+        }
+        Gtk.Image lock_icon {
+            icon-name: "object-unlocked";
+            margin-end: 10;
+            halign: end;
+        }
+        Gtk.Box loader_container {
+            visible: false;
+            orientation: horizontal;
+            spacing: 10;
+
+            Gtk.Image spinner {
+                icon-name: "process-working-symbolic";
+                halign: end;
+                styles ["spinner"]
+            }
+            Gtk.Label loading_label {
+                label: "Connecting...";
+            }
+        }
+        Gtk.Button details_btn {
+            visible: false;
+            margin-end: 10;
+            styles ["wifi-details-button"]
+
+            child: Gtk.Image {
+                icon-name: "info-outline-symbolic";
+            };
+        }
+        Gtk.Button connect_btn {
+            label: "Connect";
+            halign: end;
+            styles ["connect-button"]
+        }
+    };
+}

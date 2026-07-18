@@ -1,0 +1,90 @@
+using Gtk 4.0;
+
+template $WifiTab : Gtk.Box {
+    orientation: vertical;
+    Gtk.Box {
+        margin-start: 20;
+        margin-end: 20;
+        margin-top: 5;
+        margin-bottom: 10;
+        spacing: 10;
+        hexpand: true;
+        halign: center;
+        valign: start;
+
+        Gtk.Switch wifi_switch {
+            visible: true;
+            styles ["wifi-switch"]
+            state-set => $on_wifi_switch();
+        }
+        Gtk.Label {
+            label: "Wi-Fi";
+        }
+        Gtk.Switch net_switch {
+            visible: true;
+            styles ["network-switch"]
+            state-set => $on_network_switch();
+        }
+        Gtk.Label {
+            label: "Network";
+        }
+    }
+    $ScrolledPanel scrolled_wifi_panel {
+        min-content-height: 300;
+        max-content-height: 340;
+    }
+    Gtk.Box {
+        orientation: horizontal;
+        spacing: 10;
+        valign: end;
+
+        Gtk.Button wifi_reload_button {
+            hexpand: true;
+            margin-top: 20;
+            styles ["wifi-reload"]
+            child: Gtk.Image reload_icon {
+                icon-name: "view-refresh-symbolic";
+                styles ["reload-icon"]
+            };
+            clicked => $on_refresh();
+        }
+        Gtk.Box {
+            orientation: horizontal;
+            spacing: 10;
+            homogeneous: true;
+
+            Gtk.Button vpn_btn {
+                visible: false;
+                hexpand: false;
+                margin-top: 20;
+                child: Gtk.Image vpn_icon {
+                    icon-name: "network-vpn-symbolic";
+                    pixel-size: 24;
+                };
+                styles ["vpn-menu-button"]
+            }
+            Gtk.Button saved_networks_btn {
+                hexpand: false;
+                margin-top: 20;
+                styles ["saved-menu-button"]
+
+                child: Gtk.Overlay saved_icon_overlay {
+                    child: Gtk.Image saved_wifi_icon {
+                        halign: center;
+                        valign: center;
+                        pixel-size: 24;
+                        icon-name: "network-wireless-signal-excellent-symbolic";
+                    };
+                    [overlay]
+                    Gtk.Image save_icon {
+                        halign: end;
+                        valign: end;
+                        pixel-size: 8;
+                        icon-name: "document-save-symbolic";
+                    }
+                };
+            }
+
+        }
+    }
+}
