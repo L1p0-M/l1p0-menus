@@ -1,0 +1,67 @@
+using Gtk 4.0;
+
+template $BluetoothTab : Gtk.Box {
+    orientation: vertical;
+    Gtk.Box {
+        margin-start: 20;
+        margin-end: 20;
+        margin-top: 5;
+        margin-bottom: 10;
+        spacing: 10;
+        hexpand: true;
+        halign: center;
+        valign: start;
+
+        Gtk.Switch toggle_switch {
+            visible: true;
+            styles ["network-switch"]
+        }
+        Gtk.Label {
+            label: "Bluetooth";
+        }
+        Gtk.Switch discover_switch {
+            visible: true;
+            styles ["network-switch"]
+        }
+        Gtk.Label {
+            label: "Discoverable";
+        }
+    }
+    Gtk.Label discover_label {
+        label: "Your device is discoverable till 180s";
+        visible: false;
+        margin-bottom: 3;
+        margin-top: 3;
+        halign: center;
+        styles ["discoverable-label"]
+    }
+    $ScrolledPanel scrolled_bluetooth_panel {
+        min-content-height: 340;
+        max-content-height: 340;
+    }
+    Gtk.Box {
+        orientation: horizontal;
+        spacing: 10;
+        valign: end;
+
+        Gtk.Button bluetooth_reload_btn {
+            hexpand: true;
+            margin-top: 20;
+            styles ["bluetooth-reload"]
+            child: Gtk.Image reload_icon {
+                icon-name: "view-refresh-symbolic";
+                styles ["reload-icon"]
+            };
+            clicked => $on_refresh();
+        }
+        Gtk.Button settings_btn {
+            hexpand: false;
+            margin-top: 20;
+            child: Gtk.Image {
+                icon-name: "preferences-system-symbolic";
+            };
+            styles ["bluetooth-settings-btn"]
+            clicked => $on_settings_open();
+        }
+    }
+}

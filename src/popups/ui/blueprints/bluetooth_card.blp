@@ -1,0 +1,75 @@
+using Gtk 4.0;
+
+template $BluetoothCard : Gtk.ListBoxRow {
+    child: Gtk.Box card {
+        orientation: horizontal;
+        hexpand: true;
+        styles ["network-card"]
+
+        Gtk.Image icon {
+            icon-name: "bluetooth-symbolic";
+            styles ["wifi-icon"]
+        }
+        Gtk.Box {
+            orientation: vertical;
+            hexpand: true;
+
+            Gtk.Label name {
+                label: "Unknown";
+                halign: start;
+            }
+            Gtk.Box {
+                orientation: horizontal;
+                styles ["subname"]
+
+                Gtk.Label subname {
+                    label: "Available";
+                    halign: start;
+                }
+                Gtk.Box battery_container {
+                    visible: false;
+                    orientation: horizontal;
+
+                    Gtk.Label {
+                        label: " - ";
+                    }
+                    Gtk.Image battery_icon {
+                        icon-name: "battery-missing-symbolic";
+                        valign: center;
+                    }
+                    Gtk.Label battery_label {
+                        label: "Unknown%";
+                    }
+                }
+            }
+        }
+        Gtk.Box loader_container {
+            visible: false;
+            orientation: horizontal;
+            spacing: 10;
+
+            Gtk.Image spinner {
+                icon-name: "process-working-symbolic";
+                halign: end;
+                styles ["spinner"]
+            }
+            Gtk.Label loading_label {
+                label: "Pairing...";
+            }
+        }
+        Gtk.Button details_btn {
+            visible: false;
+            margin-end: 10;
+            styles ["wifi-details-button"]
+
+            child: Gtk.Image {
+                icon-name: "info-outline-symbolic";
+            };
+        }
+        Gtk.Button connect_btn {
+            label: "Pair";
+            halign: end;
+            styles ["connect-button"]
+        }
+    };
+}

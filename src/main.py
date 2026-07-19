@@ -18,7 +18,7 @@ def load_resources():
         print(f"Failed to load resources: {e}")
 load_resources()
 
-from .widgets import widgets
+from .widgets.widgets import MenuButton, MuteButton, ScrolledPanel, HeaderButton
 from .popups import brightness as brightness
 from .popups import clock as clock
 from .popups import battery as battery

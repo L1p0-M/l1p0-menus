@@ -1,78 +1,69 @@
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio, GObject
 from ..assets.utils import window_utils, Popups, IPCSocket
 from ..assets.bluetooth_dbus import DbusBluez
 
 
-class Bluetooth:
-    def __init__(self, container, overlay, keyboard):
-        self.main_container = container
+@Gtk.Template(resource_path="/l1p0-menus/ui/bluetooth_card.ui")
+class BluetoothCard(Gtk.ListBoxRow):
+    __gtype_name__ = 'BluetoothCard'
+    card = Gtk.Template.Child()
+    icon = Gtk.Template.Child()
+    name = Gtk.Template.Child()
+    subname = Gtk.Template.Child()
+    battery_container = Gtk.Template.Child()
+    loader_container = Gtk.Template.Child()
+    battery_icon = Gtk.Template.Child()
+    battery_label = Gtk.Template.Child()
+    spinner = Gtk.Template.Child()
+    loading_label = Gtk.Template.Child()
+    details_btn = Gtk.Template.Child()
+    connect_btn = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.init_template()
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/bluetooth.ui")
+class Bluetooth(Gtk.Box):
+    __gtype_name__ = 'BluetoothTab'
+    overlay = GObject.Property(type=Gtk.Overlay, default=None)
+    toggle_switch = Gtk.Template.Child()
+    discover_switch = Gtk.Template.Child()
+    discover_label = Gtk.Template.Child()
+    bluetooth_reload_btn = Gtk.Template.Child()
+    settings_btn = Gtk.Template.Child()
+    reload_icon = Gtk.Template.Child()
+    scrolled_bluetooth_panel = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.init_template()
+        self.connect("notify::overlay", self.on_overlay_ready)
         self.dbusbluez = DbusBluez(self.update_ui_elements)
         self.loading = False
-        self.keyboard_focus = keyboard
-        self.main_overlay = overlay
         self.wait_till_paired = False
         self.discoverable_timeout = 180
         self.bluetooth_cards_details = {}
         self.window_utils = window_utils()
         self.ipc = IPCSocket(name="bluetooth", on_receive=self._on_ipc_receive)
         self.empty_widgets = self.window_utils.init_empty_text("Bluetooth is currently disabled", "bluetooth-disabled-symbolic")
-        self.auth_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="pairing", bluezdbus=None, device=None)
-        self.setup_bluetooth_tab()
         self.internal_update = False
+        self.scrolled_bluetooth_container = self.scrolled_bluetooth_panel.panel_content
+        self.scrolled_bluetooth_container.set_header_func(self.update_headers)
+        self.scrolled_bluetooth_container.set_sort_func(self._sort_func)
+
+    def on_overlay_ready(self, *args):
+        if self.overlay:
+            self.auth_windows = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, windowtype="pairing", bluezdbus=None, device=None)
+            self.setup_bluetooth_tab()
 
     def setup_bluetooth_tab(self):
-        switch_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-            margin_start=20,
-            margin_end=20,
-            margin_top=5,
-            margin_bottom=10,
-            spacing=10)
-        switch_container.set_hexpand(True)
-        switch_container.set_halign(Gtk.Align.CENTER)
-        self.toggle_switch = Gtk.Switch()
         self.bluetooth_toggle_event = self.toggle_switch.connect("state-set", self.on_bluetooth_toggle)
-        self.toggle_switch.get_style_context().add_class("network-switch")
-        self.toggle_switch_label = Gtk.Label(label="Bluetooth")
-        self.discover_switch = Gtk.Switch()
         self.discover_toggle_event = self.discover_switch.connect("state-set", self.on_discoverable_switch)
-        self.discover_switch.get_style_context().add_class("network-switch")
-        self.discover_switch_label = Gtk.Label(label="Discoverable")
-        switch_container.append(self.toggle_switch)
-        switch_container.append(self.toggle_switch_label)
-        switch_container.append(self.discover_switch)
-        switch_container.append(self.discover_switch_label)
-        self.main_container.append(switch_container)
-        self.discover_label = Gtk.Label(label=f"Your device is discoverable till {self.discoverable_timeout}s")
-        self.discover_label.set_visible(False)
-        self.discover_label.set_margin_bottom(3)
-        self.discover_label.set_margin_top(3)
-        self.discover_label.set_halign(Gtk.Align.CENTER)
-        self.discover_label.get_style_context().add_class("discoverable-label")
-        self.main_container.append(self.discover_label)
-        self.scrolled_bluetooth_panel, self.scrolled_bluetooth_container = self.window_utils.setup_scrolled_windows(340, 340, self.update_headers, self._sort_func)
-        self.main_container.append(self.scrolled_bluetooth_panel)
-        bottom_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        self.bluetooth_reload_btn = Gtk.Button()
-        self.bluetooth_reload_btn.get_style_context().add_class("bluetooth-reload")
-        self.bluetooth_reload_btn.connect("clicked", lambda x: self.on_refresh())
-        self.bluetooth_reload_btn.set_hexpand(True)
-        self.bluetooth_reload_btn.set_margin_top(20)
-        self.reload_icon = Gtk.Image.new_from_icon_name("view-refresh-symbolic")
-        self.reload_icon.get_style_context().add_class("reload-icon")
-        self.bluetooth_reload_btn.set_child(self.reload_icon)
-        self.settings_btn = Gtk.Button()
-        self.settings_btn.set_child(Gtk.Image.new_from_icon_name("preferences-system-symbolic"))
-        self.settings_windows = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="settings", bluezdbus=self.dbusbluez, device=None, set_keyboard=self.keyboard_focus)
-        self.settings_btn.connect("clicked", lambda x: self.on_settings_open())
-        self.settings_btn.set_hexpand(False)
-        self.settings_btn.set_margin_top(20)
-        self.settings_btn.get_style_context().add_class("bluetooth-settings-btn")
-        bottom_box.append(self.bluetooth_reload_btn)
-        bottom_box.append(self.settings_btn)
-        self.main_container.append(bottom_box)
+        self.settings_windows = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, windowtype="settings", bluezdbus=self.dbusbluez, device=None, set_keyboard=self.set_keyboard_mode)
         self._default_state()
         
 
@@ -81,83 +72,43 @@ class Bluetooth:
         if dev_name in self.bluetooth_cards_details:
             self.update_ui_elements({"update_card": device})
             return
-        row = Gtk.ListBoxRow()
+        row = BluetoothCard()
         row.paired = device["paired"] if device["paired"] is not None else False
         active = device["connected"]
         row.is_active = active
-        row.name = dev_name
-        card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        card.set_hexpand(True)
-        name_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        name_container.set_hexpand(True)
-        name = Gtk.Label(label=f"{dev_name}")
-        name.set_halign(Gtk.Align.START)
-        bottom_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        bottom_container.get_style_context().add_class("subname")
-        subname = Gtk.Label(label=f"{'Connected' if device['connected'] else 'Paired' if device['paired'] else 'Available'}")
-        subname.set_halign(Gtk.Align.START)
-        icon = Gtk.Image.new_from_icon_name(f"{device['icon'] if device['icon'] != 'unknown' else 'bluetooth'}-symbolic")
-        icon.get_style_context().add_class("wifi-icon")
-        battery_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        separator_label = Gtk.Label(label=" - ")
+        row.name.set_label(f"{dev_name}")
+        row.subname.set_label(f"{'Connected' if device['connected'] else 'Paired' if device['paired'] else 'Available'}")
+        row.icon.set_from_icon_name(f"{device['icon'] if device['icon'] != 'unknown' else 'bluetooth'}-symbolic")
         battery_level = self.dbusbluez.get_connected_battery(device['address']) if device['connected'] and device['paired'] else 'Unknown'
-        battery_label = Gtk.Label(label=f"{battery_level}%")
+        row.battery_label.set_label(f"{battery_level}%")
         no_level = ["Unknown", None]
-        battery_icon = Gtk.Image.new_from_icon_name(f"{self.window_utils.get_battery_icon(level=int(battery_level)) if battery_level not in no_level else 'battery-missing-symbolic'}")
-        battery_icon.set_valign(Gtk.Align.CENTER)
-        battery_container.append(separator_label)
-        battery_container.append(battery_icon)
-        battery_container.append(battery_label)
-        battery_container.set_visible(True if device["connected"] else False)
-        name_container.append(name)
-        bottom_container.append(subname)
-        bottom_container.append(battery_container)
-        name_container.append(bottom_container)
-        connect_btn = Gtk.Button(label=f"{'Disconnect' if device['connected'] else 'Connect' if device['paired'] else 'Pair'}")
-        connect_btn.get_style_context().add_class("connect-button")
-        connect_btn.set_halign(Gtk.Align.END)
-        connect_btn.connect("clicked", lambda x, address=device["address"], device=dev_name: self.on_connect_pressed(address, device) )
-        loader_container =Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        spinner = Gtk.Image.new_from_icon_name("process-working-symbolic")
-        spinner.get_style_context().add_class("spinner")
-        loading_label = Gtk.Label(label=f"{'Disconnecting...' if device['connected'] else 'Connecting...' if device['paired'] else 'Pairing...'}")
-        loader_container.append(spinner)
-        loader_container.append(loading_label)
-        loader_container.set_visible(False)
-        details_btn = Gtk.Button()
-        details_btn.set_child(Gtk.Image.new_from_icon_name("info-outline-symbolic"))
-        details_btn.get_style_context().add_class("wifi-details-button")
-        details_btn.set_margin_end(10)
-        details_btn.set_visible(False)
-        card.append(icon)
-        card.append(name_container)
-        card.append(loader_container)
-        card.append(details_btn)
-        card.append(connect_btn)
-        card.get_style_context().add_class("network-card")
-        row.set_child(card)
+        row.battery_icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(level=int(battery_level)) if battery_level not in no_level else 'battery-missing-symbolic'}")
+        row.battery_container.set_visible(True if device["connected"] else False)
+        row.connect_btn.set_label(f"{'Disconnect' if device['connected'] else 'Connect' if device['paired'] else 'Pair'}")
+        row.connect_btn.connect("clicked", lambda x, address=device["address"], device=dev_name: self.on_connect_pressed(address, device) )
+        row.loading_label.set_label(f"{'Disconnecting...' if device['connected'] else 'Connecting...' if device['paired'] else 'Pairing...'}")
         self.scrolled_bluetooth_container.append(row)
         self.bluetooth_cards_details[dev_name] = {
             "details": device,
             "row": row,
-            "card": card,
-            "connect_btn": connect_btn,
-            "spinner": spinner,
-            "subname": subname,
-            "loader_container": loader_container,
-            "battery_container": battery_container,
-            "loading_label": loading_label,
-            "details_btn": details_btn,
+            "card": row.card,
+            "connect_btn": row.connect_btn,
+            "spinner": row.spinner,
+            "subname": row.subname,
+            "loader_container": row.loader_container,
+            "battery_container": row.battery_container,
+            "loading_label": row.loading_label,
+            "details_btn": row.details_btn,
             "active": active,
             "paired": device["paired"],
             "revealer": None,
-            "battery": battery_label,
-            "battery_icon": battery_icon
+            "battery": row.battery_label,
+            "battery_icon": row.battery_icon
         }
         if row.paired:
             self._setup_details_if_paired(self.bluetooth_cards_details[dev_name])
         if row.is_active:
-            card.get_style_context().add_class("active")
+            row.card.get_style_context().add_class("active")
         self.scrolled_bluetooth_container.invalidate_sort()
         
     def _sort_func(self, row1, row2):
@@ -255,7 +206,7 @@ class Bluetooth:
             if to_remove in self.bluetooth_cards_details:
                 self.scrolled_bluetooth_container.remove(self.bluetooth_cards_details[to_remove]["row"])
                 if self.bluetooth_cards_details[to_remove]["revealer"] is not None:
-                    self.main_overlay.remove_overlay(self.bluetooth_cards_details[to_remove]["revealer"]["revealer"])
+                    self.overlay.remove_overlay(self.bluetooth_cards_details[to_remove]["revealer"]["revealer"])
                 del self.bluetooth_cards_details[to_remove]
                 
         elif "trusted" in message:
@@ -393,7 +344,8 @@ class Bluetooth:
         self.empty_widgets["text"].set_label("Loading devices...")
         self.empty_widgets["icon"].set_visible(False)
 
-    def on_refresh(self):
+    @Gtk.Template.Callback()
+    def on_refresh(self, *args):
         if self.toggle_switch.get_active():
             self.dbusbluez._get_bluez_objects()
             self.reload_icon.get_style_context().add_class("active")
@@ -409,7 +361,7 @@ class Bluetooth:
             self.scrolled_bluetooth_container.remove(child)
         for names in self.bluetooth_cards_details.keys():
             if self.bluetooth_cards_details[names]["revealer"] is not None:
-                self.main_overlay.remove_overlay(self.bluetooth_cards_details[names]["revealer"]["revealer"])
+                self.overlay.remove_overlay(self.bluetooth_cards_details[names]["revealer"]["revealer"])
         self.bluetooth_cards_details = {}
         self.empty_widgets["loader"].set_visible(False)
         self.empty_widgets["box"].set_visible(True)
@@ -450,7 +402,7 @@ class Bluetooth:
             device["details_btn"].set_visible(True)
         if device["revealer"] is not None:
             return
-        revealer = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, windowtype="details", bluezdbus=self.dbusbluez, device=device["details"])
+        revealer = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, windowtype="details", bluezdbus=self.dbusbluez, device=device["details"])
         device["revealer"] = revealer
         device["details_btn"].connect("clicked", lambda x, reveal=device["revealer"]["revealer"]: reveal.set_reveal_child(True))
         
@@ -461,20 +413,28 @@ class Bluetooth:
         if call_type == "cancel":
             auth_window.on_close()
         if call_type == "confirmation" and passkey is not None:
-            self.ipc.send_to("daemon", "toggle_network")
-            self.ipc.send_to("wifi", "show_bluetooth")
+            #GLib.idle_add(self.ipc.send_to, "network", "show_bluetooth")
+            if not self.get_root().get_visible():
+                GLib.idle_add(self.ipc.send_to, "daemon", "toggle_network")
             auth_window.callback_for_auth = callback
             auth_window.shown_code.set_label(str(passkey))
             auth_window.confirm_container.set_visible(True)
             self.auth_windows["revealer"].set_reveal_child(True)
 
-    def on_settings_open(self):
-        self.keyboard_focus(True)
+    @Gtk.Template.Callback()
+    def on_settings_open(self, *args):
+        self.set_keyboard_mode(True)
         self.settings_windows["revealer"].set_reveal_child(True)
 
     def _on_ipc_receive(self, *args):
         print(args)
         pass
+
+    def set_keyboard_mode(self, mode):
+        if mode:
+            Gtk4LayerShell.set_keyboard_mode(self.get_root(), Gtk4LayerShell.KeyboardMode.ON_DEMAND)
+        else:
+            Gtk4LayerShell.set_keyboard_mode(self.get_root(), Gtk4LayerShell.KeyboardMode.NONE)
 
 
 

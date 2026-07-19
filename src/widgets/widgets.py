@@ -63,3 +63,14 @@ class ScrolledPanel(Gtk.ScrolledWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.init_template()
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/details_popup.ui")
+class DetailsPopupRow(Gtk.Box):
+    __gtype_name__ = 'DetailsPopupRow'
+    icon = Gtk.Template.Child()
+    property_name = Gtk.Template.Child()
+    property_value = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.init_template()

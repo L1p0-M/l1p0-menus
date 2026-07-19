@@ -39,9 +39,6 @@ class VolumeLayer(Gtk.Window):
         self.load_config(self.config)
         self.set_default_size(400, 150)
         self.init_template()
-       # self.tabs = self.get_template_child(VolumeLayer, "tabs")
-       # self.vol_button = self.get_template_child(VolumeLayer, "vol_button")
-       # self.mic_button = self.get_template_child(VolumeLayer, "mic_button")
         self.header_button = HeaderButtons(buttons={
             "Volume-Tab": self.vol_button,
             "Mic-Tab": self.mic_button
@@ -50,87 +47,36 @@ class VolumeLayer(Gtk.Window):
         self.vol_button.header_button_name.set_text("Volume")
         self.mic_button.header_button_image.set_from_icon_name("microphone-sensitivity-high-symbolic")
         self.mic_button.header_button_name.set_text("Microphone")
-
-       # self.vol_menu_btn = self.get_template_child(VolumeLayer, "vol_menu_btn")
-       # self.mic_menu_btn = self.get_template_child(VolumeLayer, "mic_menu_btn")
-       # self.vol_device_switcher = self.get_template_child(VolumeLayer, "audio_device_switcher")
-       # self.mic_device_switcher = self.get_template_child(VolumeLayer, "mic_device_switcher")
-       # self.vol_menu_btn.connect("clicked", lambda x, reveal=self.vol_device_switcher: reveal.set_reveal_child(True))
-       # self.mic_menu_btn.connect("clicked", lambda x, reveal=self.mic_device_switcher: reveal.set_reveal_child(True))
         self.vol_widgets = {
             "label" : self.vol_label,
             "scale" : self.vol_scale,
-            #"scale_handler": scale_handler,
             "mute_btn": self.vol_mute_btn,
-            #"mute_btn_handler": mute_btn_handler,
             "menu_btn": self.vol_menu_btn
         }
         self.mic_widgets = {
             "label" : self.mic_label,
             "scale" : self.mic_scale,
-            #"scale_handler": scale_handler,
             "mute_btn": self.mic_mute_btn,
-            #"mute_btn_handler": mute_btn_handler,
             "menu_btn": self.mic_menu_btn
         }
-       # self.get_style_context().add_class("audio-window")
-       # self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-       # self.main_container.get_style_context().add_class("audio-layer")
-       # self.main_container.set_margin_start(0)
         self.window_utils = window_utils()
-       # self.overlay = Gtk.Overlay()
-       # self.set_child(self.overlay)
-       # self.overlay.set_child(self.main_container)
-       # self.setup_header()
-       # self.main_container.append(self.main_header_container)
-       # self.mic_widgets = {}
-       # self.vol_widgets = {}
         self.mic_window = {}
         self.vol_window = {}
         self.setup_tab(is_mic=False)
         self.setup_tab(is_mic=True)
-       # self.main_container.append(self.tabs)
 
     def load_config(self, config):
         if self.config != config:
             self.config = config
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
-
-    def setup_header(self):
-        self.tabs = Gtk.Stack()
-        self.tabs.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
-        self.main_mic_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.main_vol_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.volume_page = self.tabs.add_named(self.main_vol_container, "Volume-Tab")
-        self.mic_page = self.tabs.add_named(self.main_mic_container, "Mic-Tab")
-        self.main_header_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-            margin_start = 10,
-            margin_end = 10,
-            margin_top = 10,
-            margin_bottom = 10 )
-        self.main_header_container.get_style_context().add_class("header")
-        self.main_header_container.set_homogeneous(True)
-        self.tab_buttons = {}
-        self.header = Header(self.main_header_container, self.tab_buttons, self.tabs)
-        self.header.setup_header("Volume", "audio-speakers-symbolic", "Volume-Tab")
-        self.header.setup_header("Mic", "microphone-sensitivity-high-symbolic", "Mic-Tab")
-
-        
+      
     def setup_tab(self, is_mic):
-        # vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
-        #     spacing=15,
-        #     margin_start=20,
-        #     margin_end=20,
-        #     margin_top=20,
-        #     margin_bottom=20,)
-        # hbox_control = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        # if self.pulseaudio.pulse is None:
+        #if self.pulseaudio.pulse is None:
         #     not_found_label = Gtk.Label(label="Pulseaudio not found")
         #     not_found_label.get_style_context().add_class("error-not-found")
         #     container.append(not_found_label)
         #     return
-        # current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults)
         current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults)
         if is_mic:
             self.mic_window = current_window
@@ -139,56 +85,17 @@ class VolumeLayer(Gtk.Window):
             self.vol_window = current_window
             widgets = self.vol_widgets
 
-       # popup_window = PopupWindow(is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults, windows=windows)
         initial_values = self.pulseaudio.get_initial_values(is_mic)
-        # adj = Gtk.Adjustment(value=0, lower=0, upper=1, step_increment=0.01)
         widgets["label"].set_label(f"{int(round((initial_values["volume"])*100))}%")
         widgets["scale"].set_value(initial_values["volume"])
-        # percent_label = Gtk.Label(label=f"{int(round((initial_values["volume"])*100))}%")
-        # percent_label.get_style_context().add_class("percent-text")
-        # percent_label.set_halign(Gtk.Align.START)
-        # percent_label.set_size_request(40, -1)
-        # scale = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-        # scale.get_style_context().add_class("volume-slider")
-        # scale.set_value(initial_values["volume"])
         self.update_slider_css_class(is_mic, initial_values["mute_status"], widgets["scale"])
         scale_handler = widgets["scale"].connect("value-changed", self.pulseaudio.on_volume_change, is_mic, widgets["label"])
-        # scale.set_draw_value(False)
-        # scale.set_size_request(200, -1)
-        # mute_btn = Gtk.ToggleButton()
         widgets["mute_btn"].image.set_from_icon_name(initial_values["mute_icon"])
         widgets["mute_btn"].set_active(initial_values["mute_status"])
         mute_btn_handler = widgets["mute_btn"].connect("toggled", self.pulseaudio.on_mute_toggle, is_mic, self.update_slider_css_class)
         widgets["scale_handler"] = scale_handler
         widgets["mute_btn_handler"] = mute_btn_handler
         widgets["menu_btn"].connect("clicked", lambda x, revealer=current_window["revealer"]: revealer.set_reveal_child(True))
-        # mute_btn.set_halign(Gtk.Align.END)
-        # menu_btn = Gtk.Button()
-        # menu_btn.get_style_context().add_class("audio-menu-button")
-        # menu_btn.set_child(Gtk.Image.new_from_icon_name("open-menu-symbolic"))
-        # menu_btn.connect("clicked", lambda x, reveal=current_window["revealer"]: reveal.set_reveal_child(True))
-        # menu_btn.set_halign(Gtk.Align.END)
-        # vbox.append(hbox_control)
-        # hbox_control.append(percent_label)
-        # hbox_control.append(scale)
-        # hbox_control.append(mute_btn)
-        # hbox_control.append(menu_btn)
-        # container.append(vbox)
-        
-        # widgets = {
-        #     "label" : percent_label,
-        #     "scale" : scale,
-        #     "scale_handler": scale_handler,
-        #     "mute_btn": mute_btn,
-        #     "mute_btn_handler": mute_btn_handler,
-        #     "menu_btn": menu_btn
-        # }
-        #if is_mic:
-        #     self.mic_widgets = widgets
-        #    self.mic_window = current_window
-        #else:
-        #     self.vol_widgets = widgets
-        #    self.vol_window = current_window
 
 
     def update_slider_css_class(self, is_mic, mute_status=None, scale_widget=None):

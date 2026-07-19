@@ -1,0 +1,25 @@
+using Gtk 4.0;
+
+template $DetailsPopupRow : Gtk.Box {
+    orientation: horizontal;
+    margin-top: 2;
+    margin-bottom: 2;
+    homogeneous: true;
+    Gtk.Box {
+        orientation: horizontal;
+        Gtk.Image icon {
+            margin-end: 10;
+            icon-name: "image-missing";
+        }
+        Gtk.Label property_name {
+            label: "N/A";
+            halign: start;
+            styles ["popup-parameter"]
+        }
+    }
+    Gtk.Label property_value {
+        label: "N/A";
+        halign: end;
+        styles ["popup-value"]
+    }
+}
