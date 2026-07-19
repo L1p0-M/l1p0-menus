@@ -14,5 +14,9 @@
     <file preprocess="xml-stripblanks" alias="wifi.ui">../popups/ui/wifi.ui</file>
     <file preprocess="xml-stripblanks" alias="wifi_card.ui">../popups/ui/wifi_card.ui</file>
     <file preprocess="xml-stripblanks" alias="scrolled_panel.ui">../popups/ui/scrolled_panel.ui</file>
+    <file preprocess="xml-stripblanks" alias="saved_wifi_card.ui">../popups/ui/saved_wifi_card.ui</file>
+    <file preprocess="xml-stripblanks" alias="details_popup.ui">../popups/ui/details_popup.ui</file>
+    <file preprocess="xml-stripblanks" alias="bluetooth.ui">../popups/ui/bluetooth.ui</file>
+    <file preprocess="xml-stripblanks" alias="bluetooth_card.ui">../popups/ui/bluetooth_card.ui</file>
   </gresource>
 </gresources>

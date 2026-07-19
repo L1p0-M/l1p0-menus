@@ -39,8 +39,8 @@ template $network_window: Gtk.Window {
                     name: "Bluetooth-Tab";
                     title: "Bluetooth";
 
-                    child: Gtk.Box bluetoothtab {
-                        orientation: vertical;
+                    child: $BluetoothTab bluetoothtab {
+                        overlay: bind overlay;
                     };
                 }
             }

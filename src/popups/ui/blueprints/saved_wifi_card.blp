@@ -1,0 +1,36 @@
+using Gtk 4.0;
+
+template $SavedWifiCard : Gtk.ListBoxRow {
+    child: Gtk.Box card {
+        orientation: horizontal;
+        hexpand: true;
+        styles ["network-card"]
+
+        Gtk.Image icon {
+            icon-name: "network-wireless-signal-excellent-symbolic";
+            styles ["wifi-icon"]
+        }
+        Gtk.Box {
+            orientation: vertical;
+            hexpand: true;
+
+            Gtk.Label ssid {
+                label: "Unknown";
+                halign: start;
+            }
+            Gtk.Label autoconnect {
+                label: "Autoconnect Enabled";
+                halign: start;
+                styles ["subname"]
+            }
+        }
+        Gtk.Switch autoconnect_switch {
+            styles ["autoconnect-switch"]
+        }
+        Gtk.Button forget_btn {
+            label: "Forget";
+            halign: end;
+            styles ["forget-button"]
+        }
+    };
+}

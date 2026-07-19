@@ -61,8 +61,10 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                     <property name="name">Bluetooth-Tab</property>
                     <property name="title">Bluetooth</property>
                     <property name="child">
-                      <object class="GtkBox" id="bluetoothtab">
-                        <property name="orientation">1</property>
+                      <object class="BluetoothTab" id="bluetoothtab">
+                        <binding name="overlay">
+                          <constant>overlay</constant>
+                        </binding>
                       </object>
                     </property>
                   </object>
