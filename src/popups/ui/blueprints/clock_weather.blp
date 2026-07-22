@@ -1,0 +1,136 @@
+using Gtk 4.0;
+
+template $calendar_window: Gtk.Window {
+    title: "Calendar Layer";
+    styles ["calendar-window"]
+    child: Gtk.Overlay overlay {
+        child: Gtk.Box {
+            orientation: vertical;
+            margin-start: 0;
+            styles ["calendar-layer"]
+
+            Gtk.Box {
+                margin-start: 10;
+                margin-end: 10;
+                margin-top: 10;
+                margin-bottom: 10;
+                orientation: horizontal;
+                homogeneous: true;
+
+                Gtk.Box {
+                    orientation: vertical;
+
+                    Gtk.Label clock {
+                        label: "hh:mm";
+                        hexpand: false;
+                        halign: center;
+                        styles ["clock"]
+                    }
+                    Gtk.Label date {
+                        label: "yyyy-mm-dd";
+                        hexpand: false;
+                        halign: center;
+                        styles ["date"]
+                    }
+                    Gtk.Calendar calendar {
+                        width-request: 320;
+                        height-request: -1;
+                        halign: center;
+                        hexpand: false;
+                        show-week-numbers: false;
+                        styles ["calendar"]
+                    }
+                }
+                Gtk.Box main_weather_container {
+                    orientation: vertical;
+                    margin-start: 20;
+                    margin-end: 20;
+                    margin-top: 20;
+                    margin-bottom: 0;
+                    visible: false;
+
+                    $MenuButton menu_btn {
+                        hexpand: true;
+                        halign: end;
+                    }
+                    Gtk.Box {
+                        orientation: horizontal;
+
+                        Gtk.Box sunrise_container {
+                            orientation: vertical;
+                            valign: end;
+                            styles ["weather-sunrise"]
+
+                            Gtk.Image {
+                                icon-name: "daytime-sunrise-symbolic";
+                                styles ["sunrise-icon"]
+                            }
+                            Gtk.Label current_sunrise {
+                                label: "hh:mm";
+                            }
+
+                        }
+                        Gtk.Box {
+                            orientation: vertical;
+                            hexpand: true;
+
+                            Gtk.Image current_weather_icon {
+                                icon-name: "weather-clear-symbolic";
+                                styles ["weather-icon"]
+                            }
+                            Gtk.Box {
+                                orientation: horizontal;
+
+                                Gtk.Label current_weather_temp {
+                                    label: "N/A°C";
+                                    hexpand: true;
+                                    halign: end;
+                                    styles ["weather-temp"]
+                                }
+                                Gtk.Label current_weather_feel {
+                                    label: "N/A°C";
+                                    hexpand: true;
+                                    halign: start;
+                                    styles ["weather-feel"]
+                                }
+                            }
+                            Gtk.Label current_weather_desc {
+                                label: "Unknown";
+                                hexpand: true;
+                                halign: center;
+                                styles ["weather-description"]
+                            }
+                            Gtk.Label current_weather_place {
+                                label: "Unknown";
+                                hexpand: true;
+                                halign: center;
+                                styles ["weather-city"]
+                            }
+                        }
+                        Gtk.Box sunset_container {
+                            orientation: vertical;
+                            valign: end;
+                            styles ["weather-sunset"]
+
+                            Gtk.Image {
+                                icon-name: "daytime-sunset-symbolic";
+                                styles ["sunset-icon"]
+                            }
+                            Gtk.Label current_sunset {
+                                label: "hh:mm";
+                            }
+                        }
+                    }
+                    Gtk.Box upcoming_weather_container {
+                        orientation: horizontal;
+                        homogeneous: true;
+                        styles ["upcoming-container"]
+
+                    }
+                }
+
+            }
+        };
+
+    };
+}
