@@ -1,0 +1,29 @@
+using Gtk 4.0;
+
+template $WeatherCard : Gtk.Box {
+    orientation: vertical;
+    styles ["upcoming-items-container"]
+
+    Gtk.Image icon {
+        icon-name: "weather-clear-symbolic";
+        styles ["upcoming-icons"]
+    }
+    Gtk.Label temp {
+        label: "N/A°C";
+        halign: center;
+    }
+    Gtk.Label desc {
+        label: "Unknown";
+        wrap: true;
+        wrap-mode: word;
+        lines: 2;
+        ellipsize: middle;
+        justify: center;
+        valign: center;
+        styles ["upcoming-description"]
+    }
+    Gtk.Label time {
+        label: "hh:mm";
+        styles ["upcoming-time"]
+    }
+}
