@@ -55,6 +55,10 @@ class NetworkLayer(Gtk.Window):
         self.bluetooth_button.header_button_image.set_from_icon_name("bluetooth-symbolic")
         self.bluetooth_button.header_button_name.set_label("Bluetooth")
 
+    def cleanup(self):
+        if self.secret_agent:
+            self.secret_agent.unregister()
+
 @Gtk.Template(resource_path="/l1p0-menus/ui/wifi_card.ui")
 class WifiCard(Gtk.ListBoxRow):
     __gtype_name__ = 'WifiCard'
@@ -417,10 +421,6 @@ class WifiTab(Gtk.Box):
                             switch.handler_unblock(switch.handler)
                             break
                         break
-    
-    def cleanup(self):
-        if self.secret_agent:
-            self.secret_agent.unregister()
 
     @Gtk.Template.Callback()
     def on_refresh(self, *args):
