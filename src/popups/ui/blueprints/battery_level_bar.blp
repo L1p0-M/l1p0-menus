@@ -1,0 +1,29 @@
+using Gtk 4.0;
+
+template $BatteryLevelBar : Gtk.Box {
+    orientation: horizontal;
+
+    Gtk.Image icon {
+        icon-name: "battery-missing-symbolic";
+        styles ["battery-icon"]
+    }
+    Gtk.Label name {
+        label: "Unknown";
+        styles ["battery-name"]
+    }
+    Gtk.LevelBar level_bar {
+        min-value: 0.0;
+        max-value: 100.0;
+        hexpand: true;
+        mode: continuous;
+        styles ["battery-level-bar"]
+    }
+    Gtk.Label percentage {
+        label: "NaN%";
+        styles ["battery-level"]
+    }
+    $MenuButton menu_btn {
+        styles ["battery-menu-button"]
+    }
+
+}

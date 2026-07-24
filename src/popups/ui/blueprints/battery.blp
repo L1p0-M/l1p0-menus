@@ -1,0 +1,89 @@
+using Gtk 4.0;
+
+template $battery_window: Gtk.Window {
+    title: "Battery Layer";
+    styles ["battery-window"]
+
+    child: Gtk.Overlay overlay {
+        child: Gtk.Box {
+            orientation: vertical;
+            margin-start: 0;
+            styles ["battery-layer"]
+
+            Gtk.Box {
+                orientation: vertical;
+                Gtk.Box {
+                    orientation: horizontal;
+                    Gtk.Label combined_battery_time_to {
+                        halign: start;
+                        label: "Unknown";
+                        hexpand: true;
+                        styles ["time-to"]
+                    }
+                    Gtk.Box {
+                        hexpand: true;
+                    }
+                    Gtk.Label combined_battery_rate {
+                        halign: end;
+                        label: "Unknown";
+                        hexpand: true;
+                        styles ["battery-rate"]
+                    }
+                }
+                Gtk.Overlay battery_overlay {
+                    styles ["battery-overlay"]
+                    child: $HalfCircleLevelBar background_level_bar {
+                        content-width: 300;
+                        content-height: 200;
+                        styles ["half-circle-bar", "background"]
+                    };
+
+                    [overlay]
+                    $HalfCircleLevelBar level_bar {
+                        content-width: 300;
+                        content-height: 200;
+                    }
+
+                    [overlay]
+                    Gtk.Box battery_overlay_vertical_container {
+                        orientation: vertical;
+                        valign: end;
+                        halign: center;
+                        margin-bottom: 25;
+
+                        Gtk.Box battery_overlay_horizontal_container {
+                            orientation: horizontal;
+                            Gtk.Image combined_icon {
+                                halign: start;
+                                icon-name: "battery-missing-symbolic";
+                                pixel-size: 20;
+                                styles ["combined-battery-icon"]
+                            }
+                            Gtk.Label combined_battery_level {
+                                label: "NaN%";
+                                halign: center;
+                                styles ["combined-battery-level"]
+                            }
+                        }
+                        Gtk.Label combined_battery_status {
+                            label: "Unknown";
+                            halign: center;
+                            styles ["combined-battery-status"]
+                        }
+
+                    }
+                }
+                Gtk.Box batterys_vertical_container {
+                    orientation: vertical;
+                    styles ["batterys-container"]
+                }
+                Gtk.Box power_profile_container {
+                    orientation: horizontal;
+                    homogeneous: true;
+                    halign: center;
+                    styles ["power-profile-container"]
+                }
+            }
+        };
+    };
+}
