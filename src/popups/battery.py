@@ -11,95 +11,136 @@ import math
 _v_layer = None
 
 
+@Gtk.Template(resource_path="/l1p0-menus/ui/power_profile_btn.ui")
+class PowerProfileButton(Gtk.Button):
+    __gtype_name__ = 'PowerProfileButton'
+    icon = Gtk.Template.Child()
+    profile_name = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.init_template()
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/battery_level_bar.ui")
+class BatteryLevelBar(Gtk.Box):
+    __gtype_name__ = 'BatteryLevelBar'
+    icon = Gtk.Template.Child()
+    name = Gtk.Template.Child()
+    level_bar = Gtk.Template.Child()
+    percentage = Gtk.Template.Child()
+    menu_btn = Gtk.Template.Child()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.status = 0
+        self.init_template()
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/battery.ui")
 class BatteryLayer(Gtk.Window):
+    __gtype_name__ = 'battery_window'
+    overlay = Gtk.Template.Child()
+    combined_battery_time_to = Gtk.Template.Child()
+    combined_battery_rate = Gtk.Template.Child()
+    battery_overlay = Gtk.Template.Child()
+    combined_icon = Gtk.Template.Child()
+    combined_battery_level = Gtk.Template.Child()
+    combined_battery_status = Gtk.Template.Child()
+    batterys_vertical_container = Gtk.Template.Child()
+    power_profile_container = Gtk.Template.Child()
+    background_level_bar = Gtk.Template.Child()
+    level_bar = Gtk.Template.Child()
+    
     def __init__(self, config):
         super().__init__(title="Battery Layer")
         self.config = config
         self.shellutils = GtkLayerShellUtils(self, "battery")
         self.load_config(self.config)
         self.set_default_size(400, 300)
-        self.get_style_context().add_class("battery-window")
-        self.main_overlay = Gtk.Overlay()
+        self.init_template()
+        # self.get_style_context().add_class("battery-window")
+        # self.main_overlay = Gtk.Overlay()
         self.window_utils = window_utils()
         self.notification = Notifications(self)
         self.notification_enabled = True
-        self.notification_threshold = [3, 15]
-        self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.main_container.set_margin_start(0)
-        self.main_container.get_style_context().add_class("battery-layer")
-        self.main_overlay.set_child(self.main_container)
-        self.set_child(self.main_overlay)
-        self.vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.main_container.append(self.vertical_container)
-        self.overlay = Gtk.Overlay()
+        self.notification_threshold = [3, 15, 20]
+        # self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        # self.main_container.set_margin_start(0)
+        # self.main_container.get_style_context().add_class("battery-layer")
+        # self.main_overlay.set_child(self.main_container)
+        # self.set_child(self.main_overlay)
+        # self.vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        # self.main_container.append(self.vertical_container)
+        # self.overlay = Gtk.Overlay()
         self.tick_id = None
         self.battery = Battery(self.update_ui_elements)
         self.powerprofile = PowerProfiles(self.update_power_profile_buttons)
-        self.setup_ui()
         self.overlay_windows={}
         for battery_name in self.battery.batterys.keys():
-            self.overlay_windows[f"{battery_name}"] = self.window_utils.setup_revealer(overlay=self.main_overlay, popupwindow=PopupWindow, battery=battery_name, battery_dbus=self.battery)
+            self.overlay_windows[f"{battery_name}"] = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, battery=battery_name, battery_dbus=self.battery)
+        self.setup_ui()
 
     def load_config(self, config):
         if config != self.config:
             self.config = config
             self.notification_enabled = self.config.get("notification", True)
-            self.notification_threshold = [int(x) for x in self.config.get("notification_threshold", "3, 15").split(",")]
-            print(f"Notification Enabled: {self.notification_enabled}, Threshold: {self.notification_threshold}")
+            self.notification_threshold = [int(x) for x in self.config.get("notification_threshold", "3, 15, 20").split(",")]
         anchor, margin = self.shellutils.process_config(config, default_anchor="top-right", default_margin=[10, 10])
         self.shellutils.setup_layer_shell(anchor, margin)
             
 
     def setup_ui(self): 
-        self.top_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.vertical_container.append(self.top_horizontal_container)
-        self.batterys_vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.batterys_vertical_container.get_style_context().add_class("batterys-container")
-        battery_overlay_vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        background_level_bar = HalfCircleLevelBar(type="background")
-        self.level_bar = HalfCircleLevelBar()
-        self.overlay.set_child(background_level_bar)
-        self.overlay.add_overlay(self.level_bar)
-        self.overlay.get_style_context().add_class("battery-overlay")
-        battery_overlay_vertical_container.set_valign(Gtk.Align.END)
-        battery_overlay_vertical_container.set_halign(Gtk.Align.CENTER)
-        battery_overlay_vertical_container.set_margin_bottom(25)
+        # self.top_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        # self.vertical_container.append(self.top_horizontal_container)
+        # self.batterys_vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        # self.batterys_vertical_container.get_style_context().add_class("batterys-container")
+        # battery_overlay_vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        #background_level_bar = HalfCircleLevelBar(type="background")
+        #self.level_bar = HalfCircleLevelBar()
+       # self.battery_overlay.add_overlay(background_level_bar)
+       # self.battery_overlay.add_overlay(self.level_bar)
+        # self.overlay.set_child(background_level_bar)
+        # self.overlay.add_overlay(self.level_bar)
+        # self.overlay.get_style_context().add_class("battery-overlay")
+        # battery_overlay_vertical_container.set_valign(Gtk.Align.END)
+        # battery_overlay_vertical_container.set_halign(Gtk.Align.CENTER)
+        # battery_overlay_vertical_container.set_margin_bottom(25)
         self.setup_combined_battery_info()
-        battery_overlay_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.top_horizontal_container.append(self.combined_battery_time_to)
-        spacer = Gtk.Box()
-        spacer.set_hexpand(True)
-        self.top_horizontal_container.append(spacer)
-        self.top_horizontal_container.append(self.combined_battery_rate)
-        self.combined_battery_time_to.set_halign(Gtk.Align.START)
-        self.combined_battery_rate.set_halign(Gtk.Align.END)
-        self.combined_battery_rate.set_hexpand(True)
-        battery_overlay_horizontal_container.append(self.combined_icon)
-        self.combined_icon.set_halign(Gtk.Align.START)
-        self.combined_battery_status.set_halign(Gtk.Align.CENTER)
-        battery_overlay_vertical_container.append(battery_overlay_horizontal_container)
-        battery_overlay_vertical_container.append(self.combined_battery_status)
-        self.combined_battery_level.set_halign(Gtk.Align.CENTER)
-        battery_overlay_horizontal_container.append(self.combined_battery_level)
-        self.overlay.add_overlay(battery_overlay_vertical_container)
-        self.vertical_container.append(self.overlay)
+        # battery_overlay_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        # self.top_horizontal_container.append(self.combined_battery_time_to)
+        # spacer = Gtk.Box()
+        # spacer.set_hexpand(True)
+        # self.top_horizontal_container.append(spacer)
+        # self.top_horizontal_container.append(self.combined_battery_rate)
+        # self.combined_battery_time_to.set_halign(Gtk.Align.START)
+        # self.combined_battery_rate.set_halign(Gtk.Align.END)
+        # self.combined_battery_rate.set_hexpand(True)
+        # battery_overlay_horizontal_container.append(self.combined_icon)
+        # self.combined_icon.set_halign(Gtk.Align.START)
+        # self.combined_battery_status.set_halign(Gtk.Align.CENTER)
+        # battery_overlay_vertical_container.append(battery_overlay_horizontal_container)
+        # battery_overlay_vertical_container.append(self.combined_battery_status)
+        # self.combined_battery_level.set_halign(Gtk.Align.CENTER)
+        # battery_overlay_horizontal_container.append(self.combined_battery_level)
+        # self.overlay.add_overlay(battery_overlay_vertical_container)
+        # self.vertical_container.append(self.overlay)
         self.setup_battery_info()
         for battery_name in self.battery.batterys:
-            self.battery_widgets[battery_name]["icon"].set_halign(Gtk.Align.START)
-            self.battery_widgets[battery_name]["name_label"].set_halign(Gtk.Align.START)
-            self.battery_widgets[battery_name]["Percentage"].set_halign(Gtk.Align.END)
-            self.battery_widgets[battery_name]["level_bar"].set_halign(Gtk.Align.FILL)
-            self.battery_widgets[battery_name]["menu_button"].set_valign(Gtk.Align.CENTER)
-            battery_level_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-            battery_level_horizontal_container.append(self.battery_widgets[battery_name]["icon"])
-            battery_level_horizontal_container.append(self.battery_widgets[battery_name]["name_label"])
-            battery_level_horizontal_container.append(self.battery_widgets[battery_name]["level_bar"])
-            battery_level_horizontal_container.append(self.battery_widgets[battery_name]["Percentage"])
-            battery_level_horizontal_container.append(self.battery_widgets[battery_name]["menu_button"])
-            self.batterys_vertical_container.append(battery_level_horizontal_container)
-        self.vertical_container.append(self.batterys_vertical_container)
+            self.batterys_vertical_container.append(self.battery_widgets[battery_name])
+        #     self.battery_widgets[battery_name]["icon"].set_halign(Gtk.Align.START)
+        #     self.battery_widgets[battery_name]["name_label"].set_halign(Gtk.Align.START)
+        #     self.battery_widgets[battery_name]["Percentage"].set_halign(Gtk.Align.END)
+        #     self.battery_widgets[battery_name]["level_bar"].set_halign(Gtk.Align.FILL)
+        #     self.battery_widgets[battery_name]["menu_button"].set_valign(Gtk.Align.CENTER)
+        #     battery_level_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["icon"])
+        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["name_label"])
+        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["level_bar"])
+        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["Percentage"])
+        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["menu_button"])
+        #     self.batterys_vertical_container.append(battery_level_horizontal_container)
+        # self.vertical_container.append(self.batterys_vertical_container)
         self.setup_power_profile_buttons()
-        self.vertical_container.append(self.power_profile_container)
+        # self.vertical_container.append(self.power_profile_container)
 
         
 
@@ -107,65 +148,72 @@ class BatteryLayer(Gtk.Window):
         self.battery.get_initial_battery_info()
         self.battery_widgets = {}
         for battery_name in self.battery.batterys.keys():
-            battery_name_label = Gtk.Label()
-            battery_name_label.get_style_context().add_class("battery-name")
-            battery_name_label.set_label(f"{battery_name}")
-            battery_icon = Gtk.Image.new_from_icon_name("battery-missing-symbolic")
-            battery_icon.get_style_context().add_class("battery-icon")
-            battery_level_label = Gtk.Label()
-            battery_level_label.get_style_context().add_class("battery-level")
-            level_bar = Gtk.LevelBar()
-            level_bar.set_min_value(0.0)
-            level_bar.set_max_value(100.0)
-            level_bar.set_hexpand(True)
-            level_bar.set_mode(Gtk.LevelBarMode.CONTINUOUS)
-            level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_LOW, 20.0)
-            level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_HIGH, 80.0)
-            level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_FULL, 100.0)
-            level_bar.get_style_context().add_class("battery-level-bar")
-            menu_button = Gtk.Button()
-            menu_button.connect("clicked", lambda x, name=battery_name: self.overlay_windows[f"{name}"]["revealer"].set_reveal_child(True))
-            menu_button.get_style_context().add_class("battery-menu-button")
-            menu_button_icon = Gtk.Image.new_from_icon_name("open-menu-symbolic")
-            menu_button.set_child(menu_button_icon)
-            self.battery_widgets[battery_name] = {
-                "Status": 0,
-                "icon": battery_icon,
-                "name_label": battery_name_label,
-                "Percentage": battery_level_label,
-                "level_bar": level_bar,
-                "menu_button": menu_button
-            }
-        return self.battery_widgets
+            widgets = BatteryLevelBar()
+        #     battery_name_label = Gtk.Label()
+        #     battery_name_label.get_style_context().add_class("battery-name")
+            widgets.name.set_label(f"{battery_name}")
+        #     battery_icon = Gtk.Image.new_from_icon_name("battery-missing-symbolic")
+        #     battery_icon.get_style_context().add_class("battery-icon")
+        #     battery_level_label = Gtk.Label()
+        #     battery_level_label.get_style_context().add_class("battery-level")
+        #     level_bar = Gtk.LevelBar()
+        #     level_bar.set_min_value(0.0)
+        #     level_bar.set_max_value(100.0)
+        #     level_bar.set_hexpand(True)
+        #     level_bar.set_mode(Gtk.LevelBarMode.CONTINUOUS)
+        #     level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_LOW, 20.0)
+        #     level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_HIGH, 80.0)
+        #     level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_FULL, 100.0)
+        #     level_bar.get_style_context().add_class("battery-level-bar")
+        #     menu_button = Gtk.Button()
+            widgets.menu_btn.connect("clicked", lambda x, name=battery_name: self.overlay_windows[f"{name}"]["revealer"].set_reveal_child(True))
+        #     menu_button.get_style_context().add_class("battery-menu-button")
+        #     menu_button_icon = Gtk.Image.new_from_icon_name("open-menu-symbolic")
+        #     menu_button.set_child(menu_button_icon)
+        #     self.battery_widgets[battery_name] = {
+        #         "Status": 0,
+        #         "icon": battery_icon,
+        #         "name_label": battery_name_label,
+        #         "Percentage": battery_level_label,
+        #         "level_bar": level_bar,
+        #         "menu_button": menu_button
+        #     }
+        # return self.battery_widgets
+            self.battery_widgets[battery_name] = widgets
 
     def setup_power_profile_buttons(self):
-        self.power_profile_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.power_profile_container.get_style_context().add_class("power-profile-container")
-        self.power_profile_container.set_homogeneous(True)
+        # self.power_profile_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        # self.power_profile_container.get_style_context().add_class("power-profile-container")
+        # self.power_profile_container.set_homogeneous(True)
         self.power_profile_buttons = {}
-        power_profiles = ["Power Saver", "Balanced", "Performance"]
-        icons = {
-            "Performance": "power-profile-performance-symbolic",
+        # power_profiles = ["Power Saver", "Balanced", "Performance"]
+        power_profiles = {
+            "Power Saver": "power-profile-power-saver-symbolic",
             "Balanced": "power-profile-balanced-symbolic",
-            "Power Saver": "power-profile-power-saver-symbolic"
+            "Performance": "power-profile-performance-symbolic"
         }
-        for profile in power_profiles:
-            profile_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            button = Gtk.Button()
-            button.get_style_context().add_class("power-profile-button")
-            mode_icon = Gtk.Image.new_from_icon_name(icons[profile])
-            mode_icon.get_style_context().add_class("power-profile-icon")
-            profile_container.append(mode_icon)
-            button_name = Gtk.Label(label=profile)
-            button_name.get_style_context().add_class("power-profile-label")
-            profile_container.append(button_name)
-            button.set_child(profile_container)
+        for profile, icon in power_profiles.items():
+            button = PowerProfileButton()
+            button.icon.set_from_icon_name(icon)
+            button.profile_name.set_label(profile)
             self.power_profile_buttons[profile] = button
             self.power_profile_container.append(button)
+        #     profile_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        #     button = Gtk.Button()
+        #     button.get_style_context().add_class("power-profile-button")
+        #     mode_icon = Gtk.Image.new_from_icon_name(icons[profile])
+        #     mode_icon.get_style_context().add_class("power-profile-icon")
+        #     profile_container.append(mode_icon)
+        #     button_name = Gtk.Label(label=profile)
+        #     button_name.get_style_context().add_class("power-profile-label")
+        #     profile_container.append(button_name)
+        #     button.set_child(profile_container)
+        #     self.power_profile_buttons[profile] = button
+        #     self.power_profile_container.append(button)
         self.power_profile_buttons["Performance"].connect("clicked", self.on_power_mode_switched, "performance")
         self.power_profile_buttons["Balanced"].connect("clicked", self.on_power_mode_switched, "balanced")
         self.power_profile_buttons["Power Saver"].connect("clicked", self.on_power_mode_switched, "power-saver")
-        self.power_profile_container.set_halign(Gtk.Align.CENTER)
+        # self.power_profile_container.set_halign(Gtk.Align.CENTER)
         self.powerprofile.get_active_profile()
 
     def update_power_profile_buttons(self, message):
@@ -180,9 +228,9 @@ class BatteryLayer(Gtk.Window):
 
     def setup_combined_battery_info(self):
         self.battery.get_initial_combined_battery_info()
-        self.combined_battery_level = Gtk.Label()
-        self.combined_battery_level.get_style_context().add_class("combined-battery-level")
-        self.combined_battery_status = Gtk.Label()
+        # self.combined_battery_level = Gtk.Label()
+        # self.combined_battery_level.get_style_context().add_class("combined-battery-level")
+        # self.combined_battery_status = Gtk.Label()
         self.battery_status_codes = {
             0: "Unknown",
             1: "Charging",
@@ -193,14 +241,14 @@ class BatteryLayer(Gtk.Window):
             6: "Pending Discharge"
         }
         self.combined_battery_status_code = 0
-        self.combined_battery_status.get_style_context().add_class("combined-battery-status")
-        self.combined_icon = Gtk.Image.new_from_icon_name("battery-missing-symbolic")
-        self.combined_icon.set_pixel_size(20)
-        self.combined_icon.get_style_context().add_class("combined-battery-icon")
-        self.combined_battery_time_to = Gtk.Label()
-        self.combined_battery_time_to.get_style_context().add_class("time-to")
-        self.combined_battery_rate = Gtk.Label()
-        self.combined_battery_rate.get_style_context().add_class("battery-rate")
+        # self.combined_battery_status.get_style_context().add_class("combined-battery-status")
+        # self.combined_icon = Gtk.Image.new_from_icon_name("battery-missing-symbolic")
+        # self.combined_icon.set_pixel_size(20)
+        # self.combined_icon.get_style_context().add_class("combined-battery-icon")
+        # self.combined_battery_time_to = Gtk.Label()
+        # self.combined_battery_time_to.get_style_context().add_class("time-to")
+        # self.combined_battery_rate = Gtk.Label()
+        # self.combined_battery_rate.get_style_context().add_class("battery-rate")
 
     def format_time(self, seconds, label):
         time_formated = str(timedelta(seconds=seconds))
@@ -247,12 +295,12 @@ class BatteryLayer(Gtk.Window):
                     if battery in self.battery.batterys:
                         battery_name = battery
                         if update == "Percentage":
-                            self.battery_widgets[battery_name]["Percentage"].set_label(f"{round(data['Percentage'])}%")
-                            self.battery_widgets[battery_name]["level_bar"].set_value(float(round(data['Percentage'])))
-                            self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.battery_widgets[battery_name]['Status']), int(round(data['Percentage'])))}")
+                            self.battery_widgets[battery_name].percentage.set_label(f"{round(data['Percentage'])}%")
+                            self.battery_widgets[battery_name].level_bar.set_value(float(round(data['Percentage'])))
+                            self.battery_widgets[battery_name].icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.battery_widgets[battery_name].status), int(round(data['Percentage'])))}")
                         if update == "State":
-                            self.battery_widgets[battery_name]["Status"] = int(data["State"])
-                            self.battery_widgets[battery_name]["icon"].set_from_icon_name(f"{self.window_utils.get_battery_icon(int(data['State']), int(round(self.battery_widgets[battery_name]['level_bar'].get_value())))}")
+                            self.battery_widgets[battery_name].status = int(data["State"])
+                            self.battery_widgets[battery_name].icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(data['State']), int(round(self.battery_widgets[battery_name].level_bar.get_value())))}")
                         if update in ["ChargeCycles", "EnergyFull", "EnergyFullDesign", "Vendor", "Model"]:
                             window = self.overlay_windows[f"{battery_name}"]["overlay"]
                             for key, items in window.match_names.items():
@@ -286,7 +334,9 @@ class BatteryLayer(Gtk.Window):
                     if update == "EnergyRate":
                         self.combined_battery_rate.set_label(f"{data['EnergyRate']:.2f} W")
 
+@Gtk.Template(resource_path="/l1p0-menus/ui/level_bar.ui")
 class HalfCircleLevelBar(Gtk.DrawingArea):
+    __gtype_name__ = 'HalfCircleLevelBar'
     def __init__(self, type="level"):
         super().__init__()
         self.type = type
@@ -294,9 +344,9 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
         self.set_content_height(200)
         self.fraction = 0.5
         self.tick_id = None
-        self.get_style_context().add_class("half-circle-bar")
-        if self.type == "background":
-            self.get_style_context().add_class("background")
+        #self.get_style_context().add_class("half-circle-bar")
+        #if self.type == "background":
+          #  self.get_style_context().add_class("background")
         self.set_draw_func(self.on_draw)
 
     def on_draw(self, drawing_area, cr, width, height):
@@ -309,7 +359,7 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
         active_color = context.get_color() 
         cr.set_line_width(line_width)
         cr.set_line_cap(1)
-        if self.type == "background":
+        if self.get_style_context().has_class("background"):
             Gdk.cairo_set_source_rgba(cr, active_color)
             cr.arc(xc, yc, radius, math.pi, 2 * math.pi)
             cr.stroke()

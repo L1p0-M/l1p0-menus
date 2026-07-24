@@ -20,5 +20,9 @@
     <file preprocess="xml-stripblanks" alias="bluetooth_card.ui">../popups/ui/bluetooth_card.ui</file>
     <file preprocess="xml-stripblanks" alias="clock_weather.ui">../popups/ui/clock_weather.ui</file>
     <file preprocess="xml-stripblanks" alias="weather_card.ui">../popups/ui/weather_card.ui</file>
+    <file preprocess="xml-stripblanks" alias="battery.ui">../popups/ui/battery.ui</file>
+    <file preprocess="xml-stripblanks" alias="power_profile_btn.ui">../popups/ui/power_profile_btn.ui</file>
+    <file preprocess="xml-stripblanks" alias="battery_level_bar.ui">../popups/ui/battery_level_bar.ui</file>
+    <file preprocess="xml-stripblanks" alias="level_bar.ui">../popups/ui/level_bar.ui</file>
   </gresource>
 </gresources>

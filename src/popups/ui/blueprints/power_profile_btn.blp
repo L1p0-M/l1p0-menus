@@ -1,0 +1,19 @@
+using Gtk 4.0;
+
+template $PowerProfileButton : Gtk.Button {
+    styles ["power-profile-button"]
+
+    child: Gtk.Box {
+        orientation: vertical;
+
+        Gtk.Image icon {
+            icon-name: "image-missing";
+            styles ["power-profile-icon"]
+        }
+        Gtk.Label profile_name {
+            label: "Unknown";
+            styles ["power-profile-label"]
+        }
+
+    };
+}
