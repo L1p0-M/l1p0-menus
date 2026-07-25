@@ -20,6 +20,8 @@ class BrightnessLayer(Gtk.Window):
     night_label = Gtk.Template.Child()
     night_scale = Gtk.Template.Child()
     night_switch = Gtk.Template.Child()
+    not_found_box = Gtk.Template.Child()
+    widget_box = Gtk.Template.Child()
 
     def __init__(self, config):
         super().__init__(title="Brightness Layer")
@@ -71,6 +73,10 @@ class BrightnessLayer(Gtk.Window):
         }
         self.brightness_scale.set_value(current_brightness)
         self.brightness_label.set_text(f"{int(round(current_brightness))}%")
+        if not self.hyprsunset.hyprsunset_found:
+            self.widget_box.set_visible(False)
+            self.not_found_box.set_visible(True)
+            return
         current_temp = self.hyprsunset.hyprsunset("temperature")     
         light_status = (int(current_temp) < 6000)
         self.night_switch.set_active(light_status)
@@ -121,6 +127,14 @@ class BrightnessLayer(Gtk.Window):
 
     def apply_night_update(self, temperature):
         try:
+            if temperature == "error":
+                self.widget_box.set_visible(False)
+                self.not_found_box.set_visible(True)
+                self.hyprsunset.current_temp = 0
+                return False
+            if self.not_found_box.get_visible():
+                self.not_found_box.set_visible(False)
+                self.widget_box.set_visible(True)
             scale = self.night_widgets["scale"]
             scale.handler_block(self.night_widgets["scale_handler"])
             scale.set_value(int(temperature))
@@ -152,7 +166,7 @@ class HyprSunsetSocket():
             print(f"Hyprsunset Disabled: {e}")
             self.hyprsunset_found = False
             return None
-        self.current_temp = 6000
+        self.current_temp = 0
         self._update_loop_id = None
         
     def hyprsunset(self, attr:str, value=None):
@@ -167,9 +181,11 @@ class HyprSunsetSocket():
                     cmd = f"{attr}"
                 client.sendall(cmd.encode('utf-8'))
                 response = client.recv(4096)
+                if response and not self.hyprsunset_found:
+                    self.hyprsunset_found = True
                 return response.decode('utf-8')
         except Exception as e:
-            print(f"Error while getting/setting temperature: {e}")
+            self.hyprsunset_found = False
             return None
 
     def update_temp(self):
@@ -180,6 +196,7 @@ class HyprSunsetSocket():
     
             new_temp = self.hyprsunset("temperature")
             if new_temp is None or not str(new_temp).isdigit():
+                GLib.idle_add(self.update_gui, "error")
                 return True
             
             if int(new_temp) != int(self.current_temp):

@@ -74,7 +74,22 @@ template $brightness_window: Gtk.Window {
                     margin-start: 20;
                     margin-end: 20;
 
-                    Gtk.Box {
+                    Gtk.Box not_found_box {
+                        orientation: horizontal;
+                        hexpand: true;
+                        vexpand: true;
+                        visible: false;
+                        halign: center;
+                        Gtk.Label {
+                            label: "Hyprsunset not found";
+                            halign: center;
+                            valign: center;
+                            hexpand: true;
+                            vexpand: true;
+                            styles ["error-not-found"]
+                        }
+                    }
+                    Gtk.Box widget_box {
                         orientation: horizontal;
                         spacing: 10;
 
