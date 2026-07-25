@@ -1,8 +1,6 @@
 import gi
 import pulsectl
 import threading
-
-
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
