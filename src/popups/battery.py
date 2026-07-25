@@ -6,6 +6,7 @@ from datetime import timedelta
 from time import strptime
 from ..assets.utils import window_utils, GtkLayerShellUtils, Popups, Notifications
 from ..assets.battery_dbus import Battery, PowerProfiles
+from ..widgets.widgets import DetailsPopupRow
 import os
 import math
 _v_layer = None
@@ -57,24 +58,24 @@ class BatteryLayer(Gtk.Window):
         self.load_config(self.config)
         self.set_default_size(400, 300)
         self.init_template()
-        # self.get_style_context().add_class("battery-window")
-        # self.main_overlay = Gtk.Overlay()
         self.window_utils = window_utils()
         self.notification = Notifications(self)
         self.notification_enabled = True
         self.notification_threshold = [3, 15, 20]
-        # self.main_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        # self.main_container.set_margin_start(0)
-        # self.main_container.get_style_context().add_class("battery-layer")
-        # self.main_overlay.set_child(self.main_container)
-        # self.set_child(self.main_overlay)
-        # self.vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        # self.main_container.append(self.vertical_container)
-        # self.overlay = Gtk.Overlay()
         self.tick_id = None
+        self.combined_battery_animation_value = 0
         self.battery = Battery(self.update_ui_elements)
         self.powerprofile = PowerProfiles(self.update_power_profile_buttons)
         self.overlay_windows={}
+        self.battery_status_codes = {
+            0: "Unknown",
+            1: "Charging",
+            2: "Discharging",
+            3: "Empty",
+            4: "Fully Charged",
+            5: "Pending Charge",
+            6: "Pending Discharge"
+        }
         for battery_name in self.battery.batterys.keys():
             self.overlay_windows[f"{battery_name}"] = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, battery=battery_name, battery_dbus=self.battery)
         self.setup_ui()
@@ -89,104 +90,24 @@ class BatteryLayer(Gtk.Window):
             
 
     def setup_ui(self): 
-        # self.top_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        # self.vertical_container.append(self.top_horizontal_container)
-        # self.batterys_vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        # self.batterys_vertical_container.get_style_context().add_class("batterys-container")
-        # battery_overlay_vertical_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        #background_level_bar = HalfCircleLevelBar(type="background")
-        #self.level_bar = HalfCircleLevelBar()
-       # self.battery_overlay.add_overlay(background_level_bar)
-       # self.battery_overlay.add_overlay(self.level_bar)
-        # self.overlay.set_child(background_level_bar)
-        # self.overlay.add_overlay(self.level_bar)
-        # self.overlay.get_style_context().add_class("battery-overlay")
-        # battery_overlay_vertical_container.set_valign(Gtk.Align.END)
-        # battery_overlay_vertical_container.set_halign(Gtk.Align.CENTER)
-        # battery_overlay_vertical_container.set_margin_bottom(25)
-        self.setup_combined_battery_info()
-        # battery_overlay_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        # self.top_horizontal_container.append(self.combined_battery_time_to)
-        # spacer = Gtk.Box()
-        # spacer.set_hexpand(True)
-        # self.top_horizontal_container.append(spacer)
-        # self.top_horizontal_container.append(self.combined_battery_rate)
-        # self.combined_battery_time_to.set_halign(Gtk.Align.START)
-        # self.combined_battery_rate.set_halign(Gtk.Align.END)
-        # self.combined_battery_rate.set_hexpand(True)
-        # battery_overlay_horizontal_container.append(self.combined_icon)
-        # self.combined_icon.set_halign(Gtk.Align.START)
-        # self.combined_battery_status.set_halign(Gtk.Align.CENTER)
-        # battery_overlay_vertical_container.append(battery_overlay_horizontal_container)
-        # battery_overlay_vertical_container.append(self.combined_battery_status)
-        # self.combined_battery_level.set_halign(Gtk.Align.CENTER)
-        # battery_overlay_horizontal_container.append(self.combined_battery_level)
-        # self.overlay.add_overlay(battery_overlay_vertical_container)
-        # self.vertical_container.append(self.overlay)
-        self.setup_battery_info()
-        for battery_name in self.battery.batterys:
-            self.batterys_vertical_container.append(self.battery_widgets[battery_name])
-        #     self.battery_widgets[battery_name]["icon"].set_halign(Gtk.Align.START)
-        #     self.battery_widgets[battery_name]["name_label"].set_halign(Gtk.Align.START)
-        #     self.battery_widgets[battery_name]["Percentage"].set_halign(Gtk.Align.END)
-        #     self.battery_widgets[battery_name]["level_bar"].set_halign(Gtk.Align.FILL)
-        #     self.battery_widgets[battery_name]["menu_button"].set_valign(Gtk.Align.CENTER)
-        #     battery_level_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["icon"])
-        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["name_label"])
-        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["level_bar"])
-        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["Percentage"])
-        #     battery_level_horizontal_container.append(self.battery_widgets[battery_name]["menu_button"])
-        #     self.batterys_vertical_container.append(battery_level_horizontal_container)
-        # self.vertical_container.append(self.batterys_vertical_container)
-        self.setup_power_profile_buttons()
-        # self.vertical_container.append(self.power_profile_container)
+        self.battery.get_initial_combined_battery_info()
+        self.combined_battery_status_code = 0
 
-        
-
-    def setup_battery_info(self):
         self.battery.get_initial_battery_info()
         self.battery_widgets = {}
         for battery_name in self.battery.batterys.keys():
             widgets = BatteryLevelBar()
-        #     battery_name_label = Gtk.Label()
-        #     battery_name_label.get_style_context().add_class("battery-name")
             widgets.name.set_label(f"{battery_name}")
-        #     battery_icon = Gtk.Image.new_from_icon_name("battery-missing-symbolic")
-        #     battery_icon.get_style_context().add_class("battery-icon")
-        #     battery_level_label = Gtk.Label()
-        #     battery_level_label.get_style_context().add_class("battery-level")
-        #     level_bar = Gtk.LevelBar()
-        #     level_bar.set_min_value(0.0)
-        #     level_bar.set_max_value(100.0)
-        #     level_bar.set_hexpand(True)
-        #     level_bar.set_mode(Gtk.LevelBarMode.CONTINUOUS)
-        #     level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_LOW, 20.0)
-        #     level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_HIGH, 80.0)
-        #     level_bar.add_offset_value(Gtk.LEVEL_BAR_OFFSET_FULL, 100.0)
-        #     level_bar.get_style_context().add_class("battery-level-bar")
-        #     menu_button = Gtk.Button()
             widgets.menu_btn.connect("clicked", lambda x, name=battery_name: self.overlay_windows[f"{name}"]["revealer"].set_reveal_child(True))
-        #     menu_button.get_style_context().add_class("battery-menu-button")
-        #     menu_button_icon = Gtk.Image.new_from_icon_name("open-menu-symbolic")
-        #     menu_button.set_child(menu_button_icon)
-        #     self.battery_widgets[battery_name] = {
-        #         "Status": 0,
-        #         "icon": battery_icon,
-        #         "name_label": battery_name_label,
-        #         "Percentage": battery_level_label,
-        #         "level_bar": level_bar,
-        #         "menu_button": menu_button
-        #     }
-        # return self.battery_widgets
             self.battery_widgets[battery_name] = widgets
+        for battery_name in self.battery.batterys:
+            self.batterys_vertical_container.append(self.battery_widgets[battery_name])
+
+        self.setup_power_profile_buttons()
+
 
     def setup_power_profile_buttons(self):
-        # self.power_profile_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        # self.power_profile_container.get_style_context().add_class("power-profile-container")
-        # self.power_profile_container.set_homogeneous(True)
         self.power_profile_buttons = {}
-        # power_profiles = ["Power Saver", "Balanced", "Performance"]
         power_profiles = {
             "Power Saver": "power-profile-power-saver-symbolic",
             "Balanced": "power-profile-balanced-symbolic",
@@ -198,22 +119,9 @@ class BatteryLayer(Gtk.Window):
             button.profile_name.set_label(profile)
             self.power_profile_buttons[profile] = button
             self.power_profile_container.append(button)
-        #     profile_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        #     button = Gtk.Button()
-        #     button.get_style_context().add_class("power-profile-button")
-        #     mode_icon = Gtk.Image.new_from_icon_name(icons[profile])
-        #     mode_icon.get_style_context().add_class("power-profile-icon")
-        #     profile_container.append(mode_icon)
-        #     button_name = Gtk.Label(label=profile)
-        #     button_name.get_style_context().add_class("power-profile-label")
-        #     profile_container.append(button_name)
-        #     button.set_child(profile_container)
-        #     self.power_profile_buttons[profile] = button
-        #     self.power_profile_container.append(button)
         self.power_profile_buttons["Performance"].connect("clicked", self.on_power_mode_switched, "performance")
         self.power_profile_buttons["Balanced"].connect("clicked", self.on_power_mode_switched, "balanced")
         self.power_profile_buttons["Power Saver"].connect("clicked", self.on_power_mode_switched, "power-saver")
-        # self.power_profile_container.set_halign(Gtk.Align.CENTER)
         self.powerprofile.get_active_profile()
 
     def update_power_profile_buttons(self, message):
@@ -226,29 +134,6 @@ class BatteryLayer(Gtk.Window):
                 else:
                     button.get_style_context().remove_class("active") 
 
-    def setup_combined_battery_info(self):
-        self.battery.get_initial_combined_battery_info()
-        # self.combined_battery_level = Gtk.Label()
-        # self.combined_battery_level.get_style_context().add_class("combined-battery-level")
-        # self.combined_battery_status = Gtk.Label()
-        self.battery_status_codes = {
-            0: "Unknown",
-            1: "Charging",
-            2: "Discharging",
-            3: "Empty",
-            4: "Fully Charged",
-            5: "Pending Charge",
-            6: "Pending Discharge"
-        }
-        self.combined_battery_status_code = 0
-        # self.combined_battery_status.get_style_context().add_class("combined-battery-status")
-        # self.combined_icon = Gtk.Image.new_from_icon_name("battery-missing-symbolic")
-        # self.combined_icon.set_pixel_size(20)
-        # self.combined_icon.get_style_context().add_class("combined-battery-icon")
-        # self.combined_battery_time_to = Gtk.Label()
-        # self.combined_battery_time_to.get_style_context().add_class("time-to")
-        # self.combined_battery_rate = Gtk.Label()
-        # self.combined_battery_rate.get_style_context().add_class("battery-rate")
 
     def format_time(self, seconds, label):
         time_formated = str(timedelta(seconds=seconds))
@@ -264,7 +149,6 @@ class BatteryLayer(Gtk.Window):
             self.powerprofile.set_power_profile(mode)
 
     def animate_on_present(self):
-        self.target = int((self.combined_battery_level.get_label().replace("%", "")))
         self.combined_battery_level.set_label("0%")
         self.animation_value = 0
         
@@ -273,9 +157,9 @@ class BatteryLayer(Gtk.Window):
 
         def manage_animation(widget, frame_clock):
             step = 2
-            diff = self.target - self.animation_value
+            diff = self.combined_battery_animation_value - self.animation_value
             if abs(diff) < step:
-                self.combined_battery_level.set_label(f"{self.target}%")
+                self.combined_battery_level.set_label(f"{self.combined_battery_animation_value}%")
                 self.tick_id = None
                 return False
             if diff > 0:
@@ -299,7 +183,7 @@ class BatteryLayer(Gtk.Window):
                             self.battery_widgets[battery_name].level_bar.set_value(float(round(data['Percentage'])))
                             self.battery_widgets[battery_name].icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.battery_widgets[battery_name].status), int(round(data['Percentage'])))}")
                         if update == "State":
-                            self.battery_widgets[battery_name].status = int(data["State"])
+                            self.battery_widgets[battery_name].status = int(data['State'])
                             self.battery_widgets[battery_name].icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(data['State']), int(round(self.battery_widgets[battery_name].level_bar.get_value())))}")
                         if update in ["ChargeCycles", "EnergyFull", "EnergyFullDesign", "Vendor", "Model"]:
                             window = self.overlay_windows[f"{battery_name}"]["overlay"]
@@ -318,6 +202,7 @@ class BatteryLayer(Gtk.Window):
                         if self.combined_battery_level.get_label() != f"{round(data['Percentage'])}%":
                             self.combined_battery_level.set_label(f"{round(data['Percentage'])}%")
                             self.level_bar.set_value(round(data['Percentage']))
+                            self.combined_battery_animation_value = round(data['Percentage'])
                             self.combined_icon.set_from_icon_name(f"{self.window_utils.get_battery_icon(int(self.combined_battery_status_code), int(round(data['Percentage'])))}")
                             if self.notification_enabled:
                                 if round(data['Percentage']) in self.notification_threshold and self.combined_battery_status_code == 2:
@@ -344,9 +229,6 @@ class HalfCircleLevelBar(Gtk.DrawingArea):
         self.set_content_height(200)
         self.fraction = 0.5
         self.tick_id = None
-        #self.get_style_context().add_class("half-circle-bar")
-        #if self.type == "background":
-          #  self.get_style_context().add_class("background")
         self.set_draw_func(self.on_draw)
 
     def on_draw(self, drawing_area, cr, width, height):
@@ -410,7 +292,6 @@ class PopupWindow:
         self.panel.add_css_class("floating-panel")
         self.panel.set_size_request(-1, 170)
         self.panel_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
-            spacing=10,
             margin_start=20,
             margin_end=20,
             margin_top=20,
@@ -432,23 +313,19 @@ class PopupWindow:
             "Energy Full": "battery-level-100-symbolic",
             "Energy Design": "battery-level-100-symbolic"
         }
-        self.infos = {
-            "Vendor": "n/a",
-            "Model": "n/a",
-            "Capacity": "n/a",
-            "ChargeCycles": "n/a",
-            "EnergyFull": "n/a",
-            "EnergyFullDesign": "n/a"
-        }
         self.setup_ui()
 
 
     def setup_ui(self):
         self.popups.create_header(header_text=f"BATTERY DETAILS ({self.battery})", close_function=self.window, main_container=self.panel_content)
-        main_horizontal_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        main_horizontal_container.set_homogeneous(True)
-        self.details = Popups().setup_details(match_names=self.match_names, match_icons=self.icons, details=self.infos, container=main_horizontal_container)
-        self.panel_content.append(main_horizontal_container)
+        self.details = {}
+        for property_names, detail_name in self.match_names.items():
+            detail_row = DetailsPopupRow()
+            detail_row.property_name.set_label(property_names)
+            detail_row.icon.set_from_icon_name(self.icons.get(property_names))
+            detail_row.property_value.set_label("n/a")
+            self.panel_content.append(detail_row)
+            self.details[property_names] = detail_row.property_value
         self.panel.set_child(self.panel_content)
         
 
@@ -456,7 +333,7 @@ def on_present():
     global _v_layer
     _v_layer.level_bar.set_value(0)
     _v_layer.animate_on_present()
-    _v_layer.level_bar.animate_to_value(_v_layer.target)
+    _v_layer.level_bar.animate_to_value(_v_layer.combined_battery_animation_value)
 
 def init_layer(config):
     try:

@@ -476,8 +476,6 @@ scale trough slider:hover {
 .popup-parameter {
     font-size: 13px;
     color: #FFFFFF;
-    margin-top: 2px;
-    margin-bottom: 2px;
 
 }
 
@@ -485,8 +483,6 @@ scale trough slider:hover {
     font-size: 13px;
     font-weight: 900;
     color: #FFFFFF;
-    margin-top: 2px;
-    margin-bottom: 2px;
 }
 
 .close-icon {

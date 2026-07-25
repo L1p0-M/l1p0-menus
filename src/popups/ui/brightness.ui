@@ -106,7 +106,28 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                     <property name="margin-start">20</property>
                     <property name="margin-end">20</property>
                     <child>
-                      <object class="GtkBox">
+                      <object class="GtkBox" id="not_found_box">
+                        <property name="orientation">0</property>
+                        <property name="hexpand">true</property>
+                        <property name="vexpand">true</property>
+                        <property name="visible">false</property>
+                        <property name="halign">3</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">Hyprsunset not found</property>
+                            <property name="halign">3</property>
+                            <property name="valign">3</property>
+                            <property name="hexpand">true</property>
+                            <property name="vexpand">true</property>
+                            <style>
+                              <class name="error-not-found"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="widget_box">
                         <property name="orientation">0</property>
                         <property name="spacing">10</property>
                         <child>
