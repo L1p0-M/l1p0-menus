@@ -36,24 +36,7 @@ class HeaderButton(Gtk.Button):
         self.init_template()
         self.image = self.get_template_child(HeaderButton, "header_button_image")
         self.name = self.get_template_child(HeaderButton, "header_button_name")
-
-@Gtk.Template(resource_path="/l1p0-menus/ui/revealer.ui")
-class PopupRevealer(Gtk.Revealer):
-    __gtype_name__ = 'PopupRevealer'
-
-    panel = Gtk.Template.Child()
-    panel_content = Gtk.Template.Child()
-    header_label = Gtk.Template.Child()
-    close_btn = Gtk.Template.Child()
-
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.init_template()
-
-    @Gtk.Template.Callback()
-    def close_revealer(self, button):
-        self.set_reveal_child(False)
+        
 
 @Gtk.Template(resource_path="/l1p0-menus/ui/scrolled_panel.ui")
 class ScrolledPanel(Gtk.ScrolledWindow):

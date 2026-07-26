@@ -9,7 +9,6 @@
     <file preprocess="xml-stripblanks" alias="audio.ui">../popups/ui/audio.ui</file>
     <file preprocess="xml-stripblanks" alias="mute_btn.ui">../popups/ui/mute_btn.ui</file>
     <file preprocess="xml-stripblanks" alias="popup_menu_btn.ui">../popups/ui/popup_menu_btn.ui</file>
-    <file preprocess="xml-stripblanks" alias="revealer.ui">../popups/ui/revealer.ui</file>
     <file preprocess="xml-stripblanks" alias="network.ui">../popups/ui/network.ui</file>
     <file preprocess="xml-stripblanks" alias="wifi.ui">../popups/ui/wifi.ui</file>
     <file preprocess="xml-stripblanks" alias="wifi_card.ui">../popups/ui/wifi_card.ui</file>
