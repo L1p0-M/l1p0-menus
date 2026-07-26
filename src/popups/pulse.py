@@ -5,6 +5,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
 from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups, HeaderButtons
+from ..widgets.widgets import PopupHeader
 _v_layer = None
 
 
@@ -26,8 +27,10 @@ class VolumeLayer(Gtk.Window):
     vol_menu_btn = Gtk.Template.Child()
     mic_mute_btn = Gtk.Template.Child()
     mic_menu_btn = Gtk.Template.Child()
-    audio_device_switcher = Gtk.Template.Child()
-    mic_device_switcher = Gtk.Template.Child()
+    not_found_box_mic = Gtk.Template.Child()
+    not_found_box_vol = Gtk.Template.Child()
+    vol_widget_box = Gtk.Template.Child()
+    mic_widget_box = Gtk.Template.Child()
 
     def __init__(self, config):
         super().__init__(title="Audio Layer")
@@ -70,11 +73,12 @@ class VolumeLayer(Gtk.Window):
         self.shellutils.setup_layer_shell(anchor, margin)
       
     def setup_tab(self, is_mic):
-        #if self.pulseaudio.pulse is None:
-        #     not_found_label = Gtk.Label(label="Pulseaudio not found")
-        #     not_found_label.get_style_context().add_class("error-not-found")
-        #     container.append(not_found_label)
-        #     return
+        if self.pulseaudio.pulse is None:
+            self.vol_widget_box.set_visible(False)
+            self.mic_widget_box.set_visible(False)
+            self.not_found_box_mic.set_visible(True)
+            self.not_found_box_vol.set_visible(True)
+            return
         current_window = self.window_utils.setup_revealer(overlay=self.overlay, popupwindow=PopupWindow, is_mic=is_mic, pulseaudio=self.pulseaudio, window_utils=self.window_utils, callback=self.update_ui_for_new_defaults)
         if is_mic:
             self.mic_window = current_window
@@ -108,6 +112,12 @@ class VolumeLayer(Gtk.Window):
 
     def update_ui_elements(self, ev):      
         try:
+            if ev == "error":
+                self.mic_widget_box.set_visible(False)
+                self.vol_widget_box.set_visile(False)
+                self.not_found_box_vol.set_visible(True)
+                self.not_found_box_mic.set_visible(True)
+                return False
             if ev.facility == pulsectl.PulseEventFacilityEnum.server:
                 self.update_default_device_ui()
                 return False
@@ -217,8 +227,11 @@ class PopupWindow:
         self.panel.set_child(self.panel_content)
     
     def setup_ui(self):
-        self.popups.create_header(header_text="MICROPHONE" if self.is_mic else "OUTPUT DEVICE", close_function=self.window, main_container=self.panel_content)
+        # self.popups.create_header(header_text="MICROPHONE" if self.is_mic else "OUTPUT DEVICE", close_function=self.window, main_container=self.panel_content)
         #self.window.header_label.set_label("MICROPHONE" if self.is_mic else "OUTPUT DEVICE")
+        header = PopupHeader(close_funktion=lambda: self.window["revealer"].set_reveal_child(False))
+        header.header_text.set_label(f"MICROPHONE" if self.is_mic else "OUTPUT DEVICE")
+        self.panel_content.append(header)
         self.scrolled_audio_panel, self.scrolled_audio_container = self.window_utils.setup_scrolled_windows(max_height=50, min_height=50)
         self.setup_devices()
         self.panel_content.append(self.scrolled_audio_panel)
@@ -288,6 +301,8 @@ class Pulseaudio:
                     pulse_listener.event_listen(timeout=0.5)
         except Exception as e:
             print(f"Error during listening for Pulseaudio events: {e}")
+            self.pulse = None
+            GLib.idle_add(self.callback, "error")
 
     def on_pulse_event(self, ev):
         try:

@@ -1,0 +1,23 @@
+using Gtk 4.0;
+
+template $PopupHeader : Gtk.Box {
+    orientation: horizontal;
+
+    Gtk.Label header_text {
+        hexpand: true;
+        halign: start;
+        valign: center;
+        label: "Unknown";
+        styles ["header-label"]
+    }
+    Gtk.Button close_btn {
+        halign: end;
+        valign: center;
+        child: Gtk.Image {
+            icon-name: "window-close-symbolic";
+            styles ["close-icon"]
+        };
+        clicked => $on_close();
+        styles ["close-button"]
+    }
+}

@@ -3,7 +3,7 @@ import time
 import datetime
 from ..assets import weather as weather
 from ..assets.utils import Header, window_utils, GtkLayerShellUtils, Popups, IPCSocket
-from ..widgets.widgets import ScrolledPanel
+from ..widgets.widgets import ScrolledPanel, PopupHeader
 gi.require_version('Gtk', '4.0')
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib
@@ -271,14 +271,15 @@ class CalendarLayer(Gtk.Window):
 
 class PopupWindow:
     def __init__(self, match_icons, date_format="%Y-%m-%d", windows=None):
-        self.windows = windows
+        self.window = windows
         self.match_icons = match_icons
         self.date_format = date_format
         self.panel = Gtk.Frame()
         self.popups = Popups()
         self.window_utils = window_utils()
-        self.scrolled_weather = ScrolledPanel()
-        #self.scrolled_weather_content = self.scrolled_weather.panel_content
+       # self.scrolled_weather = ScrolledPanel()
+       # self.scrolled_weather_content = self.scrolled_weather.panel_content
+       # self.scrolled_weather.set_propertys(max_height=200, min_height=150, header_function=self.update_headers, sort_function=self._sort_func)
         self.scrolled_weather, self.scrolled_weather_content = self.window_utils.setup_scrolled_windows(max_height=200, min_height=150, header_function=self.update_headers, sort_function=self._sort_func)
         self.panel.add_css_class("popup-weather-panel")
         self.panel.set_size_request(-1, 170)
@@ -294,7 +295,10 @@ class PopupWindow:
         self.setup_ui()
 
     def setup_ui(self):
-        self.popups.create_header(header_text="UPCOMING WEATHER", close_function=self.windows, main_container=self.panel_content)
+        header = PopupHeader(close_funktion=lambda: self.window["revealer"].set_reveal_child(False))
+        header.header_text.set_label("UPCOMING WEATHER")
+        self.panel_content.append(header)
+        #self.popups.create_header(header_text="UPCOMING WEATHER", close_function=self.windows, main_container=self.panel_content)
         self.panel_content.append(self.scrolled_weather)
 
     def setup_weather(self, weather_forecast):

@@ -39,7 +39,23 @@ template $audio_window: Gtk.Window {
                         margin-start: 20;
                         margin-end: 20;
 
-                        Gtk.Box {
+                        Gtk.Box not_found_box_vol {
+                            orientation: horizontal;
+                            hexpand: true;
+                            vexpand: true;
+                            visible: false;
+                            halign: center;
+                            Gtk.Label {
+                                label: "Pulseaudio not found";
+                                halign: center;
+                                valign: center;
+                                hexpand: true;
+                                vexpand: true;
+                                styles ["error-not-found"]
+                            }
+                        }
+
+                        Gtk.Box vol_widget_box {
                             orientation: horizontal;
                             spacing: 10;
 
@@ -61,7 +77,9 @@ template $audio_window: Gtk.Window {
                             }
                         
                             $MuteButton vol_mute_btn {}
-                            $MenuButton vol_menu_btn {}
+                            $MenuButton vol_menu_btn {
+                                styles ["audio-menu-button"]
+                            }
 
                         }
                     };
@@ -79,7 +97,23 @@ template $audio_window: Gtk.Window {
                         margin-start: 20;
                         margin-end: 20;
 
-                        Gtk.Box {
+                        Gtk.Box not_found_box_mic {
+                            orientation: horizontal;
+                            hexpand: true;
+                            vexpand: true;
+                            visible: false;
+                            halign: center;
+                            Gtk.Label {
+                                label: "Pulseaudio not found";
+                                halign: center;
+                                valign: center;
+                                hexpand: true;
+                                vexpand: true;
+                                styles ["error-not-found"]
+                            }
+                        }
+
+                        Gtk.Box mic_widget_box {
                             orientation: horizontal;
                             spacing: 10;
 
@@ -101,7 +135,9 @@ template $audio_window: Gtk.Window {
                             }
                         
                             $MuteButton mic_mute_btn {}
-                            $MenuButton mic_menu_btn {}
+                            $MenuButton mic_menu_btn {
+                                styles ["audio-menu-button"]
+                            }
 
                         }
                     };
