@@ -56,7 +56,28 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                         <property name="margin-start">20</property>
                         <property name="margin-end">20</property>
                         <child>
-                          <object class="GtkBox">
+                          <object class="GtkBox" id="not_found_box_vol">
+                            <property name="orientation">0</property>
+                            <property name="hexpand">true</property>
+                            <property name="vexpand">true</property>
+                            <property name="visible">false</property>
+                            <property name="halign">3</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label">Pulseaudio not found</property>
+                                <property name="halign">3</property>
+                                <property name="valign">3</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">true</property>
+                                <style>
+                                  <class name="error-not-found"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="vol_widget_box">
                             <property name="orientation">0</property>
                             <property name="spacing">10</property>
                             <child>
@@ -93,7 +114,11 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                               <object class="MuteButton" id="vol_mute_btn"></object>
                             </child>
                             <child>
-                              <object class="MenuButton" id="vol_menu_btn"></object>
+                              <object class="MenuButton" id="vol_menu_btn">
+                                <style>
+                                  <class name="audio-menu-button"/>
+                                </style>
+                              </object>
                             </child>
                           </object>
                         </child>
@@ -114,7 +139,28 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                         <property name="margin-start">20</property>
                         <property name="margin-end">20</property>
                         <child>
-                          <object class="GtkBox">
+                          <object class="GtkBox" id="not_found_box_mic">
+                            <property name="orientation">0</property>
+                            <property name="hexpand">true</property>
+                            <property name="vexpand">true</property>
+                            <property name="visible">false</property>
+                            <property name="halign">3</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label">Pulseaudio not found</property>
+                                <property name="halign">3</property>
+                                <property name="valign">3</property>
+                                <property name="hexpand">true</property>
+                                <property name="vexpand">true</property>
+                                <style>
+                                  <class name="error-not-found"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox" id="mic_widget_box">
                             <property name="orientation">0</property>
                             <property name="spacing">10</property>
                             <child>
@@ -151,7 +197,11 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
                               <object class="MuteButton" id="mic_mute_btn"></object>
                             </child>
                             <child>
-                              <object class="MenuButton" id="mic_menu_btn"></object>
+                              <object class="MenuButton" id="mic_menu_btn">
+                                <style>
+                                  <class name="audio-menu-button"/>
+                                </style>
+                              </object>
                             </child>
                           </object>
                         </child>
@@ -163,12 +213,6 @@ corresponding .blp file and regenerate this file with blueprint-compiler.
             </child>
           </object>
         </property>
-        <child type="overlay">
-          <object class="PopupRevealer" id="audio_device_switcher"></object>
-        </child>
-        <child type="overlay">
-          <object class="PopupRevealer" id="mic_device_switcher"></object>
-        </child>
       </object>
     </property>
   </template>

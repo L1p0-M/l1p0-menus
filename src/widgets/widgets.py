@@ -64,6 +64,14 @@ class ScrolledPanel(Gtk.ScrolledWindow):
         super().__init__(**kwargs)
         self.init_template()
 
+    def set_propertys(self, max_height:int, min_height:int, header_function=None, sort_function=None):
+        self.set_max_content_height(max_height)
+        self.set_min_content_height(min_height)
+        if header_function:
+            self.panel_content.set_header_func(header_function)
+        if sort_function:
+            self.panel_content.set_sort_func(sort_function)
+
 @Gtk.Template(resource_path="/l1p0-menus/ui/details_popup.ui")
 class DetailsPopupRow(Gtk.Box):
     __gtype_name__ = 'DetailsPopupRow'
@@ -74,3 +82,19 @@ class DetailsPopupRow(Gtk.Box):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.init_template()
+
+@Gtk.Template(resource_path="/l1p0-menus/ui/popup_header.ui")
+class PopupHeader(Gtk.Box):
+    __gtype_name__ = 'PopupHeader'
+    header_text = Gtk.Template.Child()
+    close_btn = Gtk.Template.Child()
+
+    def __init__(self, close_funktion=None, **kwargs):
+        super().__init__(**kwargs)
+        self.init_template()
+        self.close_funktion = close_funktion
+
+    @Gtk.Template.Callback()
+    def on_close(self, *args):
+        if self.close_funktion and callable(self.close_funktion):
+            self.close_funktion()

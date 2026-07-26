@@ -4,6 +4,7 @@ gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk, Gdk, Gtk4LayerShell, GLib, Gio, GObject
 from ..assets.utils import window_utils, Popups, IPCSocket
 from ..assets.bluetooth_dbus import DbusBluez
+from ..widgets.widgets import PopupHeader
 
 
 @Gtk.Template(resource_path="/l1p0-menus/ui/bluetooth_card.ui")
@@ -483,7 +484,10 @@ class PopupWindow:
             "details": "Device Details",
             "settings": "Settings"
         }
-        self.popups.create_header(header_text=f"{header_text[self.windowtype].upper()}", close_function=lambda x: self.on_close(self.windowtype), main_container=self.panel_content)
+        #self.popups.create_header(header_text=f"{header_text[self.windowtype].upper()}", close_function=lambda x: self.on_close(self.windowtype), main_container=self.panel_content)
+        header = PopupHeader(close_funktion=lambda: self.on_close(self.windowtype))
+        header.header_text.set_label(f"{header_text[self.windowtype].upper()}")
+        self.panel_content.append(header)
         if self.windowtype == "details":
             self.hor_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
             self.hor_container.set_homogeneous(True)

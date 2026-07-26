@@ -6,7 +6,7 @@ from datetime import timedelta
 from time import strptime
 from ..assets.utils import window_utils, GtkLayerShellUtils, Popups, Notifications
 from ..assets.battery_dbus import Battery, PowerProfiles
-from ..widgets.widgets import DetailsPopupRow
+from ..widgets.widgets import DetailsPopupRow, PopupHeader
 import os
 import math
 _v_layer = None
@@ -317,7 +317,9 @@ class PopupWindow:
 
 
     def setup_ui(self):
-        self.popups.create_header(header_text=f"BATTERY DETAILS ({self.battery})", close_function=self.window, main_container=self.panel_content)
+        header = PopupHeader(close_funktion=lambda: self.window["revealer"].set_reveal_child(False))
+        header.header_text.set_label(f"BATTERY DETAILS ({self.battery})")
+        self.panel_content.append(header)
         self.details = {}
         for property_names, detail_name in self.match_names.items():
             detail_row = DetailsPopupRow()
@@ -328,7 +330,6 @@ class PopupWindow:
             self.details[property_names] = detail_row.property_value
         self.panel.set_child(self.panel_content)
         
-
 def on_present():
     global _v_layer
     _v_layer.level_bar.set_value(0)

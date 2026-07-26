@@ -24,5 +24,6 @@
     <file preprocess="xml-stripblanks" alias="power_profile_btn.ui">../popups/ui/power_profile_btn.ui</file>
     <file preprocess="xml-stripblanks" alias="battery_level_bar.ui">../popups/ui/battery_level_bar.ui</file>
     <file preprocess="xml-stripblanks" alias="level_bar.ui">../popups/ui/level_bar.ui</file>
+    <file preprocess="xml-stripblanks" alias="popup_header.ui">../popups/ui/popup_header.ui</file>
   </gresource>
 </gresources>

@@ -8,7 +8,7 @@ from ..assets.utils import Popups, window_utils, GtkLayerShellUtils, IPCSocket, 
 from ..assets.wifi_dbus import WifiDbus
 from ..assets.agent import SecretAgent
 from .bluetooth import Bluetooth
-from ..widgets.widgets import DetailsPopupRow
+from ..widgets.widgets import DetailsPopupRow, PopupHeader
 
 @Gtk.Template(resource_path="/l1p0-menus/ui/network.ui")
 class NetworkLayer(Gtk.Window):
@@ -338,8 +338,8 @@ class WifiTab(Gtk.Box):
                     self.scrolled_wifi_container.remove(self.wifi_cards_details[ssid]["row"])
                     del self.wifi_cards_details[ssid]
                 for keys, values in parameters["available_networks"].items():
-                    self.setup_wifi_cards(values)
-                self.check_for_wired_connection()
+                    GLib.idle_add(self.setup_wifi_cards, values)
+                #self.check_for_wired_connection()
         if "saved_networks" in parameters:
             self.saved_windows["overlay"].setup_saved()
         if "updated_network" in parameters:
@@ -560,7 +560,10 @@ class PopupWindow:
             "password": "Enter password",
             "vpn": "VPN Connections"
         }
-        self.popup.create_header(header_text=f"{header_text[self.type].upper()}", close_function=lambda x: self.on_close(self.type), main_container=self.panel_content)
+        #self.popup.create_header(header_text=f"{header_text[self.type].upper()}", close_function=lambda x: self.on_close(self.type), main_container=self.panel_content)
+        header = PopupHeader(close_funktion=lambda: self.on_close(self.type))
+        header.header_text.set_label(f"{header_text[self.type].upper()}")
+        self.panel_content.append(header)
         if self.type == "password":
             self.setup_password_ui()
             self.panel_content.append(self.passwdinput)
